@@ -7,6 +7,8 @@ logger = logging.getLogger(__name__)
 # Global client instance
 _bauplan_client = None
 
+def get_bauplan_client(api_key: Optional[str] = None):
+    return create_bauplan_client(api_key=api_key)
 
 def create_bauplan_client(api_key: Optional[str] = None):
     """
