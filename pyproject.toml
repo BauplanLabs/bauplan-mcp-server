@@ -1,0 +1,36 @@
+[project]
+name = "mcp-bauplan"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastmcp>=2.9.0,<3.0",
+  "uvicorn[standard]",
+  "bauplan>=0.0.3a40",
+  "pydantic>=2.6",
+  "pydantic-ai-slim[mcp,anthropic]>=0.3.5",
+  "logfire>=3.22.0",
+  "python-dotenv",
+  "markdown>=3.0",
+  "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff",
+  "pytest",
+]
+prompts = [
+  "jinja2>=3.1.0",
+]
+
+[project.scripts]
+mcp-bauplan = "mcp_bauplan.app:main"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mcp_bauplan"]
