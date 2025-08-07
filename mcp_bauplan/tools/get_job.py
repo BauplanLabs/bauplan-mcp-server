@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -27,9 +27,10 @@ def register_get_job_tool(mcp: FastMCP) -> None:
         name="get_job", 
         description="Retrieve details of a specified job using a job ID, returning a job detail object."    
     )
+    @with_fresh_client
     async def get_job(
         job_id: str,
-        api_key: Optional[str] = None,
+        bauplan_client,
         ctx: Context = None
     ) -> JobInfo:
         """
@@ -42,7 +43,6 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             JobInfo: Object containing job details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Getting job details for job ID: {job_id}")

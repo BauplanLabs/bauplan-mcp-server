@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -23,14 +23,15 @@ def register_create_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="create_table", 
         description="Create an empty table in the user's Bauplan data catalog from an S3 URI."    )
+    @with_fresh_client
     async def create_table(
         table: str,
         search_uri: str,
+        bauplan_client,
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> TableCreated:
         """
@@ -50,7 +51,6 @@ def register_create_table_tool(mcp: FastMCP) -> None:
         NOTE: This tool creates a ICEBERG table with the schema of the file(s) in the URI but it does not populate the table.
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Creating table '{table}' from search URI '{search_uri}'")

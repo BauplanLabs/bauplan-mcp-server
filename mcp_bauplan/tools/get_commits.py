@@ -3,10 +3,8 @@ from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
-import re
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class AuthorInfo(BaseModel):
     username: Optional[str] = None
@@ -28,15 +26,16 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="get_commits", 
         description="Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer)."    )
+    @with_fresh_client
     async def get_commits(
         ref: str,
+        bauplan_client,
         message_filter: Optional[str] = None,
         author_username: Optional[str] = None,
         author_email: Optional[str] = None,
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> CommitsOut:
         """
@@ -84,7 +83,6 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         #        await ctx.info(f"Ref is a commit hash: '{ref}'")
             
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             # Build filter parameters
             kwargs = {'ref': ref}

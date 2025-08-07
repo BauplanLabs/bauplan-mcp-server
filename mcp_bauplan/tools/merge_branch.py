@@ -2,9 +2,9 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class MergeResult(BaseModel):
     merged: bool
@@ -17,12 +17,13 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
         name="merge_branch", 
         description="Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names."
     )
+    @with_fresh_client
     async def merge_branch(
         source_ref: str,
         into_branch: str,
+        bauplan_client,
         commit_message: Optional[str] = None,
         commit_body: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> MergeResult:
         """
@@ -38,7 +39,6 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
             MergeResult: Object indicating success/failure with merge details
         """            
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             # Build kwargs for the API call
             kwargs = {

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Union
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -25,15 +25,16 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         name="project_run", 
         description="Execute a Bauplan project from a specified directory and reference in the user's Bauplan data catalog, returning a job ID."
     )
+    @with_fresh_client
     async def project_run(
         project_dir: str,
         ref: str,
+        bauplan_client,
         namespace: Optional[str] = None,
         parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
         dry_run: bool = False,
         client_timeout: int = 120,
         detach: bool = True,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> ProjectRun:
         """
@@ -52,7 +53,6 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             ProjectRun: Object indicating success/failure with run details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")

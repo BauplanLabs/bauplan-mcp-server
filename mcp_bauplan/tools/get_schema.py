@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import re
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class TableSchema(BaseModel):
     name: str
@@ -22,10 +22,11 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
         name="get_schema", 
         description="Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name."    
     )
+    @with_fresh_client
     async def get_schema(
         ref: str,
+        bauplan_client,
         namespace: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> SchemasOut:
         """
@@ -42,8 +43,7 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
         """
         
         try:
-            bauplan_client = get_bauplan_client(api_key)
-            if namespace == None:
+            if namespace is None:
                 namespace = "bauplan"   # get_table() needs a not null namespace in the table name 
             # Get the tables list
             ret = bauplan_client.get_tables(ref=ref, filter_by_namespace=namespace)

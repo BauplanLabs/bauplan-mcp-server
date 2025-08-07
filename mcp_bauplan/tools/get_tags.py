@@ -3,9 +3,9 @@ from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
 from typing import List, Optional
-import re
 
-from .create_client import get_bauplan_client
+
+from .create_client import with_fresh_client
 
 class TagInfo(BaseModel):
     name: str
@@ -19,10 +19,11 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
         name="get_tags", 
         description="Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size."
     )
+    @with_fresh_client
     async def get_tags(
+        bauplan_client,
         filter_by_name: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> TagsOut:
         """
@@ -37,7 +38,6 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
         """
             
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             # Debug logging
             if ctx:

@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class TableSchema(BaseModel):
     name: str
@@ -18,11 +18,12 @@ def register_get_table_tool(mcp: FastMCP) -> None:
         name="get_table", 
         description="Retrieve the schema of a specified data table in the user's Bauplan data catalog using a table name, returning a schema object."
     )
+    @with_fresh_client
     async def get_table(
         ref: str,
         table_name: str,
+        bauplan_client,
         namespace: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> TableOut:
         """
@@ -41,8 +42,7 @@ def register_get_table_tool(mcp: FastMCP) -> None:
         """
         
         try:
-            bauplan_client = get_bauplan_client(api_key)
-            if namespace == None:
+            if namespace is None:
                 namespace = "bauplan"   # get_table() needs a not null namespace in the table name 
             
             # Get the specific table schema

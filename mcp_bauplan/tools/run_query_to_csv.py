@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -26,13 +26,14 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
         name="run_query_to_csv", 
         description="Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path."
     )
+    @with_fresh_client
     async def run_query_to_csv(
         path: str,
         query: str,
+        bauplan_client,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
         client_timeout: int = 120,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> QueryToCSVResult:
         """
@@ -53,7 +54,6 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
             QueryToCSVResult: Object indicating success/failure with execution details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Executing query to CSV file: {path}")

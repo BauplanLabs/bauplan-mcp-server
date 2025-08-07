@@ -4,10 +4,9 @@ Check if a table exists.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -23,10 +22,11 @@ def register_has_table_tool(mcp: FastMCP) -> None:
         name="has_table", 
         description="Check if a specified table exists in a given branch of the user's Bauplan data catalog using a table name and branch name."
     )
+    @with_fresh_client
     async def has_table(
         table: str,
         ref: str,
-        api_key: Optional[str] = None,
+        bauplan_client,
         ctx: Context = None
     ) -> TableExists:
         """
@@ -40,7 +40,6 @@ def register_has_table_tool(mcp: FastMCP) -> None:
             TableExists: Object indicating whether the table exists with details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Checking if table '{table}' exists in ref '{ref}'")

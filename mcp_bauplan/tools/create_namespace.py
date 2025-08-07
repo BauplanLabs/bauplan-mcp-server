@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class NamespaceCreated(BaseModel):
     created: bool
@@ -16,10 +16,11 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="create_namespace", 
         description="Create a new namespace in a specified branch of the user's Bauplan data catalog using a namespace name."    )
+    @with_fresh_client
     async def create_namespace(
         namespace: str,
         branch: str,
-        api_key: Optional[str] = None,
+        bauplan_client,
         ctx: Context = None
     ) -> NamespaceCreated:
         """
@@ -33,7 +34,6 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
             NamespaceCreated: Object indicating success/failure with namespace details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
                 
             if ctx:
                 await ctx.info(f"Creating namespace '{namespace}' in branch '{branch}'")

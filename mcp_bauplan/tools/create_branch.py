@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class BranchCreated(BaseModel):
     created: bool
@@ -16,10 +16,11 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="create_branch", 
         description="Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation."    )
+    @with_fresh_client
     async def create_branch(
         branch: str,
         from_ref: str,
-        api_key: Optional[str] = None,
+        bauplan_client,
         ctx: Context = None
     ) -> BranchCreated:
         """
@@ -34,8 +35,6 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
             BranchCreated: Object indicating success/failure with branch details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
-                
             if ctx:
                 await ctx.info(f"Creating branch '{branch}' from ref '{from_ref}'")
             

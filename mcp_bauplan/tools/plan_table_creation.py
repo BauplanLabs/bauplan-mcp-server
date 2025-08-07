@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -27,14 +27,15 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         name="plan_table_creation", 
         description="Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking)."
     )
+    @with_fresh_client
     async def plan_table_creation(
         table: str,
         search_uri: str,
+        bauplan_client,
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> TablePlanCreated:
         """
@@ -55,7 +56,6 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
             TablePlanCreated: Object indicating success/failure with job tracking details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Creating table plan for '{table}' from search URI '{search_uri}'")

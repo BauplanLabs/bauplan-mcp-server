@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class BranchInfo(BaseModel):
     name: str
@@ -19,11 +19,12 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
         name="get_branches", 
         description="Retrieve branches from the user's Bauplan data catalog as a list, with optional user and limit (integer) filters to reduce response size."    
 )
+    @with_fresh_client
     async def get_branches(
+        bauplan_client,
         name: Optional[str] = None,
         user: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> BranchesOut:
         """
@@ -39,7 +40,6 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
             BranchesOut: Object containing list of branches with their names and hashes
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             # Build kwargs for the API call
             kwargs = {}

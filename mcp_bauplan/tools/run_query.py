@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 import datetime
 import re
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class QueryMetadata(BaseModel):
     row_count: int
@@ -22,13 +22,11 @@ class QueryOut(BaseModel):
     error: Optional[str] = None
 
 def execute_query(
-        query: str, 
+        query: str,
+        bauplan_client, 
         ref: Optional[str] = None, 
-        namespace: Optional[str] = None,
-        api_key: Optional[str] = None
+        namespace: Optional[str] = None
     ) -> QueryOut:
-    # Get Bauplan client
-    bauplan_client = get_bauplan_client(api_key)
 
     try:
         # Create a response structure optimized for LLM consumption
@@ -82,11 +80,12 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         name="run_query",
         description="Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace."
     )
+    @with_fresh_client
     async def run_query(
         query: str,
+        bauplan_client,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> QueryOut:
         """
@@ -132,7 +131,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
                 if keyword in normalized_query:
                     raise ToolError(f"Query contains forbidden keywords: {keyword}") 
            
-            result = execute_query(query, ref, namespace, api_key)
+            result = execute_query(query, bauplan_client, ref, namespace)
             return result
         
         except Exception as err:

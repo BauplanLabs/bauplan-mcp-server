@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -23,11 +23,12 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
         name="apply_table_creation_plan", 
         description="Apply a provided table creation plan to resolve schema conflicts and create a new table in the system. Returns a job_id for tracking the asynchronous operation."
     )
+    @with_fresh_client
     async def apply_table_creation_plan(
         plan: Dict[str, Any],
+        bauplan_client,
         args: Optional[Dict[str, str]] = None,
         client_timeout: int = 120,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> TablePlanApplied:
         """
@@ -46,10 +47,9 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
             TablePlanApplied: Object indicating success/failure with job tracking details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
-                await ctx.info(f"Applying table creation plan")
+                await ctx.info("Applying table creation plan")
             
             # Call apply_table_creation_plan function
             result = bauplan_client.apply_table_creation_plan(

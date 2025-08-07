@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 
 class NamespaceDeleted(BaseModel):
     deleted: bool
@@ -16,10 +16,11 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="delete_namespace", 
         description="Delete a specified namespace from a given branch in the user's Bauplan data catalog using a namespace name and branch name."    )
+    @with_fresh_client
     async def delete_namespace(
         namespace: str,
         branch: str,
-        api_key: Optional[str] = None,
+        bauplan_client,
         ctx: Context = None
     ) -> NamespaceDeleted:
         """
@@ -33,7 +34,6 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
             NamespaceDeleted: Object indicating success/failure of the deletion
         """         
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Deleting namespace '{namespace}' from branch '{branch}'")

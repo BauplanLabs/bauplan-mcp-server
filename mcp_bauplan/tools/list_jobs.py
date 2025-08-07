@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from fastmcp.exceptions import ToolError
 
-from .create_client import get_bauplan_client
+from .create_client import with_fresh_client
 import logging
 from fastmcp import Context
 
@@ -31,9 +31,10 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
         name="list_jobs", 
         description="Retrieve a list of jobs in Bauplan, with optional user filter."
     )
+    @with_fresh_client
     async def list_jobs(
+        bauplan_client,
         all_users: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None
     ) -> JobsList:
         """
@@ -46,7 +47,6 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             JobsList: Object containing list of jobs with their details
         """
         try:
-            bauplan_client = get_bauplan_client(api_key)
             
             if ctx:
                 await ctx.info(f"Listing jobs (all_users: {all_users})")
