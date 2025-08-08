@@ -17,6 +17,8 @@ You can get started in one minute with your existing AI assistant. You need:
 * a Bauplan [API key](https://app.bauplanlabs.com/sign-up), with your config file properly configured - the server will pick it up automatically;
 * [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment).
 
+IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to change `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
+
 Start the server with:
 
 ```bash
@@ -82,7 +84,7 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 
 The Alpha release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should be already a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines etc.. 
 
-We are actively working on improving the server and adding new features, including:
+Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
 
 * first-class support for Bauplan documentation and related use cases;
 * a server-side deployment option for existing Bauplan users;
