@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -29,18 +29,20 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
         name="cancel_job",
         description="Cancel a running job in the Bauplan system by its job_id and return the updated job status.",
     )
-    @with_fresh_client
-    async def cancel_job(job_id: str, bauplan_client, ctx: Context = None) -> JobInfo:
+    async def cancel_job(api_key: str, job_id: str, ctx: Context = None) -> JobInfo:
         """
         Cancel a running job by its ID and get updated job status.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             job_id: The ID of the job to cancel.
 
         Returns:
             JobInfo: Object containing updated job details after cancellation
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Cancelling job with ID: {job_id}")
 

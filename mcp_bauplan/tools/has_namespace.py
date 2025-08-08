@@ -6,7 +6,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -25,14 +25,14 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
         name="has_namespace",
         description="Check if a specified namespace exists in a given branch of the user's Bauplan data catalog using a namespace name and branch name.",
     )
-    @with_fresh_client
     async def has_namespace(
-        namespace: str, branch: str, bauplan_client, ctx: Context = None
+        api_key: str, namespace: str, branch: str, ctx: Context = None
     ) -> NamespaceExists:
         """
         Check if a specific namespace exists in a branch.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             namespace: Name of the namespace to check for existence.
             branch: Branch name where to check for the namespace.
 
@@ -40,6 +40,8 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
             NamespaceExists: Object indicating whether the namespace exists with details
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Checking if namespace '{namespace}' exists in branch '{branch}'"

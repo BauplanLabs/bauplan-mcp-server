@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 
 
 class TagDeleted(BaseModel):
@@ -18,20 +18,22 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
         name="delete_tag",
         description="Delete a specified tag from a given branch in the user's Bauplan data catalog using a tag name and branch name.",
     )
-    @with_fresh_client
-    async def delete_tag(tag: str, bauplan_client, ctx: Context = None) -> TagDeleted:
+    async def delete_tag(api_key: str, tag: str, ctx: Context = None) -> TagDeleted:
         """
         Delete a tag from a specific branch of the user's Bauplan catalog.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             tag: Name of the tag to delete.
 
         Returns:
             TagDeleted: Object indicating success/failure of the deletion
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
-                await ctx.info(f"Deleting tag '{tag}'")
+                await ctx.info(f"Deleting tag '{tag}")
 
             # Delete the tag
             assert bauplan_client.delete_tag(tag=tag)

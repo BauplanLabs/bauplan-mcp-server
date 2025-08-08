@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -26,11 +26,10 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         name="import_data",
         description="Import data into a specified existing table in the user's Bauplan data catalog using a table name and data source.",
     )
-    @with_fresh_client
     async def import_data(
+        api_key: str,
         table: str,
         search_uri: str,
-        bauplan_client,
         client_timeout: int = 120,
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
@@ -41,6 +40,7 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         Import data into an existing table in the user's Bauplan data lake.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             table: Name of the table to import data into.
             search_uri: URI to search for data files to import.
             client_timeout: Timeout in seconds for the import operation (defaults to 120).
@@ -52,6 +52,8 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             DataImported: Object indicating success/failure with job details
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Importing data into table '{table}' from search URI '{search_uri}'"

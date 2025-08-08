@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 
 
 class TagCreated(BaseModel):
@@ -19,14 +19,14 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
         name="create_tag",
         description="Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.",
     )
-    @with_fresh_client
     async def create_tag(
-        tag: str, from_ref: str, bauplan_client, ctx: Context = None
+        api_key: str, tag: str, from_ref: str, ctx: Context = None
     ) -> TagCreated:
         """
         Create a new tag in a specific branch of the user's Bauplan catalog.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             tag: Name of the tag to create.
             from_ref: Reference (branch or commit) from which to create the tag.
 
@@ -34,8 +34,10 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
             TagCreated: Object indicating success/failure with tag details
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
-                await ctx.info(f"Creating tag '{tag}' from reference '{from_ref}'")
+                await ctx.info(f"Creating tag '{tag}' from reference '{from_ref}")
 
             # Create the tag
             assert bauplan_client.create_tag(tag=tag, from_ref=from_ref)

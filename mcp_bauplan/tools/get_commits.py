@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Optional
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 
 
 class AuthorInfo(BaseModel):
@@ -31,10 +31,9 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         name="get_commits",
         description="Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).",
     )
-    @with_fresh_client
     async def get_commits(
+        api_key: str,
         ref: str,
-        bauplan_client,
         message_filter: Optional[str] = None,
         author_username: Optional[str] = None,
         author_email: Optional[str] = None,
@@ -47,6 +46,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         Retrieve commit history from a Bauplan branch.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             ref: branch or commit hash to get commits from. Can be either a hash that starts with "@" and
                 has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             message_filter: Optional filter for commit messages (substring match)
@@ -88,6 +88,8 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         #        await ctx.info(f"Ref is a commit hash: '{ref}'")
 
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             # Build filter parameters
             kwargs = {"ref": ref}
 

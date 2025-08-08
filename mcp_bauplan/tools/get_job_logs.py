@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import List
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -29,20 +29,22 @@ def register_get_job_logs_tool(mcp: FastMCP) -> None:
         name="get_job_logs",
         description="Retrieve a list of job logs using a job ID prefix, where JobLog is a model representing a job's log message.",
     )
-    @with_fresh_client
     async def get_job_logs(
-        job_id_prefix: str, bauplan_client, ctx: Context = None
+        api_key: str, job_id_prefix: str, ctx: Context = None
     ) -> JobLogsList:
         """
         Get job logs by job ID prefix.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             job_id_prefix: The job ID prefix to search for logs.
 
         Returns:
             JobLogsList: Object containing list of job logs with their messages and streams
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Getting job logs for job ID prefix: {job_id_prefix}")
 

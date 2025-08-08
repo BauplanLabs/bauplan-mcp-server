@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 import datetime
 import re
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 
 
 class QueryMetadata(BaseModel):
@@ -71,10 +71,9 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         name="run_query",
         description="Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace.",
     )
-    @with_fresh_client
     async def run_query(
+        api_key: str,
         query: str,
-        bauplan_client,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
         ctx: Context = None,
@@ -83,6 +82,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         Executes a SQL query against the user's Bauplan data lake.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             query: SQL query to execute
 
             ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
@@ -94,6 +94,8 @@ def register_run_query_tool(mcp: FastMCP) -> None:
             QueryOut: Response object with query results or error
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             # Enforce SELECT query for security (prevent other operations)
             # Remove leading/trailing whitespace and normalize to uppercase
             normalized_query = query.strip().upper()

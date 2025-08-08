@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Union
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -19,42 +19,44 @@ class ProjectRun(BaseModel):
     message: str
     project_dir: str
     ref: str
+    job_id: str
     namespace: Optional[str]
 
 
 def register_project_run_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="project_run",
-        description="Execute a Bauplan project from a specified directory and reference in the user's Bauplan data catalog, returning a job ID.",
+        description="Launch a job for a Bauplan pipeline from a specified directory and reference in the Bauplan catalog, returning a job ID to poll for the job status.",
     )
-    @with_fresh_client
     async def project_run(
+        api_key: str,
         project_dir: str,
         ref: str,
-        bauplan_client,
         namespace: Optional[str] = None,
         parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
         dry_run: bool = False,
         client_timeout: int = 120,
-        detach: bool = True,
         ctx: Context = None,
     ) -> ProjectRun:
         """
-        Run a Bauplan project from a specified directory and reference.
+        Run asynchronously a Bauplan pipeline from a specified project directory and reference.
+        The method will return a job ID that can be used to poll for the job status.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             project_dir: The directory of the project (where the bauplan_project.yml file is located).
             ref: The ref or branch name from which to run the project.
             namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
             parameters: Parameters for templating into Python models. Must be simple types (str, int, float, bool).
             dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
             client_timeout: Seconds to timeout (defaults to 120).
-            detach: Whether to detach the run and return immediately instead of blocking on log streaming (defaults to True).
-
+            
         Returns:
-            ProjectRun: Object indicating success/failure with run details
+            ProjectRun: Object indicating success/failure with job details
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")
 
@@ -74,27 +76,31 @@ def register_project_run_tool(mcp: FastMCP) -> None:
 
                 logger.info(f"Processed parameters: {processed_parameters}")
 
+            # We dry-run everywhere, but no non-dry-run can be done with ref = 'main'
+            assert dry_run or ref != "main", "Runs not allowed with ref='main', unless dry_run=True"
+
             # Call run function
-            bauplan_client.run(
+            run_state = bauplan_client.run(
                 project_dir=project_dir,
                 ref=ref,
                 namespace=namespace,
                 parameters=processed_parameters,
                 dry_run=dry_run,
                 client_timeout=client_timeout,
-                detach=detach,
+                detach=True,  # Detach to run in background as default
             )
 
             # Log successful run
             logger.info(
-                f"Successfully executed project run from '{project_dir}' with ref '{ref}'"
+                f"Successfully project run from '{project_dir}' with ref '{ref}', job ID: {run_state.job_id}"
             )
 
             return ProjectRun(
                 success=True,
-                message=f"Project run successfully executed from '{project_dir}' with ref '{ref}'",
+                message=f"Project run successfully executed from '{project_dir}' with ref '{ref}', job ID: {run_state.job_id}",
                 project_dir=project_dir,
                 ref=ref,
+                job_id=run_state.job_id,
                 namespace=namespace,
             )
 

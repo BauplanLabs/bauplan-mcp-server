@@ -6,7 +6,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_fresh_client
+from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
 
@@ -24,14 +24,14 @@ def register_has_table_tool(mcp: FastMCP) -> None:
         name="has_table",
         description="Check if a specified table exists in a given branch of the user's Bauplan data catalog using a table name and branch name.",
     )
-    @with_fresh_client
     async def has_table(
-        table: str, ref: str, bauplan_client, ctx: Context = None
+        api_key: str, table: str, ref: str, ctx: Context = None
     ) -> TableExists:
         """
         Check if a table exists in the user's Bauplan data lake.
 
         Args:
+            api_key: The Bauplan API key for authentication.
             table: Name of the table to check for existence.
             ref: A reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
 
@@ -39,6 +39,8 @@ def register_has_table_tool(mcp: FastMCP) -> None:
             TableExists: Object indicating whether the table exists with details
         """
         try:
+            # Create a fresh Bauplan client
+            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Checking if table '{table}' exists in ref '{ref}'")
 
