@@ -5,7 +5,6 @@ from starlette.responses import PlainTextResponse
 from starlette.requests import Request
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.dependencies import get_http_request
-from starlette.requests import Request
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -45,8 +44,12 @@ from .tools.delete_tag import register_delete_tag_tool
 
 # Suppress known deprecation warnings from uvicorn/websockets compatibility issue
 # These warnings are harmless and will be fixed in future uvicorn releases
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets.legacy")
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.protocols.websockets")
+warnings.filterwarnings(
+    "ignore", category=DeprecationWarning, module="websockets.legacy"
+)
+warnings.filterwarnings(
+    "ignore", category=DeprecationWarning, module="uvicorn.protocols.websockets"
+)
 
 MCP_SERVER_NAME = "mcp-bauplan"
 logger = logging.getLogger(__name__)
@@ -56,16 +59,16 @@ class SimpleLoggingMiddleware(Middleware):
     """
     FastMCP middleware to capture the header of a call_tool request.
     """
-    
+
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         request: Request = get_http_request()
         headers = request.headers
 
         # If 'bauplan' or 'Bauplan' is explicitly in the headers, use it as the API key
-        # This allows the model to pass a custom API key for Bauplan operations instead of 
+        # This allows the model to pass a custom API key for Bauplan operations instead of
         # relying on the default one in the config file.
-        if 'bauplan' in headers or 'Bauplan' in headers:
-            api_key = headers.get('bauplan') or headers.get('Bauplan')
+        if "bauplan" in headers or "Bauplan" in headers:
+            api_key = headers.get("bauplan") or headers.get("Bauplan")
             if api_key and api_key.lower().startswith("bearer "):
                 api_key = api_key[7:].strip()
             context.message.arguments["api_key"] = api_key
@@ -82,15 +85,16 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         return response
-    
+
 
 def main() -> None:
     """
     Main entry point for the MCP Bauplan server.
     """
     ap = argparse.ArgumentParser()
-    ap.add_argument("--transport", default="stdio",
-                    choices=["stdio", "sse", "streamable-http"])
+    ap.add_argument(
+        "--transport", default="stdio", choices=["stdio", "sse", "streamable-http"]
+    )
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)
     args = ap.parse_args()
@@ -98,7 +102,7 @@ def main() -> None:
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     mcp = FastMCP(
@@ -156,12 +160,12 @@ client.create_tag('v1.0-qa', commit_ref)
 WORKFLOW FOR DATA TABLE CREATION:
 Option 1: single step. Use the single shot tool 'create_table' when there is only one table in the S3 bucket or when the objects in the bucket are certain to be homogeneous and have the same schema. PREFERRED.
 Option 2: two steps. Used when schema conflicts exist after plan creation and need manual resolution. First step:  `plan_table_creation `- Create a table import plan from S3 location (generates YAML schema plan with job tracking. Second step:  `apply_table_creation_plan `- Apply a table creation plan to resolve schema conflicts as described in the YAML schema plan returned by the first step (returns job_id for tracking). TO USE WHEN OPTION 1 FAILS.
-"""
+""",
     )
 
     ## add middleware to add the Bauplan api_key to all requests
-    mcp.add_middleware(SimpleLoggingMiddleware()) 
-    
+    mcp.add_middleware(SimpleLoggingMiddleware())
+
     # Register tools
     register_list_tables_tool(mcp)
     register_get_schema_tool(mcp)
@@ -194,7 +198,7 @@ Option 2: two steps. Used when schema conflicts exist after plan creation and ne
     register_create_tag_tool(mcp)
     register_has_tag_tool(mcp)
     register_delete_tag_tool(mcp)
-    
+
     if args.transport != "stdio":
         # Create the app based on transport type
         if args.transport == "sse":
@@ -202,7 +206,7 @@ Option 2: two steps. Used when schema conflicts exist after plan creation and ne
         else:
             # For HTTP/streamable-http
             app = mcp.http_app()
-        
+
         # Add CORS middleware
         app.add_middleware(
             CORSMiddleware,
@@ -211,25 +215,25 @@ Option 2: two steps. Used when schema conflicts exist after plan creation and ne
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        
+
         # Handle /mcp -> /mcp/ redirect issue with middleware
         class TrailingSlashMiddleware(BaseHTTPMiddleware):
             async def dispatch(self, request: Request, call_next):
                 # If path is /mcp (without trailing slash), modify it
                 if request.url.path == "/mcp":
                     request.scope["path"] = "/mcp/"
-                    
+
                 response = await call_next(request)
                 return response
-        
+
         # Add the trailing slash middleware
         app.add_middleware(TrailingSlashMiddleware)
-        
+
         # Health check endpoint
-        @mcp.custom_route("/healthz", methods=["GET"])           
-        async def health(_: Request) -> PlainTextResponse:      
+        @mcp.custom_route("/healthz", methods=["GET"])
+        async def health(_: Request) -> PlainTextResponse:
             return PlainTextResponse("ok")
-        
+
         # Run server
         uvicorn.run(app, host=args.host, port=args.port)
     else:
