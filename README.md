@@ -15,9 +15,10 @@ To know how to get the most out of the MCP server, check out our video walkthrou
 You can get started in one minute with your existing AI assistant. You need:
 
 * a Bauplan [API key](https://app.bauplanlabs.com/sign-up), with your config file properly configured - the server will pick it up automatically;
-* [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment).
+* [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment, see below);
+* an AI platform able to leverage the MCP, as for example Claude Code, Cursor, [Claude Desktop](https://modelcontextprotocol.io/quickstart/user).
 
-IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to change `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
+IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to write one `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
 
 Start the server with:
 
@@ -29,10 +30,12 @@ uv run python main.py --transport streamable-http
 The MCP server is now available at `http://localhost:8000/mcp`. You can configure the server in Claude Code for example with:
 
 ```bash
-claude mcp add -t http mcp-bauplan "http://localhost:8000/mcp" 
+claude mcp add -t http mcp-bauplan "http://localhost:8000/mcp"
 ```
 
-Et voilà! You can now start asking Claude Code questions about your data lakehouse: check out the video [Link Coming Soon]
+Note: similar commands can be run on [Claude Desktop](https://modelcontextprotocol.io/quickstart/user) or [Cursor](https://docs.cursor.com/en/context/mcp) to enable the AI to access the server.
+
+Et voilà! You can now start asking your AI questions about your data lakehouse (and much more!): check out the video [Link Coming Soon]
 
 For more advanced configurations, alternative transport options, and usage with the MCP Inspector, see the sections below.
 
