@@ -19,13 +19,7 @@ def create_bauplan_client(api_key: Optional[str] = None) -> bauplan.Client:
     try:
         # Establish connection to Bauplan
         client = bauplan.Client(api_key=api_key)
-        user = client.info().user
-        username = user.username
-        full_name = user.full_name
-
-        logger.info(
-            f"Connected to Bauplan. Username={username}, Full Name={full_name}"
-        )
+        logger.info("Connected to Bauplan")
         return client
 
     except Exception as e:

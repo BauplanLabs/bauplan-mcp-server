@@ -29,7 +29,9 @@ def register_get_job_tool(mcp: FastMCP) -> None:
         name="get_job",
         description="Retrieve details of a specified job using a job ID, returning a job detail object.",
     )
-    async def get_job(job_id: str, api_key: Optional[str] = None, ctx: Context = None) -> JobInfo:
+    async def get_job(
+        job_id: str, api_key: Optional[str] = None, ctx: Context = None
+    ) -> JobInfo:
         """
         Get details of a specific job by its ID.
 

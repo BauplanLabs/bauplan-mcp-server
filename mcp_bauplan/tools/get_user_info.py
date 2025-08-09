@@ -34,16 +34,13 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
         try:
             # Create a fresh Bauplan client
             bauplan_client = create_bauplan_client(api_key)
-            
+
             # Get user info from the client
             user = bauplan_client.info().user
             username = user.username
             full_name = user.full_name
 
-            return UserInfo(
-                username=username,
-                full_name=full_name
-            )
+            return UserInfo(username=username, full_name=full_name)
 
         except Exception as e:
             raise ToolError(f"Failed to get user info: {str(e)}")

@@ -25,7 +25,9 @@ def register_has_tag_tool(mcp: FastMCP) -> None:
         name="has_tag",
         description="Check if a specified tag exists in a given branch of the user's Bauplan data catalog using a tag name and branch name.",
     )
-    async def has_tag(tag: str, api_key: Optional[str] = None, ctx: Context = None) -> TagExists:
+    async def has_tag(
+        tag: str, api_key: Optional[str] = None, ctx: Context = None
+    ) -> TagExists:
         """
         Check if a specific tag exists in a branch.
 

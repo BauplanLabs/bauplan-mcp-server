@@ -50,7 +50,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
             client_timeout: Seconds to timeout (defaults to 120).
             api_key: The Bauplan API key for authentication.
-            
+
         Returns:
             ProjectRun: Object indicating success/failure with job details
         """
@@ -77,7 +77,9 @@ def register_project_run_tool(mcp: FastMCP) -> None:
                 logger.info(f"Processed parameters: {processed_parameters}")
 
             # We dry-run everywhere, but no non-dry-run can be done with ref = 'main'
-            assert dry_run or ref != "main", "Runs not allowed with ref='main', unless dry_run=True"
+            assert dry_run or ref != "main", (
+                "Runs not allowed with ref='main', unless dry_run=True"
+            )
 
             # Call run function
             run_state = bauplan_client.run(

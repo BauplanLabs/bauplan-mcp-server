@@ -18,7 +18,9 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
         name="delete_tag",
         description="Delete a specified tag from a given branch in the user's Bauplan data catalog using a tag name and branch name.",
     )
-    async def delete_tag(tag: str, api_key: Optional[str] = None, ctx: Context = None) -> TagDeleted:
+    async def delete_tag(
+        tag: str, api_key: Optional[str] = None, ctx: Context = None
+    ) -> TagDeleted:
         """
         Delete a tag from a specific branch of the user's Bauplan catalog.
 

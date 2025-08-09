@@ -20,7 +20,10 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
         description="Retrieve a list of all data tables in a specified branch or reference of the user's Bauplan data catalog using a ref name.",
     )
     async def list_tables(
-        ref: str, namespace: Optional[str] = None, api_key: Optional[str] = None, ctx: Context = None
+        ref: str,
+        namespace: Optional[str] = None,
+        api_key: Optional[str] = None,
+        ctx: Context = None,
     ) -> TablesOut:
         """
         List all data tables in the user's Bauplan data lake.

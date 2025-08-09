@@ -26,7 +26,10 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
         description="Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name.",
     )
     async def get_schema(
-        ref: str, namespace: Optional[str] = None, api_key: Optional[str] = None, ctx: Context = None
+        ref: str,
+        namespace: Optional[str] = None,
+        api_key: Optional[str] = None,
+        ctx: Context = None,
     ) -> SchemasOut:
         """
         Return the schema of all data tables in the user's Bauplan data lake.

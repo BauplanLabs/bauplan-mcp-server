@@ -35,7 +35,9 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
         description="Retrieve a list of jobs in Bauplan, with optional user filter.",
     )
     async def list_jobs(
-        all_users: Optional[bool] = None, api_key: Optional[str] = None, ctx: Context = None
+        all_users: Optional[bool] = None,
+        api_key: Optional[str] = None,
+        ctx: Context = None,
     ) -> JobsList:
         """
         List jobs in the Bauplan system.

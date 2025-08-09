@@ -22,7 +22,7 @@ IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to 
 Start the server with:
 
 ```bash
-uv sync --extra dev --extra prompts
+uv sync
 uv run python main.py --transport streamable-http
 ```
 
@@ -44,7 +44,7 @@ You can run the MCP server also using a standard Python virtual environment:
 
 ```bash
 python -m venv venv && source venv/bin/activate
-pip install -e .[dev,prompts]
+pip install -e .
 ```
 
 ### Bauplan Credentials
