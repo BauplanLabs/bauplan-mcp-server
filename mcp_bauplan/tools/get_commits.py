@@ -32,7 +32,6 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         description="Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).",
     )
     async def get_commits(
-        api_key: str,
         ref: str,
         message_filter: Optional[str] = None,
         author_username: Optional[str] = None,
@@ -40,13 +39,13 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
         limit: Optional[int] = 10,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> CommitsOut:
         """
         Retrieve commit history from a Bauplan branch.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             ref: branch or commit hash to get commits from. Can be either a hash that starts with "@" and
                 has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             message_filter: Optional filter for commit messages (substring match)
@@ -55,6 +54,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
             date_start: Optional start date for filtering (ISO format: YYYY-MM-DD)
             date_end: Optional end date for filtering (ISO format: YYYY-MM-DD)
             limit: Maximum number of commits to return (default: 10)
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             CommitsOut: Object containing list of commits and total count

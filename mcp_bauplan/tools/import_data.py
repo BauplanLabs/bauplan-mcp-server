@@ -27,26 +27,26 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         description="Import data into a specified existing table in the user's Bauplan data catalog using a table name and data source.",
     )
     async def import_data(
-        api_key: str,
         table: str,
         search_uri: str,
         client_timeout: int = 120,
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
         continue_on_error: Optional[bool] = False,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> DataImported:
         """
         Import data into an existing table in the user's Bauplan data lake.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             table: Name of the table to import data into.
             search_uri: URI to search for data files to import.
             client_timeout: Timeout in seconds for the import operation (defaults to 120).
             namespace: Optional namespace (defaults to "bauplan").
             branch: Optional branch name.
             continue_on_error: Optional flag to continue on errors during import (defaults to False).
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             DataImported: Object indicating success/failure with job details

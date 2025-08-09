@@ -72,23 +72,21 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         description="Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace.",
     )
     async def run_query(
-        api_key: str,
         query: str,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> QueryOut:
         """
         Executes a SQL query against the user's Bauplan data lake.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             query: SQL query to execute
-
             ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
             has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-
             namespace: Optional namespace to use.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             QueryOut: Response object with query results or error

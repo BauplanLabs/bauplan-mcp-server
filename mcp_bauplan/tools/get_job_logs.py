@@ -4,7 +4,7 @@ Get job logs by job ID prefix.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import create_bauplan_client
@@ -30,14 +30,14 @@ def register_get_job_logs_tool(mcp: FastMCP) -> None:
         description="Retrieve a list of job logs using a job ID prefix, where JobLog is a model representing a job's log message.",
     )
     async def get_job_logs(
-        api_key: str, job_id_prefix: str, ctx: Context = None
+        job_id_prefix: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> JobLogsList:
         """
         Get job logs by job ID prefix.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             job_id_prefix: The job ID prefix to search for logs.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobLogsList: Object containing list of job logs with their messages and streams

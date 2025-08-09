@@ -20,15 +20,15 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
         description="Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.",
     )
     async def create_tag(
-        api_key: str, tag: str, from_ref: str, ctx: Context = None
+        tag: str, from_ref: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> TagCreated:
         """
         Create a new tag in a specific branch of the user's Bauplan catalog.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             tag: Name of the tag to create.
             from_ref: Reference (branch or commit) from which to create the tag.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             TagCreated: Object indicating success/failure with tag details

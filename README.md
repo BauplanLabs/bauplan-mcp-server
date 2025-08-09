@@ -139,6 +139,9 @@ If you have specific features you would like to see, please get in touch with us
 - **`get_job_logs`**: Get job logs by job ID prefix for debugging and monitoring
 - **`cancel_job`**: Cancel a running job by its ID and get updated job status
 
+#### User Management
+- **`get_user_info`**: Get information about the current authenticated user (username and full name)
+
 ## Acknowledgements
 
 We wish to thank [Marco](https://github.com/marcoeg) for his contributions to a previous version of this MCP server.

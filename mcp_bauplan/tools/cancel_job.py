@@ -29,13 +29,13 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
         name="cancel_job",
         description="Cancel a running job in the Bauplan system by its job_id and return the updated job status.",
     )
-    async def cancel_job(api_key: str, job_id: str, ctx: Context = None) -> JobInfo:
+    async def cancel_job(job_id: str, api_key: Optional[str] = None, ctx: Context = None) -> JobInfo:
         """
         Cancel a running job by its ID and get updated job status.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             job_id: The ID of the job to cancel.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobInfo: Object containing updated job details after cancellation

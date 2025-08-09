@@ -41,6 +41,7 @@ from .tools.get_tags import register_get_tags_tool
 from .tools.create_tag import register_create_tag_tool
 from .tools.has_tag import register_has_tag_tool
 from .tools.delete_tag import register_delete_tag_tool
+from .tools.get_user_info import register_get_user_info_tool
 
 # Suppress known deprecation warnings from uvicorn/websockets compatibility issue
 # These warnings are harmless and will be fixed in future uvicorn releases
@@ -137,6 +138,7 @@ def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000) -> N
     register_create_tag_tool(mcp)
     register_has_tag_tool(mcp)
     register_delete_tag_tool(mcp)
+    register_get_user_info_tool(mcp)
 
     if transport != "stdio":
         # Create the app based on transport type

@@ -29,13 +29,13 @@ def register_get_job_tool(mcp: FastMCP) -> None:
         name="get_job",
         description="Retrieve details of a specified job using a job ID, returning a job detail object.",
     )
-    async def get_job(api_key: str, job_id: str, ctx: Context = None) -> JobInfo:
+    async def get_job(job_id: str, api_key: Optional[str] = None, ctx: Context = None) -> JobInfo:
         """
         Get details of a specific job by its ID.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             job_id: The ID of the job to retrieve.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobInfo: Object containing job details

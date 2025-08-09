@@ -19,16 +19,14 @@ def register_delete_branch_tool(mcp: FastMCP) -> None:
         description="Delete a specified branch from the user's Bauplan data catalog using a branch name.",
     )
     async def delete_branch(
-        api_key: str, branch: str, ctx: Context = None
+        branch: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> BranchDeleted:
         """
         Delete a branch from the user's Bauplan catalog.
 
         Args:
+            branch: Name of the branch to delete. Must follow the format <username.branch_name>.
             api_key: The Bauplan API key for authentication.
-            branch: Name of the new branch to create. Must follow the format <username.branch_name>.
-            from_ref: Reference (branch/commit) to create the branch from. Can be either a branch name or a hash that starts with "@" and
-            has 64 additional characters.
 
         Returns:
             BranchDeleted: Object indicating success/failure of the deletion

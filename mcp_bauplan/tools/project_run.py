@@ -29,13 +29,13 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         description="Launch a job for a Bauplan pipeline from a specified directory and reference in the Bauplan catalog, returning a job ID to poll for the job status.",
     )
     async def project_run(
-        api_key: str,
         project_dir: str,
         ref: str,
         namespace: Optional[str] = None,
         parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
         dry_run: bool = False,
         client_timeout: int = 120,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> ProjectRun:
         """
@@ -43,13 +43,13 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         The method will return a job ID that can be used to poll for the job status.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             project_dir: The directory of the project (where the bauplan_project.yml file is located).
             ref: The ref or branch name from which to run the project.
             namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
             parameters: Parameters for templating into Python models. Must be simple types (str, int, float, bool).
             dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
             client_timeout: Seconds to timeout (defaults to 120).
+            api_key: The Bauplan API key for authentication.
             
         Returns:
             ProjectRun: Object indicating success/failure with job details

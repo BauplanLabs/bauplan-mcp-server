@@ -20,15 +20,15 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
         description="Delete a specified namespace from a given branch in the user's Bauplan data catalog using a namespace name and branch name.",
     )
     async def delete_namespace(
-        api_key: str, namespace: str, branch: str, ctx: Context = None
+        namespace: str, branch: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> NamespaceDeleted:
         """
         Delete a namespace from a specific branch of the user's Bauplan catalog.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             namespace: Name of the namespace to delete.
             branch: Branch name containing the namespace to delete. Must follow the format <username.branch_name>.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             NamespaceDeleted: Object indicating success/failure of the deletion

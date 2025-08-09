@@ -29,12 +29,12 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
         description="Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path.",
     )
     async def run_query_to_csv(
-        api_key: str,
         path: str,
         query: str,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
         client_timeout: int = 120,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> QueryToCSVResult:
         """
@@ -45,12 +45,12 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
         For complex data, use run_query tool instead or modify SQL to flatten/convert data.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             path: Output CSV file path where results will be saved.
             query: SQL query to execute (DuckDB SQL syntax).
             ref: Branch/reference to query against (optional).
             namespace: Namespace to use (optional).
             client_timeout: Timeout in seconds (defaults to 120).
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             QueryToCSVResult: Object indicating success/failure with execution details

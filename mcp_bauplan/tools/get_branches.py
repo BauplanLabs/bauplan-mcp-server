@@ -23,10 +23,10 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
         description="Retrieve branches from the user's Bauplan data catalog as a list, with optional user and limit (integer) filters to reduce response size.",
     )
     async def get_branches(
-        api_key: str,
         name: Optional[str] = None,
         user: Optional[str] = None,
         limit: Optional[int] = 10,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> BranchesOut:
         """
@@ -34,10 +34,10 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
         NOTE: This can return a large response. Always use limit parameter.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             name: Optional filter to get branches by name (substring match)
             user: Optional filter to get branches by user
             limit: Maximum number of branches to return
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             BranchesOut: Object containing list of branches with their names and hashes

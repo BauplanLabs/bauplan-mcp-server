@@ -26,10 +26,10 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
         description="Apply a provided table creation plan to resolve schema conflicts and create a new table in the system. Returns a job_id for tracking the asynchronous operation.",
     )
     async def apply_table_creation_plan(
-        api_key: str,
         plan: Dict[str, Any],
         args: Optional[Dict[str, str]] = None,
         client_timeout: int = 120,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> TablePlanApplied:
         """
@@ -40,10 +40,10 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
         Note: This is done automatically during table plan creation if no schema conflicts exist.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             plan: The plan dictionary or TableCreatePlanState to apply.
             args: Additional arguments for plan application (optional).
             client_timeout: Timeout in seconds (defaults to 120).
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             TablePlanApplied: Object indicating success/failure with job tracking details

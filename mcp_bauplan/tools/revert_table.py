@@ -28,22 +28,22 @@ def register_revert_table_tool(mcp: FastMCP) -> None:
         description="Revert a specified table from a source reference to a target branch in the user's Bauplan data catalog using a table name, source reference, and target branch.",
     )
     async def revert_table(
-        api_key: str,
         table: str,
         source_ref: str,
         into_branch: str,
         replace: Optional[bool] = None,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> TableReverted:
         """
         Revert a table from a source reference to a target branch.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             table: The table to revert.
             source_ref: The name of the source ref.
             into_branch: The name of the target branch where the table will be reverted.
             replace: Optional, whether to replace the table if it already exists.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             TableReverted: Object indicating success/failure with revert details

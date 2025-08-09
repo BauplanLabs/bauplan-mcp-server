@@ -26,17 +26,16 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
         description="Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name.",
     )
     async def get_schema(
-        api_key: str, ref: str, namespace: Optional[str] = None, ctx: Context = None
+        ref: str, namespace: Optional[str] = None, api_key: Optional[str] = None, ctx: Context = None
     ) -> SchemasOut:
         """
         Return the schema of all data tables in the user's Bauplan data lake.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
             has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-
             namespace: Optional namespace table filter to use.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             SchemasOut: Schema object with table fields

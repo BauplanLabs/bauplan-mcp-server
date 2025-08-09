@@ -20,22 +20,22 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
         description="Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.",
     )
     async def merge_branch(
-        api_key: str,
         source_ref: str,
         into_branch: str,
         commit_message: Optional[str] = None,
         commit_body: Optional[str] = None,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> MergeResult:
         """
         Merge a source branch into a target branch. Branch names must follow the format <username.branch_name>.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             source_ref: The branch to merge from. The name must follow the format <username.branch_name>.
             into_branch: The target branch to merge into. The name must follow the format <username.branch_name>.
             commit_message: Optional custom commit message for the merge
             commit_body: Optional additional commit body/description
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             MergeResult: Object indicating success/failure with merge details

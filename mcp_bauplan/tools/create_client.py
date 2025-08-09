@@ -5,7 +5,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def create_bauplan_client(api_key: Optional[str] = None):
+def create_bauplan_client(api_key: Optional[str] = None) -> bauplan.Client:
     """
     Creates and validates a connection Bauplan.
     Retrieves connection parameters from config, establishes a connection.
@@ -24,7 +24,7 @@ def create_bauplan_client(api_key: Optional[str] = None):
         full_name = user.full_name
 
         logger.info(
-            f"Connected to Bauplan.  username={username}, full_name={full_name}"
+            f"Connected to Bauplan. Username={username}, Full Name={full_name}"
         )
         return client
 

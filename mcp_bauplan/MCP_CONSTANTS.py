@@ -9,6 +9,8 @@ IMPORTANT: if you (the model) have been configured to provide a custom header "B
 IMPORTANT: for SQL generation use the DuckDB SQL dialect. Exception: do not use DESCRIBE or CREATE. 
 Use get_table to get the schema of a table. Use get_schema to get the schema of all the tables in a branch. Use list_tables to list all the tables in a branch.
 
+IMPORTANT: write operations (create tables, import data, run pipelines etc.) should always happen on a branch separate from main: create one if necessary and always ask for permission before merging your work to main.
+
 DATA LINEAGE CONCEPTS:
 1. Branch
 A branch is a mutable pointer to the most recent commit in a lineage.

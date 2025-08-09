@@ -35,14 +35,14 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
         description="Retrieve a list of jobs in Bauplan, with optional user filter.",
     )
     async def list_jobs(
-        api_key: str, all_users: Optional[bool] = None, ctx: Context = None
+        all_users: Optional[bool] = None, api_key: Optional[str] = None, ctx: Context = None
     ) -> JobsList:
         """
         List jobs in the Bauplan system.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             all_users: Whether to list jobs for all users (optional, defaults to None for current user only).
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobsList: Object containing list of jobs with their details

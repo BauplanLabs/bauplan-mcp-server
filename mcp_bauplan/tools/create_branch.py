@@ -20,16 +20,16 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
         description="Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation.",
     )
     async def create_branch(
-        api_key: str, branch: str, from_ref: str, ctx: Context = None
+        branch: str, from_ref: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> BranchCreated:
         """
         Create a new branch in the user's Bauplan catalog.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             branch: Name of the new branch to create. Mustllow the format <username.branch_name>.
             from_ref: Reference (branch/commit) to create the branch from. Can be either a branch name or a hash that starts with "@" and
             has 64 additional characters.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             BranchCreated: Object indicating success/failure with branch details

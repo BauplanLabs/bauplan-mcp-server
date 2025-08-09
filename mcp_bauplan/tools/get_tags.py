@@ -23,18 +23,18 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
         description="Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.",
     )
     async def get_tags(
-        api_key: str,
         filter_by_name: Optional[str] = None,
         limit: Optional[int] = 10,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> TagsOut:
         """
         Get the tags of a branch using optional filters.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             filter_by_name: Optional filter for tag names (substring match)
             limit: Optional maximum number of tags to return
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             TagsOut: Object containing list of tags and total count

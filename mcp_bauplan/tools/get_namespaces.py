@@ -22,21 +22,21 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
         description="Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.",
     )
     async def get_namespaces(
-        api_key: str,
         ref: str,
         namespace: Optional[str] = None,
         limit: Optional[int] = 10,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> NamespacesOut:
         """
         Get the namespaces of a branch using optional filters.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             ref: branch or commit hash to get namespaces from. Can be either a hash that starts with "@" and
                 has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             namespace: Optional filter for namespace names (substring match)
             limit: Optional maximum number of namespaces to return (default: 50)
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             NamespacesOut: Object containing list of namespaces and total count

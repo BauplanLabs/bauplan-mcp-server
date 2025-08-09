@@ -4,6 +4,7 @@ Check if a branch exists.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
+from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import create_bauplan_client
@@ -25,14 +26,14 @@ def register_has_branch_tool(mcp: FastMCP) -> None:
         description="Check if a specified branch exists in the user's Bauplan data catalog using a branch name.",
     )
     async def has_branch(
-        api_key: str, branch: str, ctx: Context = None
+        branch: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> BranchExists:
         """
         Check if a specific branch exists in the Bauplan catalog.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             branch: Name of the branch to check for existence.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             BranchExists: Object indicating whether the branch exists with details

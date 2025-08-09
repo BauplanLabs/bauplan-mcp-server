@@ -30,13 +30,13 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         description="Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking).",
     )
     async def plan_table_creation(
-        api_key: str,
         table: str,
         search_uri: str,
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
+        api_key: Optional[str] = None,
         ctx: Context = None,
     ) -> TablePlanCreated:
         """
@@ -46,13 +46,13 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         A YAML file containing the schema and plan is returned and if there are no conflicts, it is automatically applied.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             table: Name of the table to plan creation for.
             search_uri: S3 URI to search for parquet files.
             namespace: Optional namespace (defaults to "bauplan").
             branch: Optional branch name.
             partitioned_by: Optional partitioning column.
             replace: Optional flag to replace existing table.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             TablePlanCreated: Object indicating success/failure with job tracking details

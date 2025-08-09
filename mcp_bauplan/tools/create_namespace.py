@@ -20,15 +20,15 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
         description="Create a new namespace in a specified branch of the user's Bauplan data catalog using a namespace name.",
     )
     async def create_namespace(
-        api_key: str, namespace: str, branch: str, ctx: Context = None
+        namespace: str, branch: str, api_key: Optional[str] = None, ctx: Context = None
     ) -> NamespaceCreated:
         """
         Create a new namespace in a specific branch of the user's Bauplan catalog.
 
         Args:
-            api_key: The Bauplan API key for authentication.
             namespace: Name of the namespace to create.
             branch: Branch name where the namespace will be created. Must follow the format <username.branch_name>.
+            api_key: The Bauplan API key for authentication.
 
         Returns:
             NamespaceCreated: Object indicating success/failure with namespace details
