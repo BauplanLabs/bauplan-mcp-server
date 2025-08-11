@@ -16,5 +16,6 @@ if __name__ == "__main__":
     )
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--profile", type=str, default=None, help="Bauplan profile to use")
     args = ap.parse_args()
-    main(transport=args.transport, host=args.host, port=args.port)
+    main(transport=args.transport, host=args.host, port=args.port, profile=args.profile)

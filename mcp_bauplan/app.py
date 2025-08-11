@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
+import os
 import warnings
 from .MCP_CONSTANTS import MCP_SERVER_NAME, INSTRUCTIONS
 from .tools.list_tables import register_list_tables_tool
@@ -93,10 +94,13 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000) -> None:
+def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, profile: str | None = None) -> None:
     """
     Main entry point for the MCP Bauplan server.
     """
+    # if the profile is set, add it to the envs
+    if profile:
+        os.environ["BAUPLAN_PROFILE"] = profile
 
     mcp = FastMCP(
         MCP_SERVER_NAME,

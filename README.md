@@ -52,7 +52,11 @@ pip install -e .
 
 ### Bauplan Credentials
 
-You could configure Claude (or your AI assistant of choice) to use a different Bauplan API key (i.e. not the one in your current config file) by passing it in every call as a header (key=`Bauplan`, value=`your_api_key`).
+The alpha releases covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
+
+* if you do not specify a Bauplan profile as a flag (see below CLI options), the default one on the machine running the server will be used at every interaction with the lakehouse;
+* if you specify a profile as a flag, this profile will be used instead when instantiating a Bauplan client;
+* if you specify a header in your assistant - key=`Bauplan`, value=`your_api_key` (e.g. in Claude code `claude mcp add -H "Bauplan: <your-bauplan-api-key>" ...`) -, `your_api_key` will be used instead when instantiating a Bauplan client. This is convenient for quick tests, and opens up the possibility of hosting the catalog on a shared infrastructure, delegating to clients the Bauplan API key management.
 
 ### CLI Options
 
@@ -63,6 +67,7 @@ The server supports the following CLI options, mostly useful for specifying alte
 | `--transport` | `stdio` | Transport protocol: `stdio`, `sse`, or `streamable-http` | All commands |
 | `--host` | `127.0.0.1` | Host to bind to (localhost by default) | `sse`, `streamable-http` only |
 | `--port` | `8000` | Port to bind to | `sse`, `streamable-http` only |
+| `--profile` | `None` | Bauplan profile to use | All commands |
 
 
 **Note:** The `--host` and `--port` options are ignored when using `stdio` transport since it communicates through stdin/stdout.
