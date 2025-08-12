@@ -107,9 +107,6 @@ def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, prof
         instructions=INSTRUCTIONS,
     )
 
-    ## add middleware to add the Bauplan api_key to all requests
-    mcp.add_middleware(SimpleLoggingMiddleware())
-
     # Register tools
     register_list_tables_tool(mcp)
     register_get_schema_tool(mcp)
@@ -145,6 +142,8 @@ def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, prof
     register_get_user_info_tool(mcp)
 
     if transport != "stdio":
+        ## add middleware to add the Bauplan api_key to all requests
+        mcp.add_middleware(SimpleLoggingMiddleware())
         # Create the app based on transport type
         if transport == "sse":
             app = mcp.http_app(transport="sse")

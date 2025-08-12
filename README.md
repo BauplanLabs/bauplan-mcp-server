@@ -16,7 +16,7 @@ You can get started in one minute with your existing AI assistant. You need:
 
 * a Bauplan [API key](https://app.bauplanlabs.com/sign-up) properly configured in your local config file (default profile) - the server will pick it up automatically (see below for alternative authentication methods);
 * [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment, see below);
-* an AI platform able to leverage the MCP, as for example Claude Code, Cursor, [Claude Desktop](https://modelcontextprotocol.io/quickstart/user).
+* an AI platform able to leverage the MCP, as for example Claude Code, Cursor, Claude Desktop (see details and demo below).
 
 IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to write one `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
 
@@ -33,7 +33,7 @@ The MCP server is now available at `http://localhost:8000/mcp`. You can configur
 claude mcp add -t http mcp-bauplan "http://localhost:8000/mcp"
 ```
 
-Note: similar commands can be run on [Claude Desktop](https://modelcontextprotocol.io/quickstart/user) or [Cursor](https://docs.cursor.com/en/context/mcp) to enable the AI to access the server.
+Note: similar commands can be run on Claude Desktop (see details below) or [Cursor](https://docs.cursor.com/en/context/mcp) to enable the AI to access the server.
 
 Et voilà! You can now start asking your AI questions about your data lakehouse (and much more!): check out the video [Link Coming Soon]
 
@@ -71,6 +71,28 @@ The server supports the following CLI options, mostly useful for specifying alte
 
 
 **Note:** The `--host` and `--port` options are ignored when using `stdio` transport since it communicates through stdin/stdout.
+
+### Claude Desktop
+
+To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file, then copy this configuration:
+
+```json
+{
+  "mcpServers": {
+    "mcp-bauplan": {
+      "command": "/path/to/bauplan-mcp-server/.venv/bin/python3",
+      "args": [
+        "/path/to/bauplan-mcp-server/main.py",
+        "--transport",
+        "stdio"
+      ],
+      "workingDirectory": "/path/to/bauplan-mcp-server/"
+    }
+  }
+}
+```
+
+Quit and restart Claude Desktop. Now all Bauplan tools are available to your assistant, as this [video](https://www.loom.com/share/5eb09b3c30cc4cd984fb1ba21a70f349?sid=9e70c948-77e5-4cb0-b487-0db3adedf919) demonstrates.
 
 ### MCP Inspector
 
