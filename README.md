@@ -4,7 +4,7 @@
 
 The Bauplan Model Context Protocol (MCP) Server provides AI assistants with access to [Bauplan data lakehouse](https://www.bauplanlabs.com/) functionalities, including querying tables, schema inspection, data branch management, as well as [running ETL pipelines](https://docs.bauplanlabs.com/en/latest/).
 
-*This server is now released in Alpha under a permissive license, but APIs and features may change without notice as we continue development.*
+*This server is now released in Beta under a permissive license, but APIs and features may change without notice as we continue development.*
 
 The intended usage for the current release is to help with _local development_ by providing AI assistants like Claude Code access to your Bauplan lakehouse, mediated by a local instance of this MCP server. We expect to generalize this to server-side deployments in the near future, possibly directly hosted by Bauplan: stay tuned! 
 
@@ -14,7 +14,7 @@ To know how to get the most out of the MCP server, check out our video walkthrou
 
 You can get started in one minute with your existing AI assistant. You need:
 
-* a Bauplan [API key](https://app.bauplanlabs.com/sign-up), with your config file properly configured - the server will pick it up automatically;
+* a Bauplan [API key](https://app.bauplanlabs.com/sign-up) properly configured in your local config file (default profile) - the server will pick it up automatically (see below for alternative authentication methods);
 * [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment, see below);
 * an AI platform able to leverage the MCP, as for example Claude Code, Cursor, [Claude Desktop](https://modelcontextprotocol.io/quickstart/user).
 
@@ -52,7 +52,7 @@ pip install -e .
 
 ### Bauplan Credentials
 
-The alpha releases covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
+The beta releases covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
 
 * if you do not specify a Bauplan profile as a flag (see below CLI options), the default one on the machine running the server will be used at every interaction with the lakehouse;
 * if you specify a profile as a flag, this profile will be used instead when instantiating a Bauplan client;
@@ -90,7 +90,7 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 
 ### Roadmap
 
-The Alpha release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should be already a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines etc.. 
+The beta release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should be already a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines etc.. 
 
 Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
 
@@ -149,10 +149,6 @@ If you have specific features you would like to see, please get in touch with us
 
 #### User Management
 - **`get_user_info`**: Get information about the current authenticated user (username and full name)
-
-## Acknowledgements
-
-We wish to thank [Marco](https://github.com/marcoeg) for his contributions to a previous version of this MCP server.
 
 ## License
 This project is provided with no guarantees under the attached MIT License.

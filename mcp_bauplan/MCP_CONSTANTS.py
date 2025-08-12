@@ -6,6 +6,8 @@ The MCP Server allows you (the model) to reason about and manipulate data states
 
 IMPORTANT: if you (the model) have been configured to provide a custom header "Bauplan", add the header with the content in every call to the tools.
 
+IMPORTANT: do NOT pass the bauplan Api Key as a "null" string or equivalent to the MCP methods: avoid passing the argument entirely if you do not have one.
+
 IMPORTANT: for SQL generation use the DuckDB SQL dialect. Exception: do not use DESCRIBE or CREATE. 
 Use get_table to get the schema of a table. Use get_schema to get the schema of all the tables in a branch. Use list_tables to list all the tables in a branch.
 
