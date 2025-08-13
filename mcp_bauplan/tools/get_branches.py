@@ -70,4 +70,4 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
             return BranchesOut(branches=branches_list, total_count=len(branches_list))
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing get_branches: {err}")

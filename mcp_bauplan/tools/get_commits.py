@@ -173,4 +173,4 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
             return CommitsOut(commits=commits_list, total_count=len(commits_list))
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing get_commits: {err}")

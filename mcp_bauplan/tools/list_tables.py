@@ -48,4 +48,4 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
             table_names = [table.name for table in ret]
             return TablesOut(tables=table_names, ref=ref, namespace=namespace)
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing list_tables: {err}")

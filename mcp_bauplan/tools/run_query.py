@@ -63,7 +63,7 @@ def execute_query(
         return QueryOut(status="success", data=data_rows, metadata=metadata, error=None)
 
     except Exception as err:
-        raise ToolError(f"Error executing get_table: {err}")
+        raise ToolError(f"Error executing run_query: {err}")
 
 
 def register_run_query_tool(mcp: FastMCP) -> None:
@@ -144,4 +144,4 @@ def register_run_query_tool(mcp: FastMCP) -> None:
             return result
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing run_query: {err}")

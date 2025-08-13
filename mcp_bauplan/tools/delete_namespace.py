@@ -52,4 +52,4 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing delete_namespace: {err}")

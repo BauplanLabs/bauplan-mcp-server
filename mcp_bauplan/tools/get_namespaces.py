@@ -86,4 +86,4 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing get_namespaces: {err}")

@@ -66,4 +66,4 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
             return SchemasOut(tables=schema_list)
 
         except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+            raise ToolError(f"Error executing get_schema: {err}")
