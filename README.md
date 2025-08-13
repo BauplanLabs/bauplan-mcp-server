@@ -74,7 +74,21 @@ The server supports the following CLI options, mostly useful for specifying alte
 
 ### Claude Desktop
 
-To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file, then copy this configuration:
+To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file.
+
+#### Automatic Configuration Generation
+
+Use the provided script to generate the configuration with the correct paths:
+
+```bash
+uv run scripts/generate-config.py
+```
+
+This will output a JSON configuration with all paths properly set to your installation directory. Copy the output and add it to your `claude_desktop_config.json` file.
+
+#### Manual Configuration
+
+Alternatively, you can manually add this configuration:
 
 ```json
 {
