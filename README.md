@@ -30,7 +30,7 @@ You need:
 
 
 > [!WARNING]
-> do not use an Admin Bauplan API key: while the server will refuse to write one `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
+> do not use an Admin Bauplan API key: while the server will refuse to write on `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
 
 </aside>
 
@@ -67,7 +67,7 @@ pip install -e .
 
 ### Bauplan Credentials
 
-The Beta releases covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
+The Beta release covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
 
 - if you do not specify a Bauplan profile as a flag (see below CLI options), the default one on the machine running the server will be used at every interaction with the lakehouse.
 - if you specify a profile as a flag, this profile will be used instead when instantiating a Bauplan client.
@@ -140,9 +140,9 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 
 ### Roadmap
 
-The beta release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should be already a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines, etc.
+The beta release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should already be a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines, etc.
 
-Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
+The Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
 
 - first-class support for Bauplan documentation and related use cases;
 - a server-side deployment option for existing Bauplan users;
