@@ -3,7 +3,6 @@
 Manage your Bauplan Lakehouse using natural language commands with the Bauplan MCP Server.
 
 <aside>
-⚠️
 
 *This server is now released in Beta under MIT license, but APIs and features may change without notice as we continue development.*
 
@@ -28,7 +27,7 @@ You can get started in one minute with your existing AI assistant. You need:
 - an AI platform able to leverage the MCP, as for example Claude Code, Cursor, Claude Desktop.
 
 <aside>
-⚠️
+
 
 IMPORTANT: do not use an Admin Bauplan API key: while the server will refuse to write one `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
 
