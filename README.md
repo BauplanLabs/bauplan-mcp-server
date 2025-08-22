@@ -14,11 +14,13 @@ The intended usage for the current release is to help with *local development* b
 
 We expect to generalize this to server-side deployments in the near future, possibly directly hosted by Bauplan: stay tuned!
 
-To know how to get the most out of the MCP server, check out our video walkthrough: [Link Coming Soon]. If you have preliminary questions or feedback, please reach out to us!
+To know how to get the most out of the MCP server, check out our [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562). If you have preliminary questions or feedback, please reach out to us!
 
 ## Quick Start
 
-You can get started in one minute with your existing AI assistant. You need:
+You can get started in one minute with your existing AI assistant: a video setup with Claude Desktop and Claude Code is also available [here](https://drive.google.com/file/d/1IdGIaQFyfp2nU2doDzmi8TYglDPM6XwL/view?usp=sharing) for reference. 
+
+You need:
 
 - a Bauplan [API key](https://app.bauplanlabs.com/sign-up) properly configured in your local config file (default profile) - the server will pick it up automatically (see below for alternative authentication methods);
 - [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment, see below);
@@ -88,7 +90,7 @@ The server supports the following CLI options, mostly useful for specifying alte
 
 To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file.
 
-### Automatic Configuration Generation
+#### Automatic Configuration Generation
 
 Use the provided script to generate the configuration with the correct paths:
 
@@ -98,9 +100,9 @@ uv run scripts/generate-config.py
 
 This will output a JSON configuration with all paths properly set to your installation directory. Copy the output and add it to your `claude_desktop_config.json` file.
 
-### Manual Configuration
+#### Manual Configuration
 
-Alternatively, you can manually add this configuration:
+Alternatively, you can manually add this configuration (modify the paths as needed):
 
 ```json
 {
