@@ -20,9 +20,9 @@ def create_bauplan_client(api_key: Optional[str] = None) -> bauplan.Client:
     try:
         # Establish connection to Bauplan - note that a profile variable
         # will be used if present
-        if 'BAUPLAN_PROFILE' in os.environ and os.environ['BAUPLAN_PROFILE']:
+        if "BAUPLAN_PROFILE" in os.environ and os.environ["BAUPLAN_PROFILE"]:
             logger.info("Using Bauplan profile from environment variable")
-            client = bauplan.Client(profile=os.environ['BAUPLAN_PROFILE'])
+            client = bauplan.Client(profile=os.environ["BAUPLAN_PROFILE"])
         # if api key is passed, use it
         elif api_key:
             logger.info("Init Bauplan client without profile")

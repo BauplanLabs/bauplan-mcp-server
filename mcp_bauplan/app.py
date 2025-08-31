@@ -33,7 +33,6 @@ from .tools.revert_table import register_revert_table_tool
 from .tools.project_run import register_project_run_tool
 from .tools.list_jobs import register_list_jobs_tool
 from .tools.get_job import register_get_job_tool
-from .tools.get_job_logs import register_get_job_logs_tool
 from .tools.cancel_job import register_cancel_job_tool
 from .tools.merge_branch import register_merge_branch_tool
 from .tools.delete_branch import register_delete_branch_tool
@@ -94,7 +93,12 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, profile: str | None = None) -> None:
+def main(
+    transport: str = "stdio",
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    profile: str | None = None,
+) -> None:
     """
     Main entry point for the MCP Bauplan server.
     """
@@ -130,7 +134,6 @@ def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, prof
     register_project_run_tool(mcp)
     register_list_jobs_tool(mcp)
     register_get_job_tool(mcp)
-    register_get_job_logs_tool(mcp)
     register_cancel_job_tool(mcp)
     register_merge_branch_tool(mcp)
     register_delete_branch_tool(mcp)
@@ -159,19 +162,6 @@ def main(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000, prof
             allow_methods=["*"],
             allow_headers=["*"],
         )
-
-        # Handle /mcp -> /mcp/ redirect issue with middleware
-        class TrailingSlashMiddleware(BaseHTTPMiddleware):
-            async def dispatch(self, request: Request, call_next):
-                # If path is /mcp (without trailing slash), modify it
-                if request.url.path == "/mcp":
-                    request.scope["path"] = "/mcp/"
-
-                response = await call_next(request)
-                return response
-
-        # Add the trailing slash middleware
-        app.add_middleware(TrailingSlashMiddleware)
 
         # Health check endpoint
         @mcp.custom_route("/healthz", methods=["GET"])

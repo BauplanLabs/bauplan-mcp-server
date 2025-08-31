@@ -6,10 +6,10 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
-
 from .create_client import create_bauplan_client
 import logging
 from fastmcp import Context
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +22,14 @@ class JobInfo(BaseModel):
     created_at: Optional[str]
     finished_at: Optional[str]
     status: str
+    logs: Optional[str] = None
+    code_snapshot_path: Optional[Path] = None
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="get_job",
-        description="Retrieve details of a specified job using a job ID, returning a job detail object.",
+        description="Retrieve details of a job by job ID, such as user logs, code snapshot, project id.",
     )
     async def get_job(
         job_id: str, api_key: Optional[str] = None, ctx: Context = None
@@ -48,8 +50,17 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             if ctx:
                 await ctx.info(f"Getting job details for job ID: {job_id}")
 
-            # Call get_job function
-            job = bauplan_client.get_job(job_id=job_id)
+            # First get the job by id, if there, then add the the context
+            jobs = bauplan_client.list_jobs(filter_by_id=job_id)
+            if not jobs:
+                raise ToolError(f"Job {job_id} not found")
+            job = jobs[0]
+            job_context = bauplan_client.get_job_context(jobs=[job_id])[0]
+            logs_as_string = (
+                "\n".join(log.message for log in job_context.logs)
+                if job_context.logs
+                else None
+            )
 
             # Convert Job object to JobInfo BaseModel instance
             job_info = JobInfo(
@@ -60,6 +71,8 @@ def register_get_job_tool(mcp: FastMCP) -> None:
                 created_at=job.created_at.isoformat() if job.created_at else None,
                 finished_at=job.finished_at.isoformat() if job.finished_at else None,
                 status=str(job.status),
+                logs=logs_as_string,
+                code_snapshot_path=job_context.snapshot_dirpath,
             )
 
             # Log successful retrieval

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -39,9 +38,7 @@ def generate_config():
         "  - macOS: ~/Library/Application Support/Claude/claude_desktop_config.json",
         file=sys.stderr,
     )
-    print(
-        "  - Windows: %APPDATA%\\Claude\\claude_desktop_config.json", file=sys.stderr
-    )
+    print("  - Windows: %APPDATA%\\Claude\\claude_desktop_config.json", file=sys.stderr)
     print("  - Linux: ~/.config/Claude/claude_desktop_config.json", file=sys.stderr)
 
 
