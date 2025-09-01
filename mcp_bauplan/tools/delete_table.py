@@ -4,10 +4,10 @@ Delete a table.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -21,27 +21,26 @@ class TableDeleted(BaseModel):
 
 
 def register_delete_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="delete_table",
-        description="Delete a specified table from the user's Bauplan data catalog using a table name.",
-    )
+    @mcp.tool(name="delete_table", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def delete_table(
-        table: str, branch: str, api_key: Optional[str] = None, ctx: Context = None
+        table: str,
+        branch: str,
+        ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TableDeleted:
         """
+        Delete a specified table from the user's Bauplan data catalog using a table name.
         Delete a table from the user's Bauplan data lake.
 
         Args:
             table: Name of the table to delete.
             branch: Branch name where the table will be deleted. Must follow the format <username.branch_name>.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TableDeleted: Object indicating whether the table was deleted with details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Deleting table '{table}' from branch '{branch}")
 

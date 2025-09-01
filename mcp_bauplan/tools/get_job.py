@@ -6,7 +6,8 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 from pathlib import Path
@@ -27,26 +28,22 @@ class JobInfo(BaseModel):
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_job",
-        description="Retrieve details of a job by job ID, such as user logs, code snapshot, project id.",
-    )
+    @mcp.tool(name="get_job", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_job(
-        job_id: str, api_key: Optional[str] = None, ctx: Context = None
+        job_id: str, ctx: Context = None, bauplan_client: bauplan.Client = None
     ) -> JobInfo:
         """
+        Retrieve details of a job by job ID, such as user logs, code snapshot, project id.
         Get details of a specific job by its ID.
 
         Args:
             job_id: The ID of the job to retrieve.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobInfo: Object containing job details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Getting job details for job ID: {job_id}")
 

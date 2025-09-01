@@ -2,9 +2,9 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class UserInfo(BaseModel):
@@ -13,28 +13,23 @@ class UserInfo(BaseModel):
 
 
 def register_get_user_info_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_user_info",
-        description="Retrieve user information about the current authenticated Bauplan user.",
-    )
+    @mcp.tool(name="get_user_info", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_user_info(
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> UserInfo:
         """
+        Retrieve user information about the current authenticated Bauplan user.
         Get information about the current authenticated user.
 
         Args:
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             UserInfo: Object containing username and full name of the authenticated user
         """
 
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
-
             # Get user info from the client
             user = bauplan_client.info().user
             username = user.username

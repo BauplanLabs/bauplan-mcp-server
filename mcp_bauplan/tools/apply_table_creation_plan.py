@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -21,19 +22,18 @@ class TablePlanApplied(BaseModel):
 
 
 def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="apply_table_creation_plan",
-        description="Apply a provided table creation plan to resolve schema conflicts and create a new table in the system. Returns a job_id for tracking the asynchronous operation.",
-    )
+    @mcp.tool(name="apply_table_creation_plan", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def apply_table_creation_plan(
         plan: Dict[str, Any],
         args: Optional[Dict[str, str]] = None,
         client_timeout: int = 120,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TablePlanApplied:
         """
-        Apply a table creation plan to resolve schema conflicts.
+        Apply a provided table creation plan to resolve schema conflicts and create a new table in the system.
+        Returns a job_id for tracking the asynchronous operation.
 
         This function is used when schema conflicts exist after plan creation and need manual resolution.
         Most common schema conflict is two parquet files with the same column name but different datatype.
@@ -43,14 +43,11 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
             plan: The plan dictionary or TableCreatePlanState to apply.
             args: Additional arguments for plan application (optional).
             client_timeout: Timeout in seconds (defaults to 120).
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TablePlanApplied: Object indicating success/failure with job tracking details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info("Applying table creation plan")
 

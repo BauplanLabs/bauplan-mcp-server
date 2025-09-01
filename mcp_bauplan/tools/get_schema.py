@@ -4,7 +4,8 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class TableSchema(BaseModel):
@@ -21,32 +22,27 @@ class SchemasOut(BaseModel):
 
 
 def register_get_schema_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_schema",
-        description="Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name.",
-    )
+    @mcp.tool(name="get_schema", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_schema(
         ref: str,
         namespace: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> SchemasOut:
         """
-        Return the schema of all data tables in the user's Bauplan data lake.
+        Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name.
 
         Args:
             ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
             has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             namespace: Optional namespace table filter to use.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             SchemasOut: Schema object with table fields
         """
 
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if namespace is None:
                 namespace = "bauplan"  # get_table() needs a not null namespace in the table name
             # Get the tables list

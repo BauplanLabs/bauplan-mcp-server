@@ -4,10 +4,10 @@ Check if a tag exists.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -21,26 +21,21 @@ class TagExists(BaseModel):
 
 
 def register_has_tag_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="has_tag",
-        description="Check if a specified tag exists in a given branch of the user's Bauplan data catalog using a tag name and branch name.",
-    )
+    @mcp.tool(name="has_tag", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def has_tag(
-        tag: str, api_key: Optional[str] = None, ctx: Context = None
+        tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None
     ) -> TagExists:
         """
-        Check if a specific tag exists in a branch.
+        Check if a specified tag exists in a given branch of the user's Bauplan data catalog using a tag name and branch name.
 
         Args:
             tag: Name of the tag to check for existence.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TagExists: Object indicating whether the tag exists with details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Checking if tag '{tag}' exists")
 

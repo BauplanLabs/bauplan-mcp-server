@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -25,10 +26,8 @@ class TablePlanCreated(BaseModel):
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="plan_table_creation",
-        description="Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking).",
-    )
+    @mcp.tool(name="plan_table_creation", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def plan_table_creation(
         table: str,
         search_uri: str,
@@ -36,10 +35,11 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TablePlanCreated:
         """
+        Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking).
         Create a table import plan from an S3 location.
 
         This operation will attempt to create a table based of schemas of N parquet files found by a given search uri.
@@ -52,14 +52,11 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
             branch: Optional branch name.
             partitioned_by: Optional partitioning column.
             replace: Optional flag to replace existing table.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TablePlanCreated: Object indicating success/failure with job tracking details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Creating table plan for '{table}' from search URI '{search_uri}'"

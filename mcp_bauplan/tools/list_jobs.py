@@ -8,7 +8,8 @@ from bauplan import JobState
 from typing import Optional, List
 from fastmcp.exceptions import ToolError
 from datetime import datetime
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -31,21 +32,19 @@ class JobsList(BaseModel):
 
 
 def register_list_jobs_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="list_jobs",
-        description="Retrieve a list of jobs in Bauplan, optionally filter by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, start and end time (UTC, format '%m/%d/%y %H:%M:%S').",
-    )
+    @mcp.tool(name="list_jobs", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def list_jobs(
         job_id: Optional[str] = None,
         status: Optional[str] = None,
         user_name: Optional[str] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> JobsList:
         """
-        List jobs in the Bauplan system.
+        Retrieve a list of jobs in Bauplan, optionally filter by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, start and end time (UTC, format '%m/%d/%y %H:%M:%S').
 
         Args:
             job_id: Optional filter by job ID
@@ -53,14 +52,11 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             user_name: Optional filter by user name
             start_time: Optional filter by job start time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
             end_time: Optional filter by job finish time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             JobsList: Object containing list of jobs with their details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Listing jobs (status: {status}, start_time: {start_time}, finish_time: {end_time})"
@@ -96,9 +92,7 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             )
             # if user_name, filter for jobs by user_name
             if user_name:
-                jobs_result = list(
-                    filter(lambda j: j.user == user_name, jobs_result)
-                )
+                jobs_result = list(filter(lambda j: j.user == user_name, jobs_result))
 
             # Convert Job objects to JobInfo BaseModel instances
             job_info_list = []

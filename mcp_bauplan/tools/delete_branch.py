@@ -4,7 +4,8 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class BranchDeleted(BaseModel):
@@ -14,26 +15,21 @@ class BranchDeleted(BaseModel):
 
 
 def register_delete_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="delete_branch",
-        description="Delete a specified branch from the user's Bauplan data catalog using a branch name.",
-    )
+    @mcp.tool(name="delete_branch", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def delete_branch(
-        branch: str, api_key: Optional[str] = None, ctx: Context = None
+        branch: str, ctx: Context = None, bauplan_client: bauplan.Client = None
     ) -> BranchDeleted:
         """
-        Delete a branch from the user's Bauplan catalog.
+        Delete a specified branch from the user's Bauplan data catalog using a branch name.
 
         Args:
             branch: Name of the branch to delete. Must follow the format <username.branch_name>.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             BranchDeleted: Object indicating success/failure of the deletion
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Deleting branch '{branch}")
 

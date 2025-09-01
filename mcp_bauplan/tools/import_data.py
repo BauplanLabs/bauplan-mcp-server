@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -22,10 +23,8 @@ class DataImported(BaseModel):
 
 
 def register_import_data_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="import_data",
-        description="Import data into a specified existing table in the user's Bauplan data catalog using a table name and data source.",
-    )
+    @mcp.tool(name="import_data", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def import_data(
         table: str,
         search_uri: str,
@@ -33,10 +32,11 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         namespace: Optional[str] = None,
         branch: Optional[str] = None,
         continue_on_error: Optional[bool] = False,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> DataImported:
         """
+        Import data into a specified existing table in the user's Bauplan data catalog using a table name and data source.
         Import data into an existing table in the user's Bauplan data lake.
 
         Args:
@@ -46,14 +46,11 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             namespace: Optional namespace (defaults to "bauplan").
             branch: Optional branch name.
             continue_on_error: Optional flag to continue on errors during import (defaults to False).
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             DataImported: Object indicating success/failure with job details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Importing data into table '{table}' from search URI '{search_uri}'"

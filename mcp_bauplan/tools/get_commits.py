@@ -4,7 +4,8 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class AuthorInfo(BaseModel):
@@ -27,10 +28,8 @@ class CommitsOut(BaseModel):
 
 
 def register_get_commits_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_commits",
-        description="Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).",
-    )
+    @mcp.tool(name="get_commits", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_commits(
         ref: str,
         message_filter: Optional[str] = None,
@@ -39,10 +38,11 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         date_start: Optional[str] = None,
         date_end: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> CommitsOut:
         """
+        Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).
         Retrieve commit history from a Bauplan branch.
 
         Args:
@@ -54,7 +54,6 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
             date_start: Optional start date for filtering (ISO format: YYYY-MM-DD)
             date_end: Optional end date for filtering (ISO format: YYYY-MM-DD)
             limit: Maximum number of commits to return (default: 10)
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             CommitsOut: Object containing list of commits and total count
@@ -88,8 +87,6 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         #        await ctx.info(f"Ref is a commit hash: '{ref}'")
 
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             # Build filter parameters
             kwargs = {"ref": ref}
 
