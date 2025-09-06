@@ -28,23 +28,22 @@ def register_create_table_tool(mcp: FastMCP) -> None:
     async def create_table(
         table: str,
         search_uri: str,
+        branch: str,
         namespace: Optional[str] = None,
-        branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TableCreated:
         """
-        Create an empty table in the user's Bauplan data catalog from an S3 URI.
-        This operation will attempt to create a table based of schemas of N parquet files found by a given search uri.
-        This is a two step operation using plan_table_creation and apply_table_creation_plan.
+        Create an empty table from an S3 URI identifying parquet, csv or JSONL files in S3.
+        The table schema is automatically inferred from the files at the given search uri.
 
         Args:
             table: Name of the table to create.
             search_uri: S3 URI to search for parquet files.
+            branch: branch name.
             namespace: Optional namespace (defaults to "bauplan").
-            branch: Optional branch name.
             partitioned_by: Optional partitioning column.
             replace: Optional flag to replace existing table.
 
@@ -58,6 +57,8 @@ def register_create_table_tool(mcp: FastMCP) -> None:
                 await ctx.info(
                     f"Creating table '{table}' from search URI '{search_uri}'"
                 )
+
+            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
 
             # Call create_table function
             result = bauplan_client.create_table(

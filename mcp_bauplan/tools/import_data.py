@@ -28,25 +28,20 @@ def register_import_data_tool(mcp: FastMCP) -> None:
     async def import_data(
         table: str,
         search_uri: str,
-        client_timeout: int = 120,
+        branch: str,
         namespace: Optional[str] = None,
-        branch: Optional[str] = None,
-        continue_on_error: Optional[bool] = False,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> DataImported:
         """
-        Import data into a specified existing table in the user's Bauplan data catalog using a table name and data source.
-        Import data into an existing table in the user's Bauplan data lake.
+        Import data into a specified existing table using a table name and data source.
 
         Args:
-            table: Name of the table to import data into.
+            table: Name of the table to import data into, it needs to exist beforehand.
             search_uri: URI to search for data files to import.
-            client_timeout: Timeout in seconds for the import operation (defaults to 120).
+            branch:  branch name.
             namespace: Optional namespace (defaults to "bauplan").
-            branch: Optional branch name.
-            continue_on_error: Optional flag to continue on errors during import (defaults to False).
-
+            
         Returns:
             DataImported: Object indicating success/failure with job details
         """
@@ -56,14 +51,16 @@ def register_import_data_tool(mcp: FastMCP) -> None:
                     f"Importing data into table '{table}' from search URI '{search_uri}'"
                 )
 
+            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
+
             # Call import_data function
             result = bauplan_client.import_data(
                 table=table,
                 search_uri=search_uri,
                 namespace=namespace,
                 branch=branch,
-                continue_on_error=continue_on_error,
-                client_timeout=client_timeout,
+                continue_on_error=False,
+                client_timeout=180,
             )
 
             # Log successful import with job_id from TableDataImportState object
