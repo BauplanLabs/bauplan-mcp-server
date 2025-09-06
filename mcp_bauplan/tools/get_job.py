@@ -37,6 +37,8 @@ def register_get_job_tool(mcp: FastMCP) -> None:
         Retrieve details of a job by job ID, such as user logs, code snapshot, project id.
         Get details of a specific job by its ID.
 
+        Human_readable_status in the response will be "Failed" for failed jobs, "Completed" for completed jobs.
+
         Args:
             job_id: The ID of the job to retrieve.
 
