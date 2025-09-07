@@ -25,6 +25,8 @@ class JobInfo(BaseModel):
     status: str
     logs: Optional[str] = None
     code_snapshot_path: Optional[Path] = None
+    ref: Optional[str] = None
+    transactional_branch: Optional[str] = None
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:
@@ -44,6 +46,18 @@ def register_get_job_tool(mcp: FastMCP) -> None:
 
         Returns:
             JobInfo: Object containing job details
+            id (str): The ID of the job.
+            kind (str): The kind of job.
+            user (str): The user who created the job.
+            human_readable_status (str): Human-readable status of the job.
+            created_at (Optional[str]): ISO formatted creation timestamp of the job.
+            finished_at (Optional[str]): ISO formatted finish timestamp of the job.
+            status (str): The status of the job.
+            logs (Optional[str]): Concatenated user logs from the job.
+            code_snapshot_path (Optional[Path]): Path to the code snapshot directory.    
+            ref (Optional[str]): The data commit reference when the job was run.
+            transactional_branch (Optional[str]): The transactional branch that was open when the job was run.
+            
         """
         try:
             if ctx:
@@ -72,7 +86,9 @@ def register_get_job_tool(mcp: FastMCP) -> None:
                 status=str(job.status),
                 logs=logs_as_string,
                 code_snapshot_path=job_context.snapshot_dirpath,
-            )
+                ref=str(job_context.ref) if job_context.ref else None,
+                transactional_branch=str(job_context.tx_ref) if job_context.tx_ref else None
+            )   
 
             # Log successful retrieval
             logger.info(f"Successfully retrieved job details for job ID: {job_id}")

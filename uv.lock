@@ -57,7 +57,7 @@ wheels = [
 
 [[package]]
 name = "bauplan"
-version = "0.0.3a458"
+version = "0.0.3a462"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -74,12 +74,12 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/1c/e44b230e5e03f93ab9ef07890f1c91ffd1043f675966436acd11796d41c2/bauplan-0.0.3a458-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:4cbae27997b0e08ba6b5b463d7621b09261112cbbf691010a3b0a38373d6dc43", size = 8096474, upload-time = "2025-08-29T20:22:10.765Z" },
-    { url = "https://files.pythonhosted.org/packages/54/bd/829fcc3428d4f013cd4a80c902e8f3e604e3d412a61ee54ab259eb1c6251/bauplan-0.0.3a458-py3-none-macosx_11_0_arm64.whl", hash = "sha256:ceb26d60a266b8946ef9443775736c48f90c9dce61ddc2a00456c2ced455f07b", size = 7591110, upload-time = "2025-08-29T20:22:13.418Z" },
-    { url = "https://files.pythonhosted.org/packages/ec/bc/11ae7303a501342b972d60dbcd56e1f377fee217d6e42b0114df57739c1c/bauplan-0.0.3a458-py3-none-manylinux2014_aarch64.whl", hash = "sha256:e15d3fd853b1aae88277355e5066c4d8efab4edfbc3afba72177f820cac94264", size = 7192557, upload-time = "2025-08-29T20:22:14.7Z" },
-    { url = "https://files.pythonhosted.org/packages/06/eb/476e64d35b6c2da531e20194239da311dba5450a2ab77f51b3ba322cf566/bauplan-0.0.3a458-py3-none-manylinux2014_x86_64.whl", hash = "sha256:11287c7220d11d1694f7bb8bc999188d314a177831e4e9c21f24338e15c60300", size = 7857048, upload-time = "2025-08-29T20:22:16.333Z" },
-    { url = "https://files.pythonhosted.org/packages/6a/1f/97af38121eaa3fc2779b8edbc480e6f755ef1e74fb0f953f2450e6db0774/bauplan-0.0.3a458-py3-none-win_amd64.whl", hash = "sha256:d6153d77a42ead87afd23058790d6d78884b68f0d474f27a734a0e98406cbdd9", size = 8066749, upload-time = "2025-08-29T20:22:17.524Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/6e/256e1a42832878c3237a73b94ad0d120426e6170047facde7befed29f6a4/bauplan-0.0.3a458-py3-none-win_arm64.whl", hash = "sha256:c7cc34ce3cb9a3f186c05b766fb52ba36d4d001c851b01a2ec026b75e6b9ba8e", size = 7275458, upload-time = "2025-08-29T20:22:18.788Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/39/fb0179fa30f043c0781f0f224fcfb72729c05d989aea979f94f7e839f5ca/bauplan-0.0.3a462-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:b052412fbd3e4cf3a0db317fb3aca007ba74c9fb1b25627a2127f2c5e1aa416d", size = 8103406, upload-time = "2025-09-06T20:46:28.207Z" },
+    { url = "https://files.pythonhosted.org/packages/44/65/04072e1e7373bc35977712e4ef14eeda1dffe0b8df8d985e7417b1986152/bauplan-0.0.3a462-py3-none-macosx_11_0_arm64.whl", hash = "sha256:33f72fcc4efb935e02860055b9b9538df4c7b276d7f6ff227cb99735c1bd0cd6", size = 7595030, upload-time = "2025-09-06T20:46:30.415Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/b7/30c0601fa02a833245bad8e404c4a69ec032fbd1098aba6484a99afb368e/bauplan-0.0.3a462-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4db1b6a264da354a4e9d37eaa0c6b3773ba28b65fbbdd154a6d1f1bb5958ae06", size = 7199107, upload-time = "2025-09-06T20:46:31.997Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/7c/b961dace4292395c3743a9dd377860b07f718521c018cda9507f50dc0112/bauplan-0.0.3a462-py3-none-manylinux2014_x86_64.whl", hash = "sha256:9b6e7752585924727c02502a6b629ec5a2e4f125faaf43e684129a5ef1b09c46", size = 7863748, upload-time = "2025-09-06T20:46:33.848Z" },
+    { url = "https://files.pythonhosted.org/packages/06/06/01ad5de16085b4b0782779642f0ef1804107c0f383d5da128e925748744e/bauplan-0.0.3a462-py3-none-win_amd64.whl", hash = "sha256:7bf6a7f807b2c015aae3b1e7fb4a7a1d4e73de28aac9c93cf270a0f062cc21d2", size = 8071639, upload-time = "2025-09-06T20:46:35.534Z" },
+    { url = "https://files.pythonhosted.org/packages/44/25/71c5b9e4227af6e0f0325a08b1e17d4001d88945e3f0110a1b616a353932/bauplan-0.0.3a462-py3-none-win_arm64.whl", hash = "sha256:5e4223216615e5f9f40fc0a1beb7d5e9701baca2ec56affe853b08130ece89e1", size = 7281655, upload-time = "2025-09-06T20:46:36.834Z" },
 ]
 
 [[package]]
