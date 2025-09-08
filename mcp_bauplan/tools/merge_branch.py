@@ -4,7 +4,8 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class MergeResult(BaseModel):
@@ -15,34 +16,30 @@ class MergeResult(BaseModel):
 
 
 def register_merge_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="merge_branch",
-        description="Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.",
-    )
+    @mcp.tool(name="merge_branch", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def merge_branch(
         source_ref: str,
         into_branch: str,
         commit_message: Optional[str] = None,
         commit_body: Optional[str] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> MergeResult:
         """
-        Merge a source branch into a target branch. Branch names must follow the format <username.branch_name>.
+        Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.
+        Branch names must follow the format <username.branch_name>.
 
         Args:
             source_ref: The branch to merge from. The name must follow the format <username.branch_name>.
             into_branch: The target branch to merge into. The name must follow the format <username.branch_name>.
             commit_message: Optional custom commit message for the merge
             commit_body: Optional additional commit body/description
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             MergeResult: Object indicating success/failure with merge details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             # Build kwargs for the API call
             kwargs = {"source_ref": source_ref, "into_branch": into_branch}
 

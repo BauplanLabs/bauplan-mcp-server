@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -24,20 +25,19 @@ class QueryToCSVResult(BaseModel):
 
 
 def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="run_query_to_csv",
-        description="Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path.",
-    )
+    @mcp.tool(name="run_query_to_csv", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def run_query_to_csv(
         path: str,
         query: str,
         ref: Optional[str] = None,
         namespace: Optional[str] = None,
         client_timeout: int = 120,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> QueryToCSVResult:
         """
+        Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path.
         Execute SELECT queries and save results directly to CSV file.
 
         Note: CSV format only supports scalar data types (strings, numbers, booleans).
@@ -50,14 +50,11 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
             ref: Branch/reference to query against (optional).
             namespace: Namespace to use (optional).
             client_timeout: Timeout in seconds (defaults to 120).
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             QueryToCSVResult: Object indicating success/failure with execution details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Executing query to CSV file: {path}")
 

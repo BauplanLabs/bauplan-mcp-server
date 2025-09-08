@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class TagInfo(BaseModel):
@@ -18,31 +19,27 @@ class TagsOut(BaseModel):
 
 
 def register_get_tags_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_tags",
-        description="Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.",
-    )
+    @mcp.tool(name="get_tags", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_tags(
         filter_by_name: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TagsOut:
         """
+        Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.
         Get the tags of a branch using optional filters.
 
         Args:
             filter_by_name: Optional filter for tag names (substring match)
             limit: Optional maximum number of tags to return
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TagsOut: Object containing list of tags and total count
         """
 
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             # Debug logging
             if ctx:
                 await ctx.debug(

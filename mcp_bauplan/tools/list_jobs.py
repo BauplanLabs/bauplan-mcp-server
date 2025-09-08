@@ -4,10 +4,12 @@ List jobs in the Bauplan system.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
+from bauplan import JobState
 from typing import Optional, List
 from fastmcp.exceptions import ToolError
-
-from .create_client import create_bauplan_client
+from datetime import datetime
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -30,33 +32,67 @@ class JobsList(BaseModel):
 
 
 def register_list_jobs_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="list_jobs",
-        description="Retrieve a list of jobs in Bauplan, with optional user filter.",
-    )
+    @mcp.tool(name="list_jobs", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def list_jobs(
-        all_users: Optional[bool] = None,
-        api_key: Optional[str] = None,
+        job_id: Optional[str] = None,
+        status: Optional[str] = None,
+        user_name: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> JobsList:
         """
-        List jobs in the Bauplan system.
+        Retrieve a list of jobs in Bauplan, optionally filter by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, start and end time (UTC, format '%m/%d/%y %H:%M:%S').
 
         Args:
-            all_users: Whether to list jobs for all users (optional, defaults to None for current user only).
-            api_key: The Bauplan API key for authentication.
+            job_id: Optional filter by job ID
+            status: Optional filter by job status, either COMPLETE, FAIL, ABORT or RUNNING
+            user_name: Optional filter by user name
+            start_time: Optional filter by job start time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
+            end_time: Optional filter by job finish time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
 
         Returns:
             JobsList: Object containing list of jobs with their details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
-                await ctx.info(f"Listing jobs (all_users: {all_users})")
+                await ctx.info(
+                    f"Listing jobs (status: {status}, start_time: {start_time}, finish_time: {end_time})"
+                )
+            # Make sure the status is acceptable
+            if status:
+                job_statuses = ["COMPLETE", "FAIL", "ABORT", "RUNNING"]
+                assert status.upper() in job_statuses, (
+                    f"Invalid job status: {status}: should be one of {job_statuses}"
+                )
+
+            start_date_time = (
+                datetime.strptime(start_time, "%m/%d/%y %H:%M:%S")
+                if start_time
+                else None
+            )
+            end_date_time = (
+                datetime.strptime(end_time, "%m/%d/%y %H:%M:%S") if end_time else None
+            )
 
             # Call list_jobs function
-            jobs_result = bauplan_client.list_jobs(all_users=all_users)
+            jobs_result = bauplan_client.list_jobs(
+                filter_by_id=job_id if job_id else None,
+                filter_by_status=JobState[status.upper()] if status else None,
+                filter_by_finish_time=(start_date_time, end_date_time),
+            )
+            # filter for jobs which have a code snapshot associated to them
+            jobs_result = list(
+                filter(
+                    lambda j: j.kind == "CodeSnapshotRun",
+                    jobs_result,
+                )
+            )
+            # if user_name, filter for jobs by user_name
+            if user_name:
+                jobs_result = list(filter(lambda j: j.user == user_name, jobs_result))
 
             # Convert Job objects to JobInfo BaseModel instances
             job_info_list = []

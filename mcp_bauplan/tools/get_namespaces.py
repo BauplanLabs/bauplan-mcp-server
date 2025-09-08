@@ -4,7 +4,8 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 from typing import List, Optional
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 
 
 class NamespaceInfo(BaseModel):
@@ -17,18 +18,17 @@ class NamespacesOut(BaseModel):
 
 
 def register_get_namespaces_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="get_namespaces",
-        description="Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.",
-    )
+    @mcp.tool(name="get_namespaces", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def get_namespaces(
         ref: str,
         namespace: Optional[str] = None,
         limit: Optional[int] = 10,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> NamespacesOut:
         """
+        Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.
         Get the namespaces of a branch using optional filters.
 
         Args:
@@ -36,15 +36,12 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
                 has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             namespace: Optional filter for namespace names (substring match)
             limit: Optional maximum number of namespaces to return (default: 50)
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             NamespacesOut: Object containing list of namespaces and total count
         """
 
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             # Debug logging
             if ctx:
                 await ctx.debug(

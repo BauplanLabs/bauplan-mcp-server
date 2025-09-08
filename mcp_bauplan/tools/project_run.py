@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Union
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -24,10 +25,8 @@ class ProjectRun(BaseModel):
 
 
 def register_project_run_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="project_run",
-        description="Launch a job for a Bauplan pipeline from a specified directory and reference in the Bauplan catalog, returning a job ID to poll for the job status.",
-    )
+    @mcp.tool(name="project_run", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def project_run(
         project_dir: str,
         ref: str,
@@ -35,10 +34,11 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
         dry_run: bool = False,
         client_timeout: int = 120,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> ProjectRun:
         """
+        Launch a job for a Bauplan pipeline from a specified directory and reference in the Bauplan catalog, returning a job ID to poll for the job status.
         Run asynchronously a Bauplan pipeline from a specified project directory and reference.
         The method will return a job ID that can be used to poll for the job status.
 
@@ -49,14 +49,11 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             parameters: Parameters for templating into Python models. Must be simple types (str, int, float, bool).
             dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
             client_timeout: Seconds to timeout (defaults to 120).
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             ProjectRun: Object indicating success/failure with job details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")
 

@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -22,31 +23,29 @@ class TableCreated(BaseModel):
 
 
 def register_create_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="create_table",
-        description="Create an empty table in the user's Bauplan data catalog from an S3 URI.",
-    )
+    @mcp.tool(name="create_table", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def create_table(
         table: str,
         search_uri: str,
+        branch: str,
         namespace: Optional[str] = None,
-        branch: Optional[str] = None,
         partitioned_by: Optional[str] = None,
         replace: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TableCreated:
         """
-        Create a table from an S3 location. This operation will attempt to create a table based of schemas of N parquet files found by a given search uri. This is a two step operation using plan_table_creation and apply_table_creation_plan.
+        Create an empty table from an S3 URI identifying parquet, csv or JSONL files in S3.
+        The table schema is automatically inferred from the files at the given search uri.
 
         Args:
             table: Name of the table to create.
             search_uri: S3 URI to search for parquet files.
+            branch: branch name.
             namespace: Optional namespace (defaults to "bauplan").
-            branch: Optional branch name.
             partitioned_by: Optional partitioning column.
             replace: Optional flag to replace existing table.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TableCreated: Object indicating success/failure with table details.
@@ -54,12 +53,14 @@ def register_create_table_tool(mcp: FastMCP) -> None:
         NOTE: This tool creates a ICEBERG table with the schema of the file(s) in the URI but it does not populate the table.
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Creating table '{table}' from search URI '{search_uri}'"
                 )
+
+            assert branch and branch != "main", (
+                "Branch name must be provided, and it cannot be 'main'"
+            )
 
             # Call create_table function
             result = bauplan_client.create_table(

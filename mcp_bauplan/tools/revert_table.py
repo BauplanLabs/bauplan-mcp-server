@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastmcp.exceptions import ToolError
 
-from .create_client import create_bauplan_client
+from .create_client import with_bauplan_client
+import bauplan
 import logging
 from fastmcp import Context
 
@@ -23,19 +24,18 @@ class TableReverted(BaseModel):
 
 
 def register_revert_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(
-        name="revert_table",
-        description="Revert a specified table from a source reference to a target branch in the user's Bauplan data catalog using a table name, source reference, and target branch.",
-    )
+    @mcp.tool(name="revert_table", exclude_args=["bauplan_client"])
+    @with_bauplan_client
     async def revert_table(
         table: str,
         source_ref: str,
         into_branch: str,
         replace: Optional[bool] = None,
-        api_key: Optional[str] = None,
         ctx: Context = None,
+        bauplan_client: bauplan.Client = None,
     ) -> TableReverted:
         """
+        Revert a specified table from a source reference to a target branch in the user's Bauplan data catalog using a table name, source reference, and target branch.
         Revert a table from a source reference to a target branch.
 
         Args:
@@ -43,14 +43,11 @@ def register_revert_table_tool(mcp: FastMCP) -> None:
             source_ref: The name of the source ref.
             into_branch: The name of the target branch where the table will be reverted.
             replace: Optional, whether to replace the table if it already exists.
-            api_key: The Bauplan API key for authentication.
 
         Returns:
             TableReverted: Object indicating success/failure with revert details
         """
         try:
-            # Create a fresh Bauplan client
-            bauplan_client = create_bauplan_client(api_key)
             if ctx:
                 await ctx.info(
                     f"Reverting table '{table}' from source ref '{source_ref}' into branch '{into_branch}'"
