@@ -41,7 +41,7 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             search_uri: URI to search for data files to import.
             branch:  branch name.
             namespace: Optional namespace (defaults to "bauplan").
-            
+
         Returns:
             DataImported: Object indicating success/failure with job details
         """
@@ -51,7 +51,9 @@ def register_import_data_tool(mcp: FastMCP) -> None:
                     f"Importing data into table '{table}' from search URI '{search_uri}'"
                 )
 
-            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
+            assert branch and branch != "main", (
+                "Branch name must be provided, and it cannot be 'main'"
+            )
 
             # Call import_data function
             result = bauplan_client.import_data(

@@ -58,7 +58,9 @@ def register_create_table_tool(mcp: FastMCP) -> None:
                     f"Creating table '{table}' from search URI '{search_uri}'"
                 )
 
-            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
+            assert branch and branch != "main", (
+                "Branch name must be provided, and it cannot be 'main'"
+            )
 
             # Call create_table function
             result = bauplan_client.create_table(
