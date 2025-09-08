@@ -11,6 +11,7 @@ import bauplan
 import logging
 from fastmcp import Context
 from pathlib import Path
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ class JobInfo(BaseModel):
     code_snapshot_path: Optional[Path] = None
     ref: Optional[str] = None
     transactional_branch: Optional[str] = None
+    project_yml: Optional[str] = None
+    project_files: Optional[dict[str, str]] = None
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:
@@ -57,6 +60,8 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             code_snapshot_path (Optional[Path]): Path to the code snapshot directory.    
             ref (Optional[str]): The data commit reference when the job was run.
             transactional_branch (Optional[str]): The transactional branch that was open when the job was run.
+            project_yml (Optional[str]): The contents of the bauplan_project.yml file from the snapshot.
+            project_files (Optional[dict[str, str]]): A dictionary of other project files from the snapshot, with filenames as keys and file contents as values.
             
         """
         try:
@@ -74,6 +79,27 @@ def register_get_job_tool(mcp: FastMCP) -> None:
                 if job_context.logs
                 else None
             )
+            project_yml = None
+            project_files = {}
+            # list all the files in the snapshot directory
+            if job_context.snapshot_dirpath and not Path(job_context.snapshot_dirpath).exists():
+                logger.warning(f"Snapshot directory {job_context.snapshot_dirpath} does not exist.")
+            elif job_context.snapshot_dirpath:
+                snapshot_files = list(Path(job_context.snapshot_dirpath).rglob('*'))
+                logger.info(f"Snapshot directory {job_context.snapshot_dirpath} contains {len(snapshot_files)} files.")
+                # check one of the file is bauplan_project.yml
+                assert any(f.name == 'bauplan_project.yml' for f in snapshot_files), "bauplan_project.yml not found in snapshot"
+                project_yml = next(f for f in snapshot_files if f.name == 'bauplan_project.yml').read_text()
+                logger.info("Retrieved bauplan_project.yml from snapshot.")
+                # check all other files ends with .py or .sql
+                for f in snapshot_files:
+                    assert f.name.endswith('.py') or f.name.endswith('.sql') or f.name.endswith('bauplan_project.yml'), f"Unexpected file {f} in snapshot"
+                    # skip bauplan_project.yml
+                    if f.name.endswith('bauplan_project.yml'):
+                        continue
+                    # extract file name only
+                    path, file_name_only = os.path.split(f)
+                    project_files[file_name_only] = f.read_text()
 
             # Convert Job object to JobInfo BaseModel instance
             job_info = JobInfo(
@@ -87,8 +113,10 @@ def register_get_job_tool(mcp: FastMCP) -> None:
                 logs=logs_as_string,
                 code_snapshot_path=job_context.snapshot_dirpath,
                 ref=str(job_context.ref) if job_context.ref else None,
-                transactional_branch=str(job_context.tx_ref) if job_context.tx_ref else None
-            )   
+                transactional_branch=str(job_context.tx_ref) if job_context.tx_ref else None,
+                project_yml=project_yml,
+                project_files=project_files,
+            )
 
             # Log successful retrieval
             logger.info(f"Successfully retrieved job details for job ID: {job_id}")
