@@ -2,7 +2,7 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from use_case_to_prompts import USE_CASE_TO_PROMPT
+from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 from .create_client import with_bauplan_client
 import bauplan
