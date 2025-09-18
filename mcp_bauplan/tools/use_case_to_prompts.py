@@ -81,8 +81,8 @@ bauplan_repair_prompt = (
     " If unsure about the cause, you can use a debug branch to perform your analysis: make sure to open your debug branch"
     " from the same commit (ref) the original job was created, and make sure to use a proper naming convention for your branch, e.g."
     " using your user and job id as in <user_name>.debug_<job_id>."
-    " When you fix the pipeline, make sure to test it thoroughly and run it end to end on your debug branch to verify"
-    " all the tables are there. Return to the user the name of the debug branch you used, containing now the pipeline"
+    " If asked to fix the pipeline, not just diagnose a failure, make sure to test it thoroughly and run it end to end on your debug branch "
+    " to verify all the tables are there. Return to the user the name of the debug branch you used, containing now the pipeline"
     " that you re-run, with all the proper tables correctly materialized."
 )
 

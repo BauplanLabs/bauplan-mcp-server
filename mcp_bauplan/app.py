@@ -41,6 +41,7 @@ from .tools.get_tags import register_get_tags_tool
 from .tools.create_tag import register_create_tag_tool
 from .tools.has_tag import register_has_tag_tool
 from .tools.delete_tag import register_delete_tag_tool
+from tools.get_instructions import register_get_instructions_tool
 from .tools.get_user_info import register_get_user_info_tool
 
 # Suppress known deprecation warnings from uvicorn/websockets compatibility issue
@@ -143,6 +144,7 @@ def main(
     register_has_tag_tool(mcp)
     register_delete_tag_tool(mcp)
     register_get_user_info_tool(mcp)
+    register_get_instructions_tool(mcp)
 
     if transport != "stdio":
         ## add middleware to add the Bauplan api_key to all requests
