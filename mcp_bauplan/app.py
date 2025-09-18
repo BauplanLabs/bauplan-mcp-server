@@ -31,6 +31,7 @@ from .tools.delete_table import register_delete_table_tool
 from .tools.import_data import register_import_data_tool
 from .tools.revert_table import register_revert_table_tool
 from .tools.project_run import register_project_run_tool
+from .tools.code_run import register_code_run_tool
 from .tools.list_jobs import register_list_jobs_tool
 from .tools.get_job import register_get_job_tool
 from .tools.cancel_job import register_cancel_job_tool
@@ -133,6 +134,7 @@ def main(
     register_import_data_tool(mcp)
     register_revert_table_tool(mcp)
     register_project_run_tool(mcp)
+    register_code_run_tool(mcp)
     register_list_jobs_tool(mcp)
     register_get_job_tool(mcp)
     register_cancel_job_tool(mcp)

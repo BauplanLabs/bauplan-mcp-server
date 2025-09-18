@@ -29,6 +29,7 @@ bauplan_pipeline_prompt = (
     "AND pickup_datetime < '2022-12-31T00:00:00-05:00'\n"
     "\nmodel.py\n"
     "import bauplan\n"
+    "from bauplan.standard_expectations import expect_column_no_nulls\n"
     " # this decorator registers the function as a Bauplan model\n"
     " # the materialization strategy determines how the model's output is stored\n"
     " # if the argument is omitted, no materialization will occur, other options are\n"
@@ -52,6 +53,21 @@ bauplan_pipeline_prompt = (
     "    df = df.filter(pl.col('trip_miles') > 0.0)\n"
     "    # model ALWAYS returns an Arrow table, pyarrow is available, no need to import it\n"
     "    return df.to_arrow()\n"
+    "\n\n"
+    " # this decorator registers the function as a Bauplan expectation\n"
+    " # the expectation can be associated to one or more models in the pipeline\n"
+    " # and will be executed after the model is run - it should return a boolean\n"
+    " # and can optionally, inside the body, raise an AssertionError\n"
+    "@bauplan.expectation()\n"
+    "@bauplan.python('3.11')\n"
+    "def test_null_values_location_id(data=bauplan.Model('clean_trips')):\n"
+    "    column_to_check = 'PULocationID'\n"
+    "    # re-use built-in expectation to check for null values in a column\n"
+    "    _is_expectation_correct = expect_column_no_nulls(data, column_to_check)\n"
+    "    # if the expectation is not met, raise an AssertionError with a descriptive message\n"
+    "    assert _is_expectation_correct, f'expectation test failed: we expected {column_to_check} to have no null values'\n"
+    "    # return a boolean to indicate if the expectation passed or failed\n"
+    "    return _is_expectation_correct\n"
 )
 
 
@@ -82,7 +98,10 @@ bauplan_repair_prompt = (
     " from the same commit (ref) the original job was created, and make sure to use a proper naming convention for your branch, e.g."
     " using your user and job id as in <user_name>.debug_<job_id>."
     " If asked to fix the pipeline, not just diagnose a failure, make sure to test it thoroughly and run it end to end on your debug branch "
-    " to verify all the tables are there. Return to the user the name of the debug branch you used, containing now the pipeline"
+    " to verify all the tables are there. Make sure to write a full bauplan project with all the necessary files, and decorators,"
+    " when passing it to the MCP tool to run: if you cannot save files locally, use code_run and pass the files as dictionaries"
+    " <file_name> -> <code_as_string> - check the data pipeline prompt for an example of a minimal project."
+    " If not instructed otherwise, return the name of the debug branch you created, containing now the pipeline"
     " that you re-run, with all the proper tables correctly materialized."
 )
 

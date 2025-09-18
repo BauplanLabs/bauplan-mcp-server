@@ -196,6 +196,7 @@ If you have specific features you would like to see, please get in touch with us
 ### Project Management
 
 - **`project_run`**: Run a Bauplan project from a specified directory and reference with configurable parameters (dry-run, timeout, detach mode)
+- **`code_run`**: Run a Bauplan project from code files provided as a dictionary (useful for clients that cannot submit paths), automatically creates temporary directory and validates project structure
 
 ### Job Management
 
