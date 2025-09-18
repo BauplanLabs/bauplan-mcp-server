@@ -1,0 +1,107 @@
+bauplan_pipeline_prompt = (
+    "\n===== DATA PIPELINES =====\n"
+    "Pipelines are logically organized by projects: each project is a folder with 1) one bauplan_project.yml"
+    " and one or more pipeline files, .sql or .py. Pipelines are defined by chaining together 'models'"
+    " which are SQL queries or Python decorated functions, whose inputs are either source tables in the data lake"
+    " or other models in the pipeline. A function may have multiple models as input parents, but always"
+    " returns one output model: i.e., in SQL the inputs are the tables needed to execute the query"
+    " (what needs to be queried as I/O), and output is the result of running the query itself,"
+    " while in Python, inputs are expressed as function inputs, and output is the return value of the function."
+    " When the code is submitted to Bauplan with a `run`, the system automatically reconstruct the DAG of the models"
+    " by parsing the SQL and Python files and understanding the connections between them.\n"
+    "A sample project folder contains the following three files, heavily commented - make sure you read"
+    " and understand the comments and the syntax:"
+    "\nbauplan_project.yml\n"
+    "project:"
+    "   # id should be a unique uuid\n"
+    "   id: 8048ce66-49c6-4f43-a487-afe22f6b05d3\n"
+    "   # name should be a descriptive name for the project\n"
+    "   name: project_name\n"
+    "\ntrips.sql\n"
+    "SELECT\n"
+    "    pickup_datetime,\n"
+    "    PULocationID,\n"
+    "    trip_miles\n"
+    " -- the FROM clause implicitely define the input of this SQL model\n"
+    " -- which in this case is the taxi_fhvhv table in the data lake\n"
+    "FROM  taxi_fhvhv\n"
+    "WHERE pickup_datetime >= '2022-12-01T00:00:00-05:00'\n"
+    "AND pickup_datetime < '2022-12-31T00:00:00-05:00'\n"
+    "\nmodel.py\n"
+    "import bauplan\n"
+    " # this decorator registers the function as a Bauplan model\n"
+    " # the materialization strategy determines how the model's output is stored\n"
+    " # if the argument is omitted, no materialization will occur, other options are\n"
+    " # 'REPLACE' or 'APPEND'\n"
+    "@bauplan.model(materialization_strategy='REPLACE')\n"
+    " # this decorator specifies the Python version and any required packages\n"
+    " # make sure to specify packages AND their versions inside the dictionary\n"
+    "@bauplan.python('3.11', pip={'polars': '1.15.0'})\n"
+    "def clean_trips(\n"
+    "    # the function defines the trips model - the SQL above - \n"
+    "    # as its input, so that Bauplan knows how to build the DAG\n"
+    "    data=bauplan.Model('trips')\n"
+    "):\n"
+    "    # the function body is arbitrary Python code, written by the user to transform input models\n"
+    "    # into one output model\n"
+    "    import polars as pl\n"
+    "    import math\n"
+    "    # every print statement gets logged and it's retrievable through the log-related APIs\n"
+    "    print(f'\n{round(data.nbytes / math.pow(1024, 3), 3)} GB, {data.num_rows} rows\n')\n"
+    "    df = pl.from_arrow(data)\n"
+    "    df = df.filter(pl.col('trip_miles') > 0.0)\n"
+    "    # model ALWAYS returns an Arrow table, pyarrow is available, no need to import it\n"
+    "    return df.to_arrow()\n"
+)
+
+
+bauplan_data_prompt = (
+    "\n===== READING DATA AND METADATA =====\n"
+    "Data in Bauplan is represented as tables, logically grouped by namespaces (e.g. bauplan.titanic)."
+    " IMPORTANT: when not specified the namespace is the default one, bauplan."
+    " Each table has a schema that defines its columns and their types, like a database."
+    " Data evolution follow Git-like abstractions: a *main* data branch contain the production version of the"
+    " tables, and other data branches can be created for development and experimentation."
+    " IMPORTANT: all branches aside from main have the structure <user_name>.<branch_name>, so you always need"
+    " to remember or retrieve your Bauplan user name."
+    " Every change to the lakehouse is versioned and identified by a commit on a branch. The hash of a commit can"
+    " be used in all the methods supporting the `ref` parameter to time-travel to that specific commit, for example,"
+    " by using the commit hash in a query. Often, the name of a branch can be used to the same effect, for example,"
+    " when querying two versions of the same table across different branches."
+    " On top of table data, all Bauplan metadata can be retrieved with the appropriate tool call: for example,"
+    " you can list namespaces, tables, branches, jobs, logs, and commits - check the tool list to find out all the options."
+)
+
+bauplan_repair_prompt = (
+    "\n===== REPAIR PIPELINE =====\n"
+    "By listing jobs by their status, you can identify and fix issues in a pipeline."
+    " Telemetry data (logs) and basic job information (user, transactional branch) are all available as tools using the jobID."
+    " Intermediate tables written before the failures will be available for inspection in the transactional branch."
+    " The exact pipeline code from a job can also be recovered."
+    " If unsure about the cause, you can use a debug branch to perform your analysis: make sure to open your debug branch"
+    " from the same commit (ref) the original job was created, and make sure to use a proper naming convention for your branch, e.g."
+    " using your user and job id as in <user_name>.debug_<job_id>."
+    " When you fix the pipeline, make sure to test it thoroughly and run it end to end on your debug branch to verify"
+    " all the tables are there. Return to the user the name of the debug branch you used, containing now the pipeline"
+    " that you re-run, with all the proper tables correctly materialized."
+)
+
+
+bauplan_ingest_prompt = (
+    "\n===== INGEST DATA =====\n"
+    "Data is ingested from S3 files (parquet, csv or JSONL) into Bauplan tables in a two-step process."
+    " First, the table is created (if does not exist already) with create_table: the schema is automatically inferred"
+    " based on the parquet / csv schema of the files in the S3 URI provided at creation time. Second, the data"
+    " is loaded into the desired table with import_data, passing again the same S3 URI - if the table already exists"
+    " importing data is equivalent to append. As a best practice, all data ingestion operations (with or without table creation)"
+    " should happen with the Write-Audit-Publish pattern (WAP): first, a temporary ingestion data branch should be created to host"
+    " all the data operations (e.g. <user_name>.ingestion_<current_epoch>) and only at the end, after data quality checks"
+    " have passed, the branch should be merged back to main."
+)
+
+USE_CASE_TO_PROMPT = {
+    "pipeline": bauplan_pipeline_prompt,
+    "data": bauplan_data_prompt,
+    "repair": bauplan_repair_prompt,
+    "ingest": bauplan_ingest_prompt,
+}

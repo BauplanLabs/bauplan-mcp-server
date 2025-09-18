@@ -73,7 +73,9 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             if not jobs:
                 raise ToolError(f"Job {job_id} not found")
             job = jobs[0]
-            job_context = bauplan_client.get_job_context(jobs=[job_id])[0]
+            job_context = bauplan_client.get_job_context(
+                job_id, include_snapshot=True, include_logs=True
+            )
             logs_as_string = (
                 "\n".join(log.message for log in job_context.logs)
                 if job_context.logs

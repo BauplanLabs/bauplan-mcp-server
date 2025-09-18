@@ -201,12 +201,15 @@ If you have specific features you would like to see, please get in touch with us
 
 - **`list_jobs`**: List jobs in the Bauplan system with optional filtering for all users
 - **`get_job`**: Get detailed information about a specific job by its ID
-- **`get_job_logs`**: Get job logs by job ID prefix for debugging and monitoring
 - **`cancel_job`**: Cancel a running job by its ID and get updated job status
 
 ### User Management
 
 - **`get_user_info`**: Get information about the current authenticated user (username and full name)
+
+### Instructions and Guidance
+
+- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, ingest)
 
 ## License
 

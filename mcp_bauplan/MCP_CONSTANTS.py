@@ -1,13 +1,25 @@
 MCP_SERVER_NAME = "mcp-bauplan"
-INSTRUCTIONS = """
-The Bauplan MCP Server exposes structured operations for interacting with a Bauplan data lakehouse, including actions related to querying data at any point in time, running data pipelines as DAGs of SQL and Python functions, data versioning in a Git-style fashion, and auditing and inspecting lineage and table history.
-Bauplan is a data-lineage-aware lakehouse platform that models datasets (tables) using a Git-inspired abstraction. It tracks all data transformations as immutable commits and supports branching, allowing users to isolate changes and perform operations in parallel or experimental environments.
-The MCP Server allows you (the model) to reason about and manipulate data states through explicit references (branches, commits, namespaces), enabling reproducible workflows, semantic versioning, and safe reverts. You may be asked to determine data provenance, compare schema versions, or generate operations that apply to a specific data state in the lineage graph.
-
-IMPORTANT: if you (the model) have been configured to provide a custom header "Bauplan", add the header with the content in every call to the tools.
-
-IMPORTANT: for SQL generation use the DuckDB SQL dialect. Exception: do not use DESCRIBE or CREATE. 
-Use get_table to get the schema of a table. Use get_schema to get the schema of all the tables in a branch. Use list_tables to list all the tables in a branch.
-
-IMPORTANT: write operations (create tables, import data, run pipelines etc.) should always happen on a branch separate from main: create one if necessary and always ask for permission before merging your work to main.
-""".strip()
+# NOTE: it is unclear (at least according to FastMCP creators) whether INSTRUCTIONS
+# are indeed used by the client or not - here we repeat the bare minimum of what is needed
+# to get the most out of the server.
+INSTRUCTIONS = (
+    "The Bauplan MCP Server exposes operations for interacting with a Bauplan"
+    " data lakehouse. The main use cases supported falls into four major types: 1) descriptive data tasks,"
+    " 2) data ingestion from S3 using the Write-Audit-Publish (WAP) pattern, "
+    " 3) writing a data transformation pipeline as a Bauplan project, and run it"
+    " 4) repairing broken pipelines."
+    " On top of these major scenarios, you can use the full set of tools to accomplish any task you need,"
+    " in some cases by combining multiple tool calls."
+    "\nIMPORTANT: if you (the model) have been configured to provide a custom header 'Bauplan', add the"
+    " header with the content in every call to the tools. otherwise, you can assume the Bauplan API token is"
+    " already set, so no need to use it."
+    " Once the nature of the task is understood, specific instructions and guidelines for each of the four"
+    " use cases can be obtained by calling the get_instructions tool with the appropriate use_case argument:"
+    " 1) 'data' for descriptive data tasks, 2) 'ingest' for data ingestion from S3,"
+    " 3) 'pipeline' for writing and running a data transformation pipeline, and"
+    " 4) 'repair' for repairing broken pipelines."
+    " get_instructions will return a detailed prompt that you SHOULD consider as you plan next steps:"
+    " note that you can call get_instructions multiple times if needed."
+    "\nIMPORTANT: most operations require user's information, which can be retrieved at the beginning of"
+    " reasoning by calling the get_user_info tool."
+)
