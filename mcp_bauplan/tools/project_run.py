@@ -30,12 +30,11 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = None,
     ) -> RunState:
         """
-        Launch a job for a Bauplan pipeline from a specified directory and reference in the Bauplan catalog, returning a job ID to poll for the job status.
-        Run asynchronously a Bauplan pipeline from a specified project directory and reference.
-        The method will return a job ID that can be used to poll for the job status.
+        Run a pipeline from a specified directory and data ref, 
+        returning a job ID and success/failure to the caller.
 
         Args:
-            project_dir: The directory of the project (where the bauplan_project.yml file is located).
+            project_dir: The directory of the project containing the source code files and bauplan_project.yml.
             ref: The ref or branch name from which to run the project.
             namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
             parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool).
@@ -43,7 +42,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             client_timeout: Seconds to timeout (defaults to 120).
 
         Returns:
-            ProjectRun: Object indicating success/failure with job details
+            RunState: Object indicating success/failure with job Id to retrieve further job details.
         """
         try:
             if ctx:

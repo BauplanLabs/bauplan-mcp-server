@@ -25,28 +25,21 @@ def register_code_run_tool(mcp: FastMCP) -> None:
     async def code_run(
         project_files: Dict[str, str],
         ref: str,
-        namespace: Optional[str] = None,
         parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
-        dry_run: Optional[bool] = False,
-        client_timeout: Optional[int] = 120,
         ctx: Optional[Context] | None = None,
         bauplan_client: Optional[bauplan.Client] | None = None,
     ) -> RunState:
         """
-        Launch a job for a Bauplan pipeline from code files provided as a dictionary, returning a job ID to poll for the job status.
-        Run asynchronously a Bauplan pipeline from provided project files.
-        The method will return a job ID that can be used to poll for the job status.
-
+        Run a pipeline from provided source code files as a dictionary and a data ref, 
+        returning a job ID and success/failure to the caller.
+        
         Args:
-            project_files: Dictionary mapping file names to file content as strings. Must contain bauplan_project.yml and .sql/.py files.
+            project_files: Dictionary mapping file names to source code as strings. Must contain bauplan_project.yml and .sql/.py files.
             ref: The ref or branch name from which to run the project.
-            namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
-            parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool).
-            dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
-            client_timeout: Seconds to timeout (defaults to 120).
+            parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool). Default: None.
 
         Returns:
-            CodeRun: Object indicating success/failure with job details
+            RunState: Object indicating success/failure with job Id to retrieve further job details.
         """
         temp_dir = None
         try:
@@ -85,10 +78,10 @@ def register_code_run_tool(mcp: FastMCP) -> None:
             return run_project(
                 project_dir=temp_dir,
                 ref=ref,
-                namespace=namespace,
+                namespace='bauplan',  # default namespace
                 parameters=parameters,
-                dry_run=dry_run,
-                client_timeout=client_timeout,
+                dry_run=False,
+                client_timeout=120,
                 logger=logger,
                 bauplan_client=bauplan_client,
             )
