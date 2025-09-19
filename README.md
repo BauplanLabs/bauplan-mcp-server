@@ -55,6 +55,10 @@ Et voilà! You can now start asking your AI questions about your data lakehouse 
 
 ## Advanced Configurations
 
+### Client prompt strategy
+
+MCP client may or may not leverage the MCP instructions they receive when establishing the connection to the server. As such, our successful Bauplan implementation (e.g. data engineering agents) relies on the client being instructed on how to best use the Bauplan MCP server. We recommend starting a session (or using `CLAUDE.md` or equivalent) with a prompt that instruct the client on how to best use the server. For a good minimal example, you can start from the instructions in the `MCP_CONSTANTS.py` file in this repository, in particular as they instruct the model to get "prompt-on-demand" from the server when planning for specific use cases that require detailed guidelines.
+
 ### Python Setup
 
 You can run the MCP server also using a standard Python virtual environment:
