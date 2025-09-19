@@ -30,7 +30,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = None,
     ) -> RunState:
         """
-        Run a pipeline from a specified directory and data ref, 
+        Run a pipeline from a specified directory and data ref,
         returning a job ID and success/failure to the caller.
 
         Args:

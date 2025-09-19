@@ -30,9 +30,9 @@ def register_code_run_tool(mcp: FastMCP) -> None:
         bauplan_client: Optional[bauplan.Client] | None = None,
     ) -> RunState:
         """
-        Run a pipeline from provided source code files as a dictionary and a data ref, 
+        Run a pipeline from provided source code files as a dictionary and a data ref,
         returning a job ID and success/failure to the caller.
-        
+
         Args:
             project_files: Dictionary mapping file names to source code as strings. Must contain bauplan_project.yml and .sql/.py files.
             ref: The ref or branch name from which to run the project.
@@ -78,7 +78,7 @@ def register_code_run_tool(mcp: FastMCP) -> None:
             return run_project(
                 project_dir=temp_dir,
                 ref=ref,
-                namespace='bauplan',  # default namespace
+                namespace="bauplan",  # default namespace
                 parameters=parameters,
                 dry_run=False,
                 client_timeout=120,
