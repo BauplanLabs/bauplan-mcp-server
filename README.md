@@ -55,6 +55,10 @@ Et voilà! You can now start asking your AI questions about your data lakehouse 
 
 ## Advanced Configurations
 
+### Client prompt strategy
+
+MCP client may or may not leverage the MCP instructions they receive when establishing the connection to the server. As such, our successful Bauplan implementation (e.g. data engineering agents) relies on the client being instructed on how to best use the Bauplan MCP server. We recommend starting a session (or using `CLAUDE.md` or equivalent) with a prompt that instruct the client on how to best use the server. For a good minimal example, you can start from the instructions in the `MCP_CONSTANTS.py` file in this repository, in particular as they instruct the model to get "prompt-on-demand" from the server when planning for specific use cases that require detailed guidelines.
+
 ### Python Setup
 
 You can run the MCP server also using a standard Python virtual environment:
@@ -196,17 +200,21 @@ If you have specific features you would like to see, please get in touch with us
 ### Project Management
 
 - **`project_run`**: Run a Bauplan project from a specified directory and reference with configurable parameters (dry-run, timeout, detach mode)
+- **`code_run`**: Run a Bauplan project from code files provided as a dictionary (useful for clients that cannot submit paths), automatically creates temporary directory and validates project structure
 
 ### Job Management
 
 - **`list_jobs`**: List jobs in the Bauplan system with optional filtering for all users
 - **`get_job`**: Get detailed information about a specific job by its ID
-- **`get_job_logs`**: Get job logs by job ID prefix for debugging and monitoring
 - **`cancel_job`**: Cancel a running job by its ID and get updated job status
 
 ### User Management
 
 - **`get_user_info`**: Get information about the current authenticated user (username and full name)
+
+### Instructions and Guidance
+
+- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, ingest)
 
 ## License
 

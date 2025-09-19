@@ -36,7 +36,7 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
         Args:
             name: Optional filter to get branches by name (substring match)
             user: Optional filter to get branches by user
-            limit: Maximum number of branches to return
+            limit: Maximum number of branches to return (needs to be an integer, default 10)
 
         Returns:
             BranchesOut: Object containing list of branches with their names and hashes

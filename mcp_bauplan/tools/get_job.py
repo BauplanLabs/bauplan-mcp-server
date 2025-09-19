@@ -58,7 +58,7 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             status (str): The status of the job.
             logs (Optional[str]): Concatenated user logs from the job.
             code_snapshot_path (Optional[Path]): Path to the code snapshot directory.
-            ref (Optional[str]): The data commit reference when the job was run.
+            ref (Optional[str]): The data commit reference when the job was run, i.e. the state of source tables for the job at that time.
             transactional_branch (Optional[str]): The transactional branch that was open when the job was run.
             project_yml (Optional[str]): The contents of the bauplan_project.yml file from the snapshot.
             project_files (Optional[dict[str, str]]): A dictionary of other project files from the snapshot, with filenames as keys and file contents as values.
@@ -73,7 +73,9 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             if not jobs:
                 raise ToolError(f"Job {job_id} not found")
             job = jobs[0]
-            job_context = bauplan_client.get_job_context(jobs=[job_id])[0]
+            job_context = bauplan_client.get_job_context(
+                job_id, include_snapshot=True, include_logs=True
+            )
             logs_as_string = (
                 "\n".join(log.message for log in job_context.logs)
                 if job_context.logs

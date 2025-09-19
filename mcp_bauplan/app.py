@@ -31,6 +31,7 @@ from .tools.delete_table import register_delete_table_tool
 from .tools.import_data import register_import_data_tool
 from .tools.revert_table import register_revert_table_tool
 from .tools.project_run import register_project_run_tool
+from .tools.code_run import register_code_run_tool
 from .tools.list_jobs import register_list_jobs_tool
 from .tools.get_job import register_get_job_tool
 from .tools.cancel_job import register_cancel_job_tool
@@ -41,6 +42,7 @@ from .tools.get_tags import register_get_tags_tool
 from .tools.create_tag import register_create_tag_tool
 from .tools.has_tag import register_has_tag_tool
 from .tools.delete_tag import register_delete_tag_tool
+from .tools.get_instructions import register_get_instructions_tool
 from .tools.get_user_info import register_get_user_info_tool
 
 # Suppress known deprecation warnings from uvicorn/websockets compatibility issue
@@ -132,6 +134,7 @@ def main(
     register_import_data_tool(mcp)
     register_revert_table_tool(mcp)
     register_project_run_tool(mcp)
+    register_code_run_tool(mcp)
     register_list_jobs_tool(mcp)
     register_get_job_tool(mcp)
     register_cancel_job_tool(mcp)
@@ -143,6 +146,7 @@ def main(
     register_has_tag_tool(mcp)
     register_delete_tag_tool(mcp)
     register_get_user_info_tool(mcp)
+    register_get_instructions_tool(mcp)
 
     if transport != "stdio":
         ## add middleware to add the Bauplan api_key to all requests
