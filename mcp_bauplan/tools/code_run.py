@@ -39,7 +39,7 @@ def register_code_run_tool(mcp: FastMCP) -> None:
             parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool). Default: None.
 
         Returns:
-            RunState: Object indicating success/failure with job Id to retrieve further job details.
+            RunState: Object indicating success/failure with job Id.
         """
         temp_dir = None
         try:
