@@ -1,4 +1,5 @@
 bauplan_pipeline_prompt = (
+    # TODO ADD PARAMETER AND SECRET USAGE
     "\n===== DATA PIPELINES =====\n"
     "Pipelines are logically organized by projects: each project is a folder with 1) one bauplan_project.yml"
     " and one or more pipeline files, .sql or .py. Pipelines are defined by chaining together 'models'"
