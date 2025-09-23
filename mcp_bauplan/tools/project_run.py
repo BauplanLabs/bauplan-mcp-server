@@ -42,7 +42,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             client_timeout: Seconds to timeout (defaults to 120).
 
         Returns:
-            RunState: Object indicating success/failure with job Id to retrieve further job details.
+            RunState: Object indicating success/failure with job Id
         """
         try:
             if ctx:
