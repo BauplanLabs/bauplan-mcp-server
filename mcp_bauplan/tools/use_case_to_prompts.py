@@ -91,6 +91,7 @@ bauplan_data_prompt = (
     " you can list namespaces, tables, branches, jobs, logs, and commits - check the tool list to find out all the options."
 )
 
+
 bauplan_repair_prompt = (
     "\n===== REPAIR PIPELINE =====\n"
     "By listing jobs by their status, you can identify and fix issues in a pipeline."
@@ -116,14 +117,60 @@ bauplan_ingest_prompt = (
     " based on the parquet / csv schema of the files in the S3 URI provided at creation time. Second, the data"
     " is loaded into the desired table with import_data, passing again the same S3 URI - if the table already exists"
     " importing data is equivalent to append. As a best practice, all data ingestion operations (with or without table creation)"
-    " should happen with the Write-Audit-Publish pattern (WAP): first, a temporary ingestion data branch should be created to host"
+    " should happen with the Write-Audit-Pub`lish pattern (WAP): first, a temporary ingestion data branch should be created to host"
     " all the data operations (e.g. <user_name>.ingestion_<current_epoch>) and only at the end, after data quality checks"
     " have passed, the branch should be merged back to main."
 )
+
+
+bauplan_test_prompt = (
+    "\n===== DATA EXPECTATIONS AND QUALITY TESTS =====\n"
+    "Data expectations are a powerful way to ensure data quality and consistency in your pipelines."
+    " They allow you to define rules and checks that your data must pass before it can be considered valid."
+    " This helps catch issues early and ensures that your data processing steps are working as intended."
+    " Expectations can be defined using built-in functions from the bauplan.standard_expectations module,"
+    " or you can create custom expectations to suit your specific needs."
+    " Expectations are defined as Python functions decorated with @bauplan.expectation(), and can be"
+    " associated with one or more models in your pipeline. They are executed after the model is run,"
+    " directly in memory, and should return a boolean indicating whether the expectation passed or failed."
+    " If an expectation fails, it can raise an AssertionError with a descriptive message to help"
+    " diagnose the issue. As an example the file expectations.py below is a sample function testing"
+    " that a specific column in a model has no null values.\n"
+    "The bauplan.standard_expectations module contains many built-in expectations, including:\n"
+    "expect_column_accepted_values\n"
+    "expect_column_all_null\n"
+    "expect_column_all_unique\n"
+    "expect_column_equal_concatenation\n"
+    "expect_column_mean_greater_or_equal_than\n"
+    "expect_column_mean_greater_than\n"
+    "expect_column_mean_smaller_or_equal_than\n"
+    "expect_column_mean_smaller_than\n"
+    "expect_column_no_nulls\n"
+    "expect_column_not_unique\n"
+    "expect_column_some_null\n"
+    "As a best practice, put all your expectations in a separate file named for example expectations.py: the file"
+    " should be in the same folder as your bauplan_project.yml and other pipeline files, and will be automatically"
+    " detected and executed by Bauplan when you run your project. Here is an example of such a file:"
+    "\n\n"
+    "expectations.py\n"
+    "import bauplan\n"
+    "from bauplan.standard_expectations import expect_column_no_nulls\n"
+    "@bauplan.expectation()\n"
+    "@bauplan.python('3.11')\n"
+    "def test_null_values_location_id(data=bauplan.Model('model_to_be_tested')):\n"
+    "    _is_expectation_correct = expect_column_no_nulls(data, 'PULocationID')\n"
+    "    # if the expectation is not met, raise an AssertionError with a descriptive message\n"
+    "    assert _is_expectation_correct, f'expectation test failed: we expected PULocationID to have no null values'\n"
+    "    # return a boolean to indicate if the expectation passed or failed\n"
+    "    return _is_expectation_correct\n"
+)
+
+
 
 USE_CASE_TO_PROMPT = {
     "pipeline": bauplan_pipeline_prompt,
     "data": bauplan_data_prompt,
     "repair": bauplan_repair_prompt,
     "ingest": bauplan_ingest_prompt,
+    "test": bauplan_test_prompt,
 }
