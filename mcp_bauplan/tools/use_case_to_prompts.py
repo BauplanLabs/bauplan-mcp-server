@@ -79,6 +79,7 @@ bauplan_data_prompt = (
     "\n===== READING DATA AND METADATA =====\n"
     "Data in Bauplan is represented as tables, logically grouped by namespaces (e.g. bauplan.titanic)."
     " IMPORTANT: when not specified the namespace is the default one, bauplan."
+    " IMPORTANT: when not specified the branch is the default one, main."
     " Each table has a schema that defines its columns and their types, like a database."
     " Data evolution follow Git-like abstractions: a *main* data branch contain the production version of the"
     " tables, and other data branches can be created for development and experimentation."
