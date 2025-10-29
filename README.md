@@ -18,7 +18,7 @@ To know how to get the most out of the MCP server, check out our [video walkthro
 
 ## Quick Start
 
-You can get started in one minute with your existing AI assistant: a video setup with Claude Desktop and Claude Code is also available [here](https://www.loom.com/share/dedca885931f45c6b2fac4b610048d90?sid=116c453a-34f6-4f6b-8ba1-9e08cd9cc67d) for reference. 
+You can get started in one minute with your existing AI assistant: a video setup with Claude Desktop and Claude Code is also available [here](https://drive.google.com/file/d/1BIBBuxuCKrrHvxOfkut_8TuYy77HZ1rQ/view?usp=sharing) for reference. 
 
 You need:
 
