@@ -45,7 +45,7 @@ uv run python main.py --transport streamable-http
 The MCP server is now available at `http://localhost:8000/mcp`. You can configure the server in Claude Code for example with:
 
 ```bash
-claude mcp add -t http mcp-bauplan "<http://localhost:8000/mcp>"
+claude mcp add -t http mcp-bauplan "http://localhost:8000/mcp"
 
 ```
 
