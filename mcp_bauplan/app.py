@@ -1,4 +1,3 @@
-# mcp_bauplan/app.py
 from pathlib import Path
 from fastmcp import FastMCP
 from starlette.responses import PlainTextResponse
@@ -12,8 +11,7 @@ import logging
 import os
 import warnings
 
-MCP_SERVER_NAME = "mcp-bauplan"
-INSTRUCTIONS = (Path(__file__).parent / "CLAUDE.md").read_text()
+# Import tool registration functions
 from .tools.list_tables import register_list_tables_tool
 from .tools.get_schema import register_get_schema_tool
 from .tools.get_table import register_get_table_tool
@@ -57,6 +55,9 @@ warnings.filterwarnings(
     "ignore", category=DeprecationWarning, module="uvicorn.protocols.websockets"
 )
 
+# Get the global MCP server name and instructions
+MCP_SERVER_NAME = "mcp-bauplan"
+INSTRUCTIONS = (Path(__file__).parent / "CLAUDE.md").read_text()
 
 # Configure logging
 logger = logging.getLogger(__name__)

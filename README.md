@@ -5,7 +5,6 @@ Manage your Bauplan Lakehouse using natural language commands with the Bauplan M
 > [!NOTE]
 > This server is now released in Beta under MIT license, but APIs and features may change without notice as we continue development.
 
-
 ## Overview
 
 The Bauplan Model Context Protocol (MCP) Server is an open source library that provides AI assistants with access to Bauplan data lakehouse functionalities, including querying tables, schema inspection, data branch management, as well as running pipelines.
@@ -27,7 +26,6 @@ You need:
 - an AI platform able to leverage the MCP, as for example Claude Code, Cursor, Claude Desktop.
 
 <aside>
-
 
 > [!WARNING]
 > do not use an Admin Bauplan API key: while the server will refuse to write on `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
@@ -59,15 +57,17 @@ Et voilà! You can now start asking your AI questions about your data lakehouse 
 
 MCP client may or may not leverage the MCP instructions they receive when establishing the connection to the server. As such, our successful Bauplan implementation (e.g. data engineering agents) relies on the client being instructed on how to best use the Bauplan MCP server. We recommend starting a session (or using `CLAUDE.md` or equivalent) with a prompt that instruct the client on how to best use the server. For a good minimal example, you can start from the instructions in the `MCP_CONSTANTS.py` file in this repository, in particular as they instruct the model to get "prompt-on-demand" from the server when planning for specific use cases that require detailed guidelines.
 
-### Python Setup
+#### CLAUDE.md System Prompt
 
-You can run the MCP server also using a standard Python virtual environment:
+We provide a `CLAUDE.md` file in `mcp_bauplan/CLAUDE.md` that contains general MCP guidelines for the model. We recommend using this file on the **client/agent side** to prompt the model with the general MCP guidelines before any interaction with the server begins.
 
-```bash
-python -m venv venv && source venv/bin/activate
-pip install -e .
+This file instructs the model on:
+- The main use cases supported by the Bauplan MCP server
+- How to retrieve detailed instructions for specific use cases via the `get_instructions` tool
+- How to handle API token configuration
+- Best practices for retrieving user information before operations
 
-```
+For Claude Code users, you can copy this file to your project root or reference it in your agent configuration. For other MCP clients, include the contents as a system prompt or initial context.
 
 ### Bauplan Credentials
 
@@ -148,7 +148,6 @@ The beta release exposes the core Bauplan functionalities for data lakehouse and
 
 The Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
 
-- first-class support for Bauplan documentation and related use cases;
 - a server-side deployment option for existing Bauplan users;
 - further iterations on MCP and best practices around it for improved code generation (both in co-pilot and in agentic use cases).
 
@@ -214,7 +213,27 @@ If you have specific features you would like to see, please get in touch with us
 
 ### Instructions and Guidance
 
-- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, ingest)
+- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, ingest, test, sdk)
+
+## Skills
+
+> [!WARNING]
+> Skills are very experimental and subject to change at any time.
+
+The `skills/` folder contains reusable skill definitions for Claude Code that provide guided workflows for common Bauplan tasks. These skills can be incorporated into your Claude Code projects to enable AI-assisted data engineering.
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| **new-pipeline** | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure |
+| **wap** | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production |
+
+### Using Skills
+
+To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains:
+- `SKILL.md` - Main skill definition with overview, instructions, and basic examples
+- `examples.md` - Advanced examples and edge cases
 
 ## License
 

@@ -1,193 +1,122 @@
 ---
-name: "Write-Audit-Publish (WAP)"
-description: "Ingest data from S3 into bauplan using the Write-Audit-Publish pattern for safe data loading"
+name: wap-ingestion
+description: "Ingest data from S3 into bauplan using the Write-Audit-Publish pattern for safe data loading. Use when loading new data from S3, performing safe data ingestion, or when the user mentions WAP, data ingestion, importing parquet/csv/jsonl files, or needs to safely load data with quality checks."
 allowed-tools:
-  - Bash(bauplan:*)
   - Read
   - Write
   - Glob
   - Grep
+  - Bash
   - WebFetch(domain:docs.bauplanlabs.com)
 ---
 
 # Write-Audit-Publish (WAP) Pattern
 
-The WAP pattern is a data ingestion methodology that ensures data quality before making data visible to downstream consumers. It prevents "dataset pollution in production" by sandboxing changes until they pass quality checks.
+Implement WAP by writing a Python script using the `bauplan` SDK. Do NOT use CLI commands.
 
-## The Three Steps
+**The three steps**: Write (ingest to temp branch) → Audit (quality checks) → Publish (merge to main)
 
-1. **Write**: Ingest data into a temporary branch (isolated from production)
-2. **Audit**: Run data quality checks on the staged data
-3. **Publish**: Merge validated data to the main branch
+**Branch safety**: All operations happen on a temporary branch, NEVER on `main`. By default, branches are kept open for inspection after success or failure.
 
-## CRITICAL: Branch Safety
+**Atomic multi-table operations**: `merge_branch` is atomic. You can create or modify multiple tables on a branch, and when you merge, either all changes apply to main or none do. This enables safe multi-table ingestion workflows.
 
-> **All WAP operations happen on a temporary branch, NEVER on `main`.**
+## Required User Input
 
-The temporary branch is:
-- Created from `main` at the start
-- Used for all write operations
-- Merged back to `main` only after quality checks pass
-- Deleted after successful merge (or on failure for cleanup)
+Before writing the WAP script, you MUST ask the user for the following parameters:
 
-## Prerequisites
+1. **S3 path** (required): The S3 URI pattern for the source data (e.g., `s3://bucket/path/*.parquet`)
+2. **Table name** (required): The name for the target table
+3. **On success behavior** (optional):
+   - `inspect` (default): Keep the branch open for user inspection before merging
+   - `merge`: Automatically merge to main and delete the branch
+4. **On failure behavior** (optional):
+   - `keep` (default): Leave the branch open for inspection/debugging
+   - `delete`: Delete the failed branch
 
-Before starting WAP ingestion:
+## WAP Script Template
 
-1. **Get your username**: `bauplan info` (look for "Username:")
-2. **Verify S3 source**: Ensure the S3 path contains valid parquet/csv/jsonl files
-3. **Know the target namespace**: Default is `bauplan`
-
-## CLI Quick Reference
-
-```bash
-bauplan --help              # General help
-bauplan branch --help       # Branch operations
-bauplan table --help        # Table operations
-bauplan import --help       # Data import operations
-```
-
-## WAP Flow Overview
+See [wap_template.py](wap_template.py) for the complete template. Minimal usage:
 
 ```python
-import bauplan
-from datetime import datetime
+from wap_template import wap_ingest
 
-def wap_ingest(
-    table_name: str,
-    s3_path: str,
-    namespace: str = "bauplan",
-    columns_to_check: list = None
-):
-    """
-    Write-Audit-Publish flow for safe data ingestion.
-
-    Args:
-        table_name: Target table name
-        s3_path: S3 URI pattern (e.g., 's3://bucket/path/*.parquet')
-        namespace: Target namespace (default: 'bauplan')
-        columns_to_check: Columns to validate for null values
-    """
-    client = bauplan.Client()
-
-    # Generate unique branch name
-    branch_name = f"{namespace}.wap_{table_name}_{int(datetime.now().timestamp())}"
-
-    try:
-        # === WRITE PHASE ===
-        # 1. Create temporary branch from main
-        if client.has_branch(branch_name):
-            client.delete_branch(branch_name)
-        client.create_branch(branch_name)
-
-        # 2. Create table (schema inferred from S3 files)
-        client.create_table(
-            table=table_name,
-            search_uri=s3_path,
-            namespace=namespace,
-            branch=branch_name,
-            replace=True
-        )
-
-        # 3. Import data into table
-        client.import_data(
-            table=table_name,
-            search_uri=s3_path,
-            namespace=namespace,
-            branch=branch_name
-        )
-
-        # === AUDIT PHASE ===
-        # 4. Run quality checks
-        if columns_to_check:
-            data = client.scan(
-                table=f"{namespace}.{table_name}",
-                ref=branch_name,
-                columns=columns_to_check
-            )
-            for col in columns_to_check:
-                null_count = data[col].null_count
-                assert null_count == 0, f"Column {col} has {null_count} null values"
-
-        # === PUBLISH PHASE ===
-        # 5. Merge to main
-        client.merge_branch(
-            source_ref=branch_name,
-            into_branch="main"
-        )
-        print(f"Successfully published {table_name} to main")
-
-    finally:
-        # 6. Cleanup: delete temporary branch
-        if client.has_branch(branch_name):
-            client.delete_branch(branch_name)
+branch, success = wap_ingest(
+    table_name="orders",
+    s3_path="s3://my-bucket/data/*.parquet",
+    namespace="bauplan",
+    on_success="inspect",  # or "merge"
+    on_failure="keep"      # or "delete"
+)
 ```
 
 ## Key SDK Methods
 
 | Method | Description |
 |--------|-------------|
+| `bauplan.Client()` | Initialize the bauplan client |
+| `client.get_user_info()` | Get current user info (for branch naming) |
 | `client.create_branch(name)` | Create a new branch from current HEAD |
 | `client.has_branch(name)` | Check if branch exists |
 | `client.delete_branch(name)` | Delete a branch |
 | `client.create_table(table, search_uri, ...)` | Create table with schema inferred from S3 |
 | `client.import_data(table, search_uri, ...)` | Import data from S3 into table |
-| `client.scan(table, ref, columns)` | Read table data for validation |
+| `client.query(query, ref)` | Run SQL query, returns PyArrow Table |
 | `client.merge_branch(source_ref, into_branch)` | Merge branch into target |
 | `client.has_table(table, ref)` | Check if table exists on branch |
 
 > **SDK Reference**: For detailed method signatures, check https://docs.bauplanlabs.com/reference/bauplan
 
-## CLI-Based WAP Flow
+## Workflow Checklist
 
-If using the CLI instead of SDK:
+Copy and track progress:
 
-```bash
-# 1. Get username
-bauplan info
-
-# 2. Checkout to main first
-bauplan branch checkout main
-
-# 3. Create temporary ingestion branch
-bauplan branch create <username>.wap_<table_name>_<timestamp>
-
-# 4. Checkout to the new branch
-bauplan branch checkout <username>.wap_<table_name>_<timestamp>
-
-# 5. Create table (schema inferred from S3)
-bauplan table create <table_name> --search-uri "s3://bucket/path/*.parquet" --namespace <namespace>
-
-# 6. Import data
-bauplan import <table_name> --search-uri "s3://bucket/path/*.parquet" --namespace <namespace>
-
-# 7. Validate data (query to check for issues)
-bauplan query "SELECT COUNT(*) as nulls FROM <namespace>.<table_name> WHERE <column> IS NULL"
-
-# 8. If validation passes, merge to main
-bauplan branch merge <username>.wap_<table_name>_<timestamp> --into main
-
-# 9. Cleanup: delete temporary branch
-bauplan branch delete <username>.wap_<table_name>_<timestamp>
+```
+WAP Progress:
+- [ ] Ask user for: S3 path, table name, on_success, on_failure
+- [ ] Write script using wap_template.py
+- [ ] Run script: python wap_script.py
+- [ ] Verify output shows row count > 0
+- [ ] If on_success="inspect": confirm branch ready for review
+- [ ] If on_success="merge": confirm merge to main succeeded
 ```
 
-## Workflow Summary
+## Example Output
 
-1. **Get username**: `bauplan info`
-2. **Checkout main**: `bauplan branch checkout main`
-3. **Create WAP branch**: `bauplan branch create <username>.wap_<table>_<ts>`
-4. **Checkout WAP branch**: `bauplan branch checkout <username>.wap_<table>_<ts>`
-5. **Create table**: Infer schema from S3 source
-6. **Import data**: Load data from S3
-7. **Audit**: Run quality checks (null checks, value ranges, etc.)
-8. **Publish**: `bauplan branch merge <branch> --into main`
-9. **Cleanup**: `bauplan branch delete <branch>`
+**Successful run (on_success="inspect")**:
+```
+$ python wap_script.py
+Imported 15234 rows
+WAP completed successfully. Branch 'alice.wap_orders_1704067200' ready for inspection.
+To merge manually: client.merge_branch(source_ref='alice.wap_orders_1704067200', into_branch='main')
+```
 
-## Advanced Examples
+**Successful run (on_success="merge")**:
+```
+$ python wap_script.py
+Imported 15234 rows
+Successfully published orders to main
+Cleaned up branch: alice.wap_orders_1704067200
+```
 
-See [examples.md](examples.md) for:
-- Multiple table ingestion
-- Custom quality checks
-- Handling failures and rollback
-- Incremental/append ingestion
-- Different file formats (parquet, csv, jsonl)
+**Failed run (on_failure="keep")**:
+```
+$ python wap_script.py
+WAP failed: No data was imported
+Branch 'alice.wap_orders_1704067200' preserved for inspection/debugging.
+```
+
+## WAP on Existing Tables
+
+To append data to an existing table, skip `create_table` and only call `import_data`:
+
+```python
+# Table already exists on main - just import new data
+client.import_data(
+    table=table_name,
+    search_uri=s3_path,
+    namespace=namespace,
+    branch=branch_name
+)
+```
+
+This appends rows to the existing table schema. The audit and publish phases remain the same: the new rows are automatically sandboxed on the branch until merged.

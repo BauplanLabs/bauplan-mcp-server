@@ -40,11 +40,16 @@ Check the tool list to find out all the options.
 
 If asked to reason about data lineage (e.g., which tables are materialized by a specific job, or which table will change if a specific model in a pipeline is modified), you need a job ID to start from (ask if users don't have it).
 
+> **CRITICAL**: Lineage analysis must ALWAYS start by retrieving the code from a job that was run. Do NOT use local code for lineage analysis UNLESS the user explicitly asks you to analyze local code specifically.
+
 ### Steps for Lineage Analysis
 
-1. First retrieve the job information with code
-2. Then reason about the input and output tables of the job
-3. If needed, retrieve further information about those tables
+1. **Get the job ID**: Ask the user if they don't provide one
+2. **Retrieve job information**: Use the `get_job` tool to get job details including the code that was executed
+3. **Extract the code from the job**: The job contains the actual pipeline code that was run
+4. **Analyze the code**: Parse the SQL and Python models to understand inputs and outputs
+5. **Reason about lineage**: Determine which tables are affected based on the job's code
+6. If needed, retrieve further information about those tables
 
 ### Understanding Model Inputs and Outputs
 
