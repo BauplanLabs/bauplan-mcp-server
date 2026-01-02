@@ -28,10 +28,11 @@ def register_get_instructions_tool(mcp: FastMCP) -> None:
         Args:
             use_case: The use case to get instructions for. Must be one of:
                 - 'pipeline': Instructions for creating and managing data pipelines
-                - 'data': Instructions for reading data and metadata
+                - 'data': Instructions for reading data and metadata, including data lineage information
                 - 'repair': Instructions for repairing failed pipelines
                 - 'ingest': Instructions for ingesting data from S3, typically using the Write-Audit-Publish pattern (WAP)
                 - 'test': Instructions for creating and managing data expectations and quality tests
+                - 'sdk': Instructions for explaining Bauplan SDK methods and verifying their syntax and usage
 
         Returns:
             Prompt: Object containing the detailed instructions for the specified use case, to be used by the

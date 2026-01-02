@@ -1,4 +1,5 @@
 # mcp_bauplan/app.py
+from pathlib import Path
 from fastmcp import FastMCP
 from starlette.responses import PlainTextResponse
 from starlette.requests import Request
@@ -10,7 +11,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import logging
 import os
 import warnings
-from .MCP_CONSTANTS import MCP_SERVER_NAME, INSTRUCTIONS
+
+MCP_SERVER_NAME = "mcp-bauplan"
+INSTRUCTIONS = (Path(__file__).parent / "CLAUDE.md").read_text()
 from .tools.list_tables import register_list_tables_tool
 from .tools.get_schema import register_get_schema_tool
 from .tools.get_table import register_get_table_tool
