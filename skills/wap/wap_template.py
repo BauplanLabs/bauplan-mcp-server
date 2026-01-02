@@ -6,6 +6,7 @@ Usage:
 
 Or import and call wap_ingest() with your parameters.
 """
+
 import bauplan
 from datetime import datetime
 
@@ -15,7 +16,7 @@ def wap_ingest(
     s3_path: str,
     namespace: str = "bauplan",
     on_success: str = "inspect",  # "inspect" (default) or "merge"
-    on_failure: str = "keep"      # "keep" (default) or "delete"
+    on_failure: str = "keep",  # "keep" (default) or "delete"
 ):
     """
     Write-Audit-Publish flow for safe data ingestion.
@@ -33,28 +34,32 @@ def wap_ingest(
     client = bauplan.Client()
 
     # Generate unique branch name using username
-    user_info = client.get_user_info()
-    username = user_info.username
+    info = client.info()
+    username = info.user.username
     branch_name = f"{username}.wap_{table_name}_{int(datetime.now().timestamp())}"
 
     success = False
     try:
         # === WRITE PHASE ===
         # 1. Create temporary branch from main (must not exist)
-        assert not client.has_branch(branch_name), \
+        assert not client.has_branch(branch_name), (
             f"Branch '{branch_name}' already exists - this should be an ephemeral branch"
-        client.create_branch(branch_name)
+        )
+        client.create_branch(branch_name, from_ref="main")
 
         # 2. Verify table doesn't exist on branch before creating
-        assert not client.has_table(table=table_name, ref=branch_name, namespace=namespace), \
+        assert not client.has_table(
+            table=table_name, ref=branch_name, namespace=namespace
+        ), (
             f"Table '{namespace}.{table_name}' already exists on branch - refusing to overwrite"
+        )
 
         # 3. Create table (schema inferred from S3 files)
         client.create_table(
             table=table_name,
             search_uri=s3_path,
             namespace=namespace,
-            branch=branch_name
+            branch=branch_name,
         )
 
         # 4. Import data into table
@@ -62,15 +67,14 @@ def wap_ingest(
             table=table_name,
             search_uri=s3_path,
             namespace=namespace,
-            branch=branch_name
+            branch=branch_name,
         )
 
         # === AUDIT PHASE ===
         # 5. Run quality check: verify data was imported
         fq_table = f"{namespace}.{table_name}"
         result = client.query(
-            query=f"SELECT COUNT(*) as row_count FROM {fq_table}",
-            ref=branch_name
+            query=f"SELECT COUNT(*) as row_count FROM {fq_table}", ref=branch_name
         )
         row_count = result.column("row_count")[0].as_py()
         assert row_count > 0, "No data was imported"
@@ -81,17 +85,18 @@ def wap_ingest(
         # === PUBLISH PHASE ===
         if on_success == "merge":
             # 6. Merge to main and cleanup
-            client.merge_branch(
-                source_ref=branch_name,
-                into_branch="main"
-            )
+            client.merge_branch(source_ref=branch_name, into_branch="main")
             print(f"Successfully published {table_name} to main")
             client.delete_branch(branch_name)
             print(f"Cleaned up branch: {branch_name}")
         else:
             # Keep branch for inspection
-            print(f"WAP completed successfully. Branch '{branch_name}' ready for inspection.")
-            print(f"To merge manually: client.merge_branch(source_ref='{branch_name}', into_branch='main')")
+            print(
+                f"WAP completed successfully. Branch '{branch_name}' ready for inspection."
+            )
+            print(
+                f"To merge manually: client.merge_branch(source_ref='{branch_name}', into_branch='main')"
+            )
 
     except Exception as e:
         print(f"WAP failed: {e}")
@@ -113,5 +118,5 @@ if __name__ == "__main__":
         s3_path="s3://my-bucket/data/*.parquet",
         namespace="bauplan",
         on_success="inspect",
-        on_failure="keep"
+        on_failure="keep",
     )

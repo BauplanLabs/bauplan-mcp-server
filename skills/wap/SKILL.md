@@ -54,15 +54,15 @@ branch, success = wap_ingest(
 | Method | Description |
 |--------|-------------|
 | `bauplan.Client()` | Initialize the bauplan client |
-| `client.get_user_info()` | Get current user info (for branch naming) |
-| `client.create_branch(name)` | Create a new branch from current HEAD |
+| `client.info()` | Get client info; access username via `.user.username` |
+| `client.create_branch(name, from_ref="main")` | Create a new branch from specified ref |
 | `client.has_branch(name)` | Check if branch exists |
 | `client.delete_branch(name)` | Delete a branch |
 | `client.create_table(table, search_uri, ...)` | Create table with schema inferred from S3 |
 | `client.import_data(table, search_uri, ...)` | Import data from S3 into table |
 | `client.query(query, ref)` | Run SQL query, returns PyArrow Table |
 | `client.merge_branch(source_ref, into_branch)` | Merge branch into target |
-| `client.has_table(table, ref)` | Check if table exists on branch |
+| `client.has_table(table, ref, namespace)` | Check if table exists on branch |
 
 > **SDK Reference**: For detailed method signatures, check https://docs.bauplanlabs.com/reference/bauplan
 
@@ -120,3 +120,20 @@ client.import_data(
 ```
 
 This appends rows to the existing table schema. The audit and publish phases remain the same: the new rows are automatically sandboxed on the branch until merged.
+
+## CLI Merge After Inspection
+
+When `on_success="inspect"` (default), the branch is left open for user review. If the user asks to merge after inspecting the data, use the CLI:
+
+```bash
+# 1. Checkout to main first (required before merging)
+bauplan checkout main
+
+# 2. Merge the WAP branch into main
+bauplan branch merge <username>.wap_<table_name>_<timestamp>
+
+# 3. Optionally delete the branch after successful merge
+bauplan branch rm <username>.wap_<table_name>_<timestamp>
+```
+
+> **Note**: You must be on `main` to run `bauplan branch merge`. The branch name is printed by the WAP script upon completion.
