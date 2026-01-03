@@ -1,21 +1,21 @@
-# Bauplan MCP Server
+# Bauplan MCP Server & Agent Skills
 
-Manage your Bauplan Lakehouse using natural language commands with the Bauplan MCP Server.
+Build AI-powered data engineering workflows with the Bauplan MCP Server and Agent Skills.
 
 > [!NOTE]
-> This server is now released in Beta under MIT license, but APIs and features may change without notice as we continue development.
+> This project is released in Beta under MIT license. APIs and features may change without notice as we continue development.
 
 ## Overview
 
-The Bauplan Model Context Protocol (MCP) Server is an open source library that provides AI assistants with access to Bauplan data lakehouse functionalities, including querying tables, schema inspection, data branch management, as well as running pipelines.
+This repository provides two complementary tools for AI-assisted data engineering with Bauplan:
 
-The intended usage for the current release is to help with *local development* by providing AI assistants like Claude Code or Claude Desktop access to your Bauplan lakehouse. 
+1. **MCP Server** - A Model Context Protocol server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
 
-We expect to generalize this to server-side deployments in the near future, possibly directly hosted by Bauplan: stay tuned!
+2. **Agent Skills** - Reusable skill definitions for Claude Code that provide guided workflows for common code generation tasks like creating pipelines (`/new-pipeline`) and data ingestion (`/wap`).
 
-To know how to get the most out of the MCP server, check out our [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562). If you have preliminary questions or feedback, please reach out to us!
+The intended usage for this repo is to help with *local development* by providing AI assistants access to your Bauplan lakehouse: a blog post with some context and background is available [here](https://www.bauplanlabs.com/post/bauplans-mcp-server).
 
-## Quick Start
+## MCP Quick Start
 
 You can get started in one minute with your existing AI assistant: a video setup with Claude Desktop and Claude Code is also available [here](https://drive.google.com/file/d/1BIBBuxuCKrrHvxOfkut_8TuYy77HZ1rQ/view?usp=sharing) for reference. 
 
@@ -53,31 +53,26 @@ Et voilà! You can now start asking your AI questions about your data lakehouse 
 
 ## Advanced Configurations
 
-### Client prompt strategy
+### CLAUDE.md for Guided Usage
 
-MCP client may or may not leverage the MCP instructions they receive when establishing the connection to the server. As such, our successful Bauplan implementation (e.g. data engineering agents) relies on the client being instructed on how to best use the Bauplan MCP server. We recommend starting a session (or using `CLAUDE.md` or equivalent) with a prompt that instruct the client on how to best use the server. For a good minimal example, you can start from the instructions in the `MCP_CONSTANTS.py` file in this repository, in particular as they instruct the model to get "prompt-on-demand" from the server when planning for specific use cases that require detailed guidelines.
+We provide a `CLAUDE.md` file in `mcp_bauplan/CLAUDE.md` that instructs the model on how to best use the Bauplan MCP server and the Bauplan skills provided in the `skills/` folder.
 
-#### CLAUDE.md System Prompt
+**For Claude Code users**: Copy this file to your project root. Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
+- When to use skills (`/wap`, `/new-pipeline`) vs MCP tools
+- How to retrieve detailed instructions via `get_instructions`
+- How to verify SDK/CLI syntax
 
-We provide a `CLAUDE.md` file in `mcp_bauplan/CLAUDE.md` that contains general MCP guidelines for the model. We recommend using this file on the **client/agent side** to prompt the model with the general MCP guidelines before any interaction with the server begins.
-
-This file instructs the model on:
-- The main use cases supported by the Bauplan MCP server
-- How to retrieve detailed instructions for specific use cases via the `get_instructions` tool
-- How to handle API token configuration
-- Best practices for retrieving user information before operations
-
-For Claude Code users, you can copy this file to your project root or reference it in your agent configuration. For other MCP clients, include the contents as a system prompt or initial context.
+For other MCP clients, include the contents as a system prompt or initial context.
 
 ### Bauplan Credentials
 
 The Beta release covers the local development use case. Authentication to your Bauplan lakehouse happens as follows:
 
-- if you do not specify a Bauplan profile as a flag (see below CLI options), the default one on the machine running the server will be used at every interaction with the lakehouse.
+- if you do not specify a Bauplan profile as a flag, the default one on the machine running the server will be used at every interaction with the lakehouse.
 - if you specify a profile as a flag, this profile will be used instead when instantiating a Bauplan client.
 - if you specify a header in your assistant - key=`Bauplan`, value=`your_api_key` (e.g. in Claude code `claude mcp add -H "Bauplan: <your-bauplan-api-key>" ...`) -, `your_api_key` will be used instead when instantiating a Bauplan client. This is convenient for quick tests, and opens up the possibility of hosting the catalog on a shared infrastructure, delegating to clients the Bauplan API key management.
 
-### CLI Options
+### Server CLI Options
 
 The server supports the following CLI options, mostly useful for specifying alternative transport options:
 
@@ -213,7 +208,7 @@ If you have specific features you would like to see, please get in touch with us
 
 ### Instructions and Guidance
 
-- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, ingest, test, sdk)
+- **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, wap, test, sdk)
 
 ## Skills
 
@@ -231,9 +226,7 @@ The `skills/` folder contains reusable skill definitions for Claude Code that pr
 
 ### Using Skills
 
-To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains:
-- `SKILL.md` - Main skill definition with overview, instructions, and basic examples
-- `examples.md` - Advanced examples and edge cases
+To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains the skill definitinon along with examples and usage patterns.
 
 ## License
 
