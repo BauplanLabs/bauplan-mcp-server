@@ -30,7 +30,7 @@ def register_get_instructions_tool(mcp: FastMCP) -> None:
                 - 'pipeline': Instructions for creating and managing data pipelines
                 - 'data': Instructions for reading data and metadata, including data lineage information
                 - 'repair': Instructions for repairing failed pipelines
-                - 'ingest': Instructions for ingesting data from S3, typically using the Write-Audit-Publish pattern (WAP)
+                - 'wap': Instructions for data ingestion using the Write-Audit-Publish (WAP) pattern
                 - 'test': Instructions for creating and managing data expectations and quality tests
                 - 'sdk': Instructions for explaining Bauplan SDK methods and verifying their syntax and usage
 

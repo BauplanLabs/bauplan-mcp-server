@@ -2,39 +2,62 @@
 
 The Bauplan MCP Server exposes operations for interacting with a Bauplan data lakehouse.
 
+## Decision Tree: Skills vs MCP Instructions
+
+When working with Bauplan, choose the right approach based on the task:
+
+```
+Is this a code generation task?
+├── YES: Writing a new pipeline/DAG → Use skill: /new-pipeline (or "creating-bauplan-pipelines")
+├── YES: Data ingestion with WAP    → Use skill: /wap (or "wap-ingestion")
+└── NO:  Exploration, queries, repair, etc. → Use MCP tools + get_instructions
+```
+
+**Skills are preferred for code generation** because they contain comprehensive templates, best practices, and workflow checklists. If skills are not available, fall back to MCP instructions.
+
 ## Main Use Cases
 
-The main use cases supported fall into six major types:
+| Use Case | Skill Available? | MCP Fallback |
+|----------|------------------|--------------|
+| Data ingestion from S3 (WAP) | `/wap` | `get_instructions('wap')` |
+| Writing a data pipeline/DAG | `/new-pipeline` | `get_instructions('pipeline')` |
+| Descriptive data tasks & lineage | No | `get_instructions('data')` |
+| Repairing broken pipelines | No | `get_instructions('repair')` |
+| Data expectations & quality tests | No | `get_instructions('test')` |
+| Bauplan SDK/CLI syntax help | No | `get_instructions('sdk')` |
 
-1. **Descriptive data tasks** - including data lineage information
-2. **Data ingestion from S3** - using the Write-Audit-Publish (WAP) pattern
-3. **Writing a data transformation pipeline** - as a Bauplan project, and run it
-4. **Repairing broken pipelines**
-5. **Creating and managing data expectations and quality tests**
-6. **Explaining Bauplan SDK and methods** - verify syntax and usage of specific Bauplan methods
+## SDK and CLI Syntax Verification
 
-On top of these major scenarios, you can use the full set of tools to accomplish any task you need, in some cases by combining multiple tool calls.
+When writing Bauplan code or CLI commands, **always verify syntax** using these methods:
+
+- **SDK Docs**: https://docs.bauplanlabs.com/ and https://docs.bauplanlabs.com/reference/bauplan
+- **CLI Help**: Use the terminal directly:
+  - `bauplan --help` - lists main verbs/commands
+  - `bauplan <verb> --help` - shows parameters for that command (e.g., `bauplan run --help`)
+- **MCP**: Call `get_instructions(use_case='sdk')` for SDK method explanations and usage examples
+
+Use `WebFetch` on doc URLs or run CLI help commands to confirm correct syntax before finalizing code.
 
 ## Important Notes
 
-### API Token Configuration
+### Authentication
 
-If you (the model) have been configured to provide a custom header 'Bauplan', add the header with the content in every call to the tools. Otherwise, you can assume the Bauplan API token is already set, so no need to use it.
+Assume all bauplan calls (MCP and skills) are authenticated through local CLI setup or server-side MCP configuration. No need to handle API tokens manually.
 
-### Getting Detailed Instructions
+### Getting Detailed Instructions (MCP)
 
-Once the nature of the task is understood, specific instructions and guidelines for each of the six use cases can be obtained by calling the `get_instructions` tool with the appropriate `use_case` argument:
+When skills are not available or the task doesn't fit a skill, call the `get_instructions` tool:
 
-| Use Case | Argument | Description |
-|----------|----------|-------------|
-| Descriptive data tasks and lineage | `data` | Query and explore data, understand lineage (how changes in a table affect downstream tables) |
-| Data ingestion from S3 | `ingest` | Ingest data using WAP pattern |
-| Data transformation pipeline | `pipeline` | Write and run pipelines |
-| Repairing broken pipelines | `repair` | Fix pipeline issues |
-| Data expectations and quality tests | `test` | Create and manage tests |
-| Bauplan SDK and methods | `sdk` | Explain and verify SDK method syntax and usage |
+```
+get_instructions(use_case='data')     # Query, explore, lineage
+get_instructions(use_case='wap')      # WAP data ingestion (if no skill)
+get_instructions(use_case='pipeline') # Pipeline creation (if no skill)
+get_instructions(use_case='repair')   # Fix pipeline issues
+get_instructions(use_case='test')     # Data expectations
+get_instructions(use_case='sdk')      # SDK method help
+```
 
-The `get_instructions` tool will return a detailed prompt that you **SHOULD** consider as you plan next steps. Note that you can call `get_instructions` multiple times if needed.
+The returned prompt contains detailed guidelines for that use case.
 
 ### User Information
 
