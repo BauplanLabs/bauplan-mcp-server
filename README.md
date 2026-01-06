@@ -150,7 +150,7 @@ If you have specific features you would like to see, please get in touch with us
 
 ### Tool List
 
-### Data Operations
+#### Data Operations
 
 - **`list_tables`**: List all tables in a branch/namespace
 - **`get_schema`**: Get schema for all tables in a branch/namespace
@@ -158,7 +158,7 @@ If you have specific features you would like to see, please get in touch with us
 - **`run_query`**: Execute SELECT queries on tables
 - **`run_query_to_csv`**: Execute SELECT queries and save results directly to CSV file (scalar data types only)
 
-### Branch Management
+#### Branch Management
 
 - **`get_branches`**: List branches with optional filters
 - **`get_commits`**: Get commit history from branches
@@ -167,21 +167,21 @@ If you have specific features you would like to see, please get in touch with us
 - **`merge_branch`**: Merge branches with custom commit messages
 - **`delete_branch`**: Delete branches (with safety checks)
 
-### Namespace Management
+#### Namespace Management
 
 - **`get_namespaces`**: List available namespaces in a branch
 - **`create_namespace`**: Create new namespaces in branches
 - **`has_namespace`**: Check if a specific namespace exists in a branch
 - **`delete_namespace`**: Delete namespaces from branches
 
-### Tag Management
+#### Tag Management
 
 - **`get_tags`**: Get tags with optional filters
 - **`create_tag`**: Create a new tag from a reference
 - **`has_tag`**: Check if a tag exists
 - **`delete_tag`**: Delete a tag
 
-### Table Management
+#### Table Management
 
 - **`create_table`**: Create a table from S3 location using schema detection (creates ICEBERG table structure but doesn't populate data)
 - **`plan_table_creation`**: Create a table import plan from S3 location (generates YAML schema plan with job tracking)
@@ -191,22 +191,22 @@ If you have specific features you would like to see, please get in touch with us
 - **`import_data`**: Import data into an existing table from S3 location (returns job_id for tracking)
 - **`revert_table`**: Revert a table from a source reference to a target branch with optional replacement
 
-### Project Management
+#### Project Management
 
 - **`project_run`**: Run a Bauplan project from a specified directory and reference with configurable parameters (dry-run, timeout, detach mode)
 - **`code_run`**: Run a Bauplan project from code files provided as a dictionary (useful for clients that cannot submit paths), automatically creates temporary directory and validates project structure
 
-### Job Management
+#### Job Management
 
 - **`list_jobs`**: List jobs in the Bauplan system with optional filtering for all users
 - **`get_job`**: Get detailed information about a specific job by its ID
 - **`cancel_job`**: Cancel a running job by its ID and get updated job status
 
-### User Management
+#### User Management
 
 - **`get_user_info`**: Get information about the current authenticated user (username and full name)
 
-### Instructions and Guidance
+#### Instructions and Guidance
 
 - **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, wap, test, sdk)
 
@@ -227,6 +227,14 @@ The `skills/` folder contains reusable skill definitions for Claude Code that pr
 ### Using Skills
 
 To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains the skill definitinon along with examples and usage patterns.
+
+## Developer Notes
+
+If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?). 
+
+While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion).
+
+As best practices emerge, Bauplan skills multiply and AI-assisted workflows rise, this suite will evolve to provide more comprehensive coverage and guidance.
 
 ## License
 
