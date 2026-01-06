@@ -232,7 +232,11 @@ To incorporate these skills into your Claude Code projects, see the [official do
 
 If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?). 
 
-While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion).
+While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
+
+```bash
+BAUPLAN_TEST_S3_PATH="s3://public-read-bucket/my-file.parquet" uv run pytest -v
+```
 
 As best practices emerge, Bauplan skills multiply and AI-assisted workflows rise, this suite will evolve to provide more comprehensive coverage and guidance.
 
