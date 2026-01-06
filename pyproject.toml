@@ -18,5 +18,19 @@ mcp-bauplan = "mcp_bauplan.app:main"
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+  "pytest-timeout>=2.0",
+]
+
 [tool.setuptools]
 packages = ["mcp_bauplan"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: marks tests as integration tests (may be slow, requires Claude CLI)",
+]
+# Default timeout for integration tests (5 minutes)
+timeout = 300
