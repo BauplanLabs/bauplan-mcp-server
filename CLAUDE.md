@@ -1,64 +1,111 @@
-# Bauplan MCP Server
+# Bauplan (agent playbook)
 
-The Bauplan MCP Server exposes operations for interacting with a Bauplan data lakehouse.
+Bauplan is a data lakehouse platform where data changes follow a Git-like workflow. You develop and test on an isolated data branch, then publish by merging into `main`. Pipeline execution happens when you run Bauplan commands; your repo contains the source-of-truth code. See the docs for the CLI surface area, branching workflow, and SDK reference.
 
-## Decision Tree: Skills vs MCP Instructions
+This playbook defines how to use Bauplan from an AI coding assistant in a local repo. The default mode is local CLI and Python SDK. MCP is optional and only used in specific edge cases.
 
-When working with Bauplan, choose the right approach based on the task:
+## Default integration mode (preferred)
 
+Assume the assistant can:
+- read and write files in this repo
+- run shell commands in a terminal
+- run Python locally (for SDK scripts and tests)
+
+Preference: do not use the Bauplan MCP server. Use the full tool surface via:
+- Local CLI reference: `.claude/reference/bauplan_cli.md`
+- PySDK reference: `https://docs.bauplanlabs.com/reference/bauplan`
+
+Authoritative fallback sources (when local references are missing or stale):
+- Docs: https://docs.bauplanlabs.com/
+- SDK reference: https://docs.bauplanlabs.com/reference/bauplan
+
+## Hard safety rules (always)
+
+1) Never publish by writing directly on `main`. Use a user branch and merge to publish.
+2) Never import data into `main`.
+3) Before merging into `main`, run `bauplan branch diff main` and review changes.
+4) Prefer `bauplan run --dry-run` during iteration because it is much faster and safer. Materialization is blocked on `main`.
+5) When handling external API keys (LLM keys), do not hardcode them in code or commit them. Use Bauplan parameters or secrets.
+
+If any instruction or skill conflicts with these rules, the rules win.
+
+## Decision tree: skills vs manual workflow
+
+Use skills for repeatable workflows that generate or modify code. Use CLI and SDK directly for exploration and execution.
+
+Is this a code generation or repo-editing task?
+├─ Yes: Create or modify a pipeline project
+│ -> Use skill: creating-bauplan-pipelines (alias: /new-pipeline)
+├─ Yes: Ingest data with WAP (write, audit, publish)
+│ -> Use skill: wap-ingestion (alias: /wap)
+└─ No: Explore, query, inspect, run, debug, publish
+-> Use CLI and SDK directly (see local references)
+
+
+## Skill inventory
+
+- creating-bauplan-pipelines
+  Use when you need to scaffold a new pipeline folder, define models, add environment declarations, and produce a runnable project layout.
+
+- wap-ingestion
+  Use when ingesting files from S3 into a branch with a publish step. Prefer this over ad-hoc imports for anything beyond a toy dataset.
+
+- explore-data
+  Use for structured exploration tasks when it exists (schemas, sample queries, rough profiling). If it is not available, do the same work with `bauplan query`, `bauplan table get`, and `bauplan table ls`.
+
+## Syntax discipline (non-negotiable)
+
+When emitting CLI commands or SDK code, verify syntax before final output.
+
+1) Check references:
+   - `.claude/reference/bauplan_cli.md`
+   - `https://docs.bauplanlabs.com/reference/bauplan`
+
+2) Confirm with CLI help when possible:
+   - `bauplan help`
+   - `bauplan <verb> --help`
+
+3) If still uncertain, consult the official docs pages listed above. Do not guess flags or method names.
+
+## Canonical workflows
+
+### A) Build and publish a pipeline (end-to-end)
+For this workflow use the `new-pipeline` skill. 
+### B) Ingest data safely (WAP)
+For this workflow use the `wap` skill. 
+
+### C) Data exploration and investigation
+
+Prefer direct CLI:
+
+inspect table metadata and data: 
+
+```bash 
+bauplan table get <namespace>.<table>
+query: bauplan query "<sql>"
 ```
-Is this a code generation task?
-├── YES: Writing a new pipeline/DAG → Use skill: /new-pipeline (or "creating-bauplan-pipelines")
-├── YES: Data ingestion with WAP    → Use skill: /wap (or "wap-ingestion")
-└── NO:  Exploration, queries, repair, etc. → Use MCP tools + get_instructions
+Reproduce runs (if needed): 
+```bash 
+bauplan run --id <run_id>
 ```
 
-**Skills are preferred for code generation** because they contain comprehensive templates, best practices, and workflow checklists. If skills are not available, fall back to MCP instructions.
+Only generate code when it is necessary to fix the root cause.
 
-## Main Use Cases
+## When MCP makes sense
 
-| Use Case | Skill Available? | MCP Fallback |
-|----------|------------------|--------------|
-| Data ingestion from S3 (WAP) | `/wap` | `get_instructions('wap')` |
-| Writing a data pipeline/DAG | `/new-pipeline` | `get_instructions('pipeline')` |
-| Descriptive data tasks & lineage | No | `get_instructions('data')` |
-| Repairing broken pipelines | No | `get_instructions('repair')` |
-| Data expectations & quality tests | No | `get_instructions('test')` |
-| Bauplan SDK/CLI syntax help | No | `get_instructions('sdk')` |
+MCP is not the default. Use it only if one of these is true:
 
-## SDK and CLI Syntax Verification
+- the assistant cannot execute local shell commands or Python reliably
+- you need structured tool outputs because you cannot parse the PySDK response or the CLI text
+- you are integrating multiple MCP-capable clients and want one shared interface
+- you want policy enforced at the integration boundary (for example refusing writes to main with a specific server configuration)
 
-When writing Bauplan code or CLI commands, **always verify syntax** using these methods:
+If MCP is required, follow:
 
-- **SDK Docs**: https://docs.bauplanlabs.com/ and https://docs.bauplanlabs.com/reference/bauplan
-- **CLI Help**: Use the terminal directly:
-  - `bauplan --help` - lists main verbs/commands
-  - `bauplan <verb> --help` - shows parameters for that command (e.g., `bauplan run --help`)
-- **MCP**: Call `get_instructions(use_case='sdk')` for SDK method explanations and usage examples
+https://docs.bauplanlabs.com/mcp/quick_start
 
-Use `WebFetch` on doc URLs or run CLI help commands to confirm correct syntax before finalizing code.
+Authentication assumptions
 
-## Important Notes
+Assume Bauplan credentials are available via local CLI config, environment variables, or a profile. Do not prompt for API keys unless the CLI is not configured. Prefer `bauplan config set api_key <key>` as the setup path.
 
-### Authentication
-
-Assume all bauplan calls (MCP and skills) are authenticated through local CLI setup or server-side MCP configuration. No need to handle API tokens manually.
-
-### Getting Detailed Instructions (MCP)
-
-When skills are not available or the task doesn't fit a skill, call the `get_instructions` tool:
-
-```
-get_instructions(use_case='data')     # Query, explore, lineage
-get_instructions(use_case='wap')      # WAP data ingestion (if no skill)
-get_instructions(use_case='pipeline') # Pipeline creation (if no skill)
-get_instructions(use_case='repair')   # Fix pipeline issues
-get_instructions(use_case='test')     # Data expectations
-get_instructions(use_case='sdk')      # SDK method help
-```
-
-The returned prompt contains detailed guidelines for that use case.
-
-### User Information
-
-Most operations require user's information, which can be retrieved at the beginning of reasoning by calling the `get_user_info` tool.
+If you need the username for branch naming, run `bauplan info`.
