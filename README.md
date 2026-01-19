@@ -107,13 +107,13 @@ Alternatively, you can manually add this configuration (modify the paths as need
 {
   "mcpServers": {
     "mcp-bauplan": {
-      "command": "/path/to/bauplan-mcp-server/.venv/bin/python3",
+      "command": "/path/to/bauplan-mcp-and-skills/.venv/bin/python3",
       "args": [
-        "/path/to/bauplan-mcp-server/main.py",
+        "/path/to/bauplan-mcp-and-skills/main.py",
         "--transport",
         "stdio"
       ],
-      "workingDirectory": "/path/to/bauplan-mcp-server/"
+      "workingDirectory": "/path/to/bauplan-mcp-and-skills/"
     }
   }
 }
