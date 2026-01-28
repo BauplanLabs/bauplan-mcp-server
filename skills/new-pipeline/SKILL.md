@@ -160,14 +160,8 @@ def clean_users(data=bauplan.Model('raw_users')):
 **Whenever possible, specify:**
 - `columns`: List only the columns your model actually needs
 - `filter`: SQL-like filter expression to restrict rows at the storage level, if appropriate
+- See [examples.md](examples.md#io-pushdown-with-column-selection-and-filtering) for complete guide on pushing down to the data lake efficiently.
 
-```python
-bauplan.Model(
-    'table_name',
-    columns=['col1', 'col2', 'col3'],   # Only read these columns
-    filter="date >= '2022-01-01'"       # Pre-filter at storage level
-)
-```
 
 ### Base Python Model
 ```python
@@ -214,17 +208,7 @@ def clean_trips(
 ### Python Model with Multiple Inputs
 Models can take multiple tables as input - just add more `bauplan.Model()` parameters:
 
-```python
-def model_with_joins(
-    table_a=bauplan.Model('source_a', columns=['id', 'value']),
-    table_b=bauplan.Model('source_b', columns=['id', 'name'])
-):
-    # Join, transform, return Arrow table
-    return table_a.join(table_b, 'id', 'id')
-```
-
-See [examples.md](examples.md#multi-input-model) for complete multi-input examples with Polars.
-
+See [examples.md](examples.md#python-model-with-multiple-inputs) for complete multi-input examples with Polars.
 
 ## SQL Models (First Nodes Only)
 SQL models are `.sql` files where:
