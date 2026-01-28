@@ -39,8 +39,7 @@ Is this a code generation or repo-editing task?
 ├─ Yes: Ingest data with WAP (write, audit, publish)
 │ -> Use skill: wap-ingestion (alias: /wap)
 └─ No: Explore, query, inspect, run, debug, publish
--> Use CLI and SDK directly (see local references)
-
+  -> Use CLI and SDK directly (see local references)
 
 ## Skill inventory
 
@@ -58,7 +57,7 @@ Is this a code generation or repo-editing task?
 When emitting CLI commands or SDK code, verify syntax before final output.
 
 1) Check references:
-   - `.claude/reference/bauplan_cli.md`
+   - `.claude/bauplan_reference/bauplan_cli.md`
    - `https://docs.bauplanlabs.com/reference/bauplan`
 
 2) Confirm with CLI help when possible:
@@ -72,8 +71,7 @@ When emitting CLI commands or SDK code, verify syntax before final output.
 ### A) Build and publish a pipeline (end-to-end)
 For this workflow use the `new-pipeline` skill. 
 ### B) Ingest data safely (WAP)
-For this workflow use the `wap` skill. 
-
+For this workflow use the `wap` skill.
 ### C) Data exploration and investigation
 
 Prefer direct CLI:

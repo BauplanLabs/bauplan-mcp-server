@@ -54,7 +54,7 @@ def titanic_clean(
 1. First, check the source table schema with `bauplan table get titanic`
 2. Determine which columns your transformation produces
 3. Specify `columns=[...]` in `@bauplan.model()` to enable output validation
-4. Reason on how the tables change as they flow through the pipeline, so that you can accurately declare output schemas for all the downstream models as well
+5. Reason on how the tables change as they flow through the pipeline, so that you can accurately declare output schemas for all the downstream models as well
 
 ## Materialization Strategies
 
