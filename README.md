@@ -51,18 +51,28 @@ Similar commands can be run on [Claude Desktop](https://modelcontextprotocol.io/
 
 Et voilà! You can now start asking your AI questions about your data lakehouse (and much more!).
 
-## Advanced Configurations
+## Documentation
 
 ### CLAUDE.md for Guided Usage
 
-We provide a `CLAUDE.md` file in `mcp_bauplan/CLAUDE.md` that instructs the model on how to best use the Bauplan MCP server and the Bauplan skills provided in the `skills/` folder.
+A `CLAUDE.md` file is provided at the repository root that instructs the model on how to best use the Bauplan MCP server and the Bauplan skills provided in the `skills/` folder.
 
-**For Claude Code users**: Copy this file to your project root. Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
-- When to use skills (`/wap`, `/new-pipeline`) vs MCP tools
+**For Claude Code users**: Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
+- Decision tree for when to use skills (`/wap`, `/new-pipeline`, `/explore-data`, `/root-cause-analysis`) vs MCP tools vs CLI/SDK
 - How to retrieve detailed instructions via `get_instructions`
 - How to verify SDK/CLI syntax
+- Canonical workflows for common tasks
 
 For other MCP clients, include the contents as a system prompt or initial context.
+
+### CLI Reference
+
+Comprehensive reference documentation for the Bauplan CLI is available in `bauplan_reference/cli.md`. This includes:
+- Full command syntax and options
+- Common workflows and examples
+- Detailed parameter descriptions
+
+## Advanced Configurations
 
 ### Bauplan Credentials
 
@@ -223,6 +233,8 @@ The `skills/` folder contains reusable skill definitions for Claude Code that pr
 |-------|-------------|
 | **new-pipeline** | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure |
 | **wap** | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production |
+| **explore-data** | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
+| **root-cause-analysis** | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections |
 
 ### Using Skills
 
