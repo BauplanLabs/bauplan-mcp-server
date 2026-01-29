@@ -21,29 +21,29 @@ This skill guides you through creating a new bauplan data pipeline project from 
 Branch naming convention: `<username>.<branch_name>` (e.g., `john.feature-pipeline`). Get your username with `bauplan info`. See [Workflow Checklist](#workflow-checklist) for exact commands.
 
 ## Prerequisites
-
 Before creating the pipeline, verify that:
 1. **You have a development branch** (not `main`)
 2. Source tables exist in the bauplan lakehouse (the default namespace is `bauplan`)
 3. You understand the schema of the source tables
 
+## Table References
+- Always use fully-qualified names: `<namespace>.<table_name>`
+- Default namespace: `bauplan`
+- Example: `bauplan.taxi_fhvhv`
+
 ## Pipeline as a DAG
-
 A bauplan pipeline is a DAG of functions (models). Key rules:
-
-1. **Models**: SQL or Python functions that transform data
+1. **Models**: Python functions (preferred) or SQL queries that transform data
 2. **Source Tables**: Existing lakehouse tables - entry points to your DAG
-3. **Inputs**: Each model can take **multiple tables** via `bauplan.Model()` references
+3. **Inputs**: Each model can take **multiple tables** via `bauplan.Model()` references, either from the outputs ofr previous models or as source tables in the lakehouse
 4. **Outputs**: Each model produces **exactly one table**:
-   - SQL: output name = filename (`trips.sql` → `trips`)
    - Python: output name = function name (`def clean_trips()` → `clean_trips`)
-5. **Topology**: Implicitly defined by input references - bauplan determines execution order
-
-**Expectations**: Data quality functions that take tables as input and return a **boolean**.
+   - SQL: output name = filename (`trips.sql` → `trips`)
+5. **Topology**: Implicitly defined by input references - Bauplan determines the execution order
+6. **Expectations**: Data quality functions that take tables as input and return a **boolean**.
 
 ### Example DAG
-
-```
+```text
 [lakehouse: taxi_fhvhv] ──→ [trips.sql] ──→ [clean_trips] ──→ [daily_summary]
                                                 ↑
 [lakehouse: taxi_zones] ────────────────────────┘
@@ -56,19 +56,16 @@ In this example:
 - `daily_summary` takes `clean_trips` as input (Python model, single input)
 
 ## Required User Input
-
 Before writing a pipeline, you MUST gather the following information from the user:
-
 1. **Pipeline purpose** (required): What transformations should the DAG perform? What is the business logic or goal?
 2. **Source tables** (required): Which tables from the lakehouse should be used as inputs? Verify they exist with `bauplan table get`
 3. **Output tables** (required): Which tables should be materialized at the end of the pipeline? These are the final outputs visible to downstream consumers
 4. **Materialization strategy** (optional): Should output tables use `REPLACE` (default) or `APPEND`?
 5. **Strict mode** (optional): Should the pipeline run in strict mode? If yes, all CLI commands will use `--strict` flag, which fails on issues like output column mismatches during dry-run, allowing immediate error detection and correction.
 
-If the user hasn't provided this information, ask before proceeding with implementation.
+**If any required item is missing, ask the user before writing any code.**
 
 ### Strict Mode (--strict flag)
-
 When strict mode is enabled, append `--strict` to all `bauplan run` commands:
 
 ```bash
@@ -88,19 +85,17 @@ bauplan run --strict
 - Recommended when iterating on pipeline development
 
 ## Project Structure
-
 A bauplan project is a folder containing:
 
-```
+```text
 my-project/
   bauplan_project.yml    # Required: project configuration
-  model.sql              # Optional: a single SQL model, one per file
-  models.py              # Optional: Python models (one file can have >1 models, or be split into multiple files)
-  expectations.py        # Optional: data quality tests (if any)
+  models.py              # Preferred: Python models (one file can have >1 models and contain an entire data transformation pipeline)
+  model.sql              # Optional: SQL models (pipelines should be broken into several files each containing a single SQL model)
+  expectations.py        # Optional: data quality tests (if any - one file can have more than one expectation test)
 ```
 
 ## bauplan_project.yml
-
 Every project is a separate folder which requires this configuration file:
 
 ```yaml
@@ -109,51 +104,20 @@ project:
   name: <project_name>    # Descriptive name for the project
 ```
 
-## When to Use SQL vs Python Models
-
-> **IMPORTANT**: SQL models should be LIMITED to **first nodes** in the pipeline graph only.
-
-- **SQL models**: Use ONLY for nodes that read directly from source tables in the lakehouse (tables outside your pipeline graph)
-- **Python models**: Preferred for ALL other transformations in the pipeline
-
-This ensures consistency and allows for better control over transformations, output schema validation, and documentation.
-
-## SQL Models (First Nodes Only)
-
-SQL models are `.sql` files where:
-- The **filename** becomes the output table name
-- The **FROM clause** defines input tables
-- Optional: Add materialization strategy as a comment
-
-Use SQL models only when reading from existing lakehouse tables:
-
-```sql
--- trips.sql
--- First node: reads from taxi_fhvhv table in the lakehouse
-SELECT
-    pickup_datetime,
-    PULocationID,
-    trip_miles
-FROM taxi_fhvhv
-WHERE pickup_datetime >= '2022-12-01'
-```
-
-Output table: `trips` (from filename)
-Input table: `taxi_fhvhv` (from FROM clause, exists in lakehouse)
-
 ## Python Models (Preferred)
+Python models are individual steps in transformation pipelines. 
+A pipeline is composed by several models that form a Direct-Acyclic-Graph (DAG).
+They are defined as Python functions with decorators. 
 
-Python models use decorators to define transformations. They should be used for all pipeline nodes except first nodes reading from the lakehouse.
-
-### Key Decorators
-
+### Decorators
 - `@bauplan.model()` - Registers function as a model
-- `@bauplan.model(columns=[...])` - Specify expected output columns for validation (Optional but recommended)
-- `@bauplan.model(materialization_strategy='REPLACE')` - Persist output to lakehouse
-- `@bauplan.python('3.11', pip={'pandas': '1.5.3'})` - Specify Python version and packages
+The most important parameters of this decorator are `columns` and `materialization_strategy`:
+  - `@bauplan.model(columns=[...])` - Specify expected output columns for validation (Optional but recommended)
+  - `@bauplan.model(materialization_strategy='REPLACE')` - Persist the output into lakehouse as an Iceberg table
+
+- `@bauplan.python('3.11', pip={'pandas': '1.5.3'})` - Specifies Python version and the packages needed for the function to run
 
 ### Best Practice: Output Columns Validation
-
 > **IMPORTANT**: whenever possible, specify the `columns` parameter in `@bauplan.model()` to define the expected output schema. This enables automatic validation of your model's output.
 
 First, check the schema of your source tables to understand input columns. Then specify the output columns based on your transformation:
@@ -186,31 +150,32 @@ def clean_users(data=bauplan.Model('raw_users')):
     return data.drop_columns(['city'])
 ```
 
-### I/O Pushdown with `columns` and `filter`
+### Best Practice: I/O Pushdown with `columns` and `filter`
 
-> **IMPORTANT**: whenever possible, use `columns` and `filter` parameters in `bauplan.Model()` to restrict the data read. This enables I/O pushdown, dramatically reducing the amount of data transferred and improving performance. Do not read columns you don't need.
-
-```python
-bauplan.Model(
-    'table_name',
-    columns=['col1', 'col2', 'col3'],   # Only read these columns
-    filter="date >= '2022-01-01'"       # Pre-filter at storage level
-)
-```
+> **IMPORTANT**:
+> Use `columns` and `filter` parameters in `bauplan.Model()` to restrict the data read. 
+> This enables I/O pushdown, dramatically reducing the amount of data transferred and improving performance. 
+> Do not read columns you don't need.
 
 **Whenever possible, specify:**
 - `columns`: List only the columns your model actually needs
 - `filter`: SQL-like filter expression to restrict rows at the storage level, if appropriate
+- See [examples.md](examples.md#io-pushdown-with-column-selection-and-filtering) for complete guide on pushing down to the data lake efficiently.
 
-### Basic Python Model
 
+### Base Python Model
 ```python
+# import bauplan globally, but DO NOT import other packages used in the single models
+# Use the python decorator, instead and import the dependencies inside the functions
 import bauplan
 
+# Use the model decorator to register the function as a step in a pipeline 
+# and to define the expected output schema and to define the materialization strategy 
 @bauplan.model(
     columns=['pickup_datetime', 'PULocationID', 'trip_miles'],
     materialization_strategy='REPLACE'
 )
+# Use the python decorator to specify the Python version and dependencies
 @bauplan.python('3.11', pip={'polars': '1.15.0'})
 def clean_trips(
     # Use columns and filter for I/O pushdown
@@ -227,57 +192,79 @@ def clean_trips(
     |---------------------|--------------|------------|
     | 2022-12-01 08:00:00 | 123          | 5.2        |
     """
+    # import the packages declared in the Python decorator inside the function so the environments remain separated and independent 
     import polars as pl
 
+    # write transformation logic in the function
+    # inputs are Arrow Tables - conversion is needed to use other DataFrame libraries
     df = pl.from_arrow(data)
     df = df.filter(pl.col('trip_miles') > 0.0)
-
+    
+    # outputs must be table-like objects like Pandas, Polars, Arrow DataFrames or list of dictionaries
+    # Each model produces exactly one table
     return df.to_arrow()
 ```
 
 ### Python Model with Multiple Inputs
-
 Models can take multiple tables as input - just add more `bauplan.Model()` parameters:
 
-```python
-def model_with_joins(
-    table_a=bauplan.Model('source_a', columns=['id', 'value']),
-    table_b=bauplan.Model('source_b', columns=['id', 'name'])
-):
-    # Join, transform, return Arrow table
-    return table_a.join(table_b, 'id', 'id')
+See [examples.md](examples.md#python-model-with-multiple-inputs) for complete multi-input examples with Polars.
+
+## SQL Models (First Nodes Only)
+SQL models are `.sql` files where:
+- The **filename** becomes the output table name
+- The **FROM clause** defines input tables
+- Optional: Add materialization strategy as a comment
+
+Use SQL models only when reading from existing lakehouse tables:
+
+```sql
+-- trips.sql
+-- First node: reads from taxi_fhvhv table in the lakehouse
+SELECT
+    pickup_datetime,
+    PULocationID,
+    trip_miles
+FROM taxi_fhvhv
+WHERE pickup_datetime >= '2022-12-01'
 ```
 
-See [examples.md](examples.md#multi-input-model) for complete multi-input examples with Polars.
+Output table: `trips` (from filename)
+Input table: `taxi_fhvhv` (FROM clause, exists in lakehouse)
+
+## When to Use Python Models vs SQL models
+- **Python models**: PREFERRED FOR ALL TRANSFORMATIONS
+- **SQL models**: Use ONLY for very large nodes that read directly from source tables in the lakehouse (tables outside your pipeline graph)
+- **IMPORTANT**: SQL models should be LIMITED to **first nodes** in the pipeline graph only.
+
+This ensures consistency and allows for better control over transformations, output schema validation, and documentation.
+
 
 ## Workflow Checklist
-
 Copy this checklist and track your progress:
 
-```
 Pipeline Creation Progress:
-- [ ] Step 1: Get username → bauplan info
-- [ ] Step 2: Checkout main → bauplan branch checkout main
-- [ ] Step 3: Create dev branch → bauplan branch create <username>.<branch_name>
-- [ ] Step 4: Checkout dev branch → bauplan branch checkout <username>.<branch_name>
-- [ ] Step 5: Verify source tables → bauplan table get <namespace>.<table_name>, Optional for data preview: bauplan query "SELECT * FROM <namespace>.<table_name> LIMIT 3"
-- [ ] Step 6: Create project folder with bauplan_project.yml
-- [ ] Step 7: Write SQL model(s) / Python model(s) for transformations respecting the guidelines
+- [ ] Step 1: Get username → `bauplan info`
+- [ ] Step 2: Checkout main → `bauplan branch checkout main`
+- [ ] Step 3: Create dev branch → `bauplan branch create <username>.<branch_name>`
+- [ ] Step 4: Checkout dev branch → `bauplan branch checkout <username>.<branch_name>`
+- [ ] Step 5: Verify source tables → `bauplan table get <namespace>.<table_name>`, Optional for data preview: `bauplan query "SELECT * FROM <namespace>.<table_name> LIMIT 3"`
+- [ ] Step 6: Create project folder with `bauplan_project.yml`
+- [ ] Step 7: Write Python model(s)/SQL models for transformations respecting the guidelines
 - [ ] Step 8: Verify materialization decorators (see Materialization Checklist below)
-- [ ] Step 9: Dry run → bauplan run --dry-run [--strict if strict mode]
-- [ ] Step 10: Run pipeline → bauplan run [--strict if strict mode]
-```
+- [ ] Step 9: Dry run → `bauplan run --dry-run [--strict if strict mode]`
+- [ ] Step 10: Run pipeline → `bauplan run [--strict if strict mode]`
 
-> **CRITICAL**: Never run on `main` branch. Steps 2-4 ensure you're on a development branch.
 
-### Materialization Checklist
+> **CRITICAL**: NEVER EVER run on `main` branch. Always complete the steps 2-4 to ensure you're on a development branch.
 
+## Materialization Checklist
 After writing models, verify that each model has the correct `materialization_strategy` based on user requirements:
 
-| Model Type | No Materialization (intermediate) | Materialized Output |
-|------------|-----------------------------------|---------------------|
-| **Python** | `@bauplan.model()` (no strategy) | `@bauplan.model(materialization_strategy='REPLACE')` or `'APPEND'` |
-| **SQL**    | No comment needed | Add comment: `-- bauplan: materialization_strategy=REPLACE` or `APPEND` |
+| Model Type | No Materialization (intermediate) | Materialized Output                                                     |
+|------------|-----------------------------------|-------------------------------------------------------------------------|
+| **Python** | `@bauplan.model()` (no strategy)  | `@bauplan.model(materialization_strategy='REPLACE')` or `'APPEND'`      |
+| **SQL**    | No comment needed                 | Add comment: `-- bauplan: materialization_strategy=REPLACE` or `APPEND` |
 
 **Verify for each model:**
 - [ ] Intermediate tables (not final outputs): NO `materialization_strategy` specified
@@ -295,8 +282,12 @@ Example SQL comment for materialized output:
 SELECT * FROM source_table
 ```
 
-## Advanced Examples
+## Verifying Pipeline Output
+After successful run:
+- Check table exists: `bauplan table get <namespace>.<output_table>`
+- Preview data: `bauplan query "SELECT * FROM <namespace>.<output_table> LIMIT 5"`
 
+## Advanced Examples
 See [examples.md](examples.md) for:
 - APPEND materialization strategy
 - DuckDB queries in Python models
