@@ -2,7 +2,6 @@
 name: explore-data
 description: "Explores data in a Bauplan lakehouse safely using the Bauplan Python SDK. Use to inspect namespaces, tables, schemas, samples, and profiling queries; and to export larger result sets to files. Read-only exploration only; no writes or pipeline runs."
 allowed-tools:
-
 * Bash(bauplan:*)
 * Read
 * Write
