@@ -1,4 +1,4 @@
-# Bauplan MCP Server & Agent Skills
+# Bauplan tools, MCP Server & Agent Skills
 
 Build AI-powered data engineering workflows with the Bauplan MCP Server and Agent Skills.
 
@@ -7,13 +7,113 @@ Build AI-powered data engineering workflows with the Bauplan MCP Server and Agen
 
 ## Overview
 
-This repository provides two complementary tools for AI-assisted data engineering with Bauplan:
+This repository provides three complementary tools for AI-assisted data engineering with Bauplan:
 
-1. **MCP Server** - A Model Context Protocol server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
-
+1. **Repository-based usage (CLAUDE.md + reference documentation)** - Add Bauplan workflow guidance and CLI reference directly to your repository's `.claude/` directory so AI coding assistants automatically understand Bauplan commands, safety rules, and your team's conventions without requiring tool integrations.
 2. **Agent Skills** - Reusable skill definitions for Claude Code that provide guided workflows for common code generation tasks like creating pipelines (`/new-pipeline`) and data ingestion (`/wap`).
+3. **MCP Server** - A Model Context Protocol server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
 
 The intended usage for this repo is to help with *local development* by providing AI assistants access to your Bauplan lakehouse: a blog post with some context and background is available [here](https://www.bauplanlabs.com/post/bauplans-mcp-server).
+
+## Repository-based usage (CLAUDE.md + references)
+
+Bauplan can be used with AI coding assistants **without running the MCP server**, by providing the assistant with explicit, repository-local context. In this mode, the assistant operates by reading documentation, writing code, and invoking Bauplan through the CLI or Python SDK.
+
+This is the recommended default for IDE-based assistants such as Claude Code or Cursor.
+
+### How it works
+
+The integration is entirely file-based. You give the assistant:
+
+1. **An agent playbook (`CLAUDE.md`)** that explains how to work with Bauplan
+2. **Reference documentation** it can consult for correct CLI and SDK usage
+3. **Optional Skills** that template multi-step workflows
+
+The assistant then:
+
+* Reads instructions from `CLAUDE.md`
+* Writes Python or SQL in your repository
+* Runs explicit Bauplan CLI commands or SDK calls
+* Follows the same branch, run, validate, publish workflow a human would
+
+No background service or MCP transport is required.
+
+### Repository structure
+
+A typical setup looks like this:
+
+```text
+your-repository/
+├── .claude/
+│   ├── CLAUDE.md
+│   ├── bauplan-reference/
+│   │   └── bauplan_cli.md
+│   └── skills/
+│       ├── new-pipeline/
+│       │   └── SKILL.md
+│       ├── wap/
+│       │   └── SKILL.md
+│       ├── explore-data/
+│       │   └── SKILL.md
+│       └── root-cause-analysis/
+│           └── SKILL.md
+├── your-bauplan-project/
+│   ├── models.py
+│   └── bauplan_project.yml
+└── README.md
+```
+
+### Bauplan (agent playbook) with `CLAUDE.md`
+
+`CLAUDE.md` is the primary control surface for the assistant.
+
+It defines:
+
+* When to use Skills vs direct CLI / SDK calls
+* How to create and manage data branches
+* How to run pipelines safely (never write to `main`)
+* How to validate results and publish changes
+* How to retrieve detailed instructions
+
+For Claude Code, `CLAUDE.md` is automatically loaded and used as context on every interaction. For other tools, its contents can be used as a system prompt or initial context.
+
+### Reference documentation
+
+The `./claude/bauplan-reference/` directory contains authoritative documentation for the Bauplan CLI and SDK. Assistants use this to verify syntax, flags, and expected behavior before executing commands.
+
+This avoids hallucinated commands and keeps generated code aligned with the actual API surface.
+
+## Skills
+
+> [!WARNING]
+> Skills are very experimental and subject to change at any time.
+
+The `skills/` folder contains reusable skill definitions for Claude Code that provide guided workflows for common Bauplan tasks. These skills can be incorporated into your Claude Code projects to enable AI-assisted data engineering.
+
+### Available Skills
+
+| Skill                   | Description                                                                                                                              |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| **new-pipeline**        | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure                   |
+| **wap**                 | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production      |
+| **explore-data**        | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
+| **root-cause-analysis** | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections                 |
+
+### Using Skills
+
+To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains the skill definitinon along with examples and usage patterns.
+
+## Developer Notes
+
+If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?). 
+
+While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
+
+```bash
+BAUPLAN_TEST_S3_PATH="s3://public-read-bucket/my-file.parquet" uv run pytest -v
+```
+
+As best practices emerge, Bauplan skills multiply and AI-assisted workflows rise, this suite will evolve to provide more comprehensive coverage and guidance.
 
 ## MCP Quick Start
 
@@ -25,12 +125,8 @@ You need:
 - [uv](https://docs.astral.sh/uv/guides/install-python/) (or a standard `pip` managed virtual environment, see below);
 - an AI platform able to leverage the MCP, as for example Claude Code, Cursor, Claude Desktop.
 
-<aside>
-
 > [!WARNING]
 > do not use an Admin Bauplan API key: while the server will refuse to write on `main`, it is good practice to use a non-admin key for AI-assisted development (see our roadmap below for more details on upcoming security features).
-
-</aside>
 
 Start the server with:
 
@@ -220,37 +316,12 @@ If you have specific features you would like to see, please get in touch with us
 
 - **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, wap, test, sdk)
 
-## Skills
+Yes. Here is a **more concrete, procedural rewrite** of that section, aligned with what you actually ship today (`.claude/`, `bauplan-reference`, `CLAUDE.md`, skills). This tells users exactly what to do, not just that it exists.
 
-> [!WARNING]
-> Skills are very experimental and subject to change at any time.
+This should **replace** the lighter “Repository-based usage” section I wrote earlier.
 
-The `skills/` folder contains reusable skill definitions for Claude Code that provide guided workflows for common Bauplan tasks. These skills can be incorporated into your Claude Code projects to enable AI-assisted data engineering.
+---
 
-### Available Skills
-
-| Skill | Description |
-|-------|-------------|
-| **new-pipeline** | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure |
-| **wap** | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production |
-| **explore-data** | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
-| **root-cause-analysis** | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections |
-
-### Using Skills
-
-To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains the skill definitinon along with examples and usage patterns.
-
-## Developer Notes
-
-If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?). 
-
-While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
-
-```bash
-BAUPLAN_TEST_S3_PATH="s3://public-read-bucket/my-file.parquet" uv run pytest -v
-```
-
-As best practices emerge, Bauplan skills multiply and AI-assisted workflows rise, this suite will evolve to provide more comprehensive coverage and guidance.
 
 ## License
 
