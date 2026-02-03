@@ -3,6 +3,12 @@ name: root-cause-analysis-and-fix
 description: “Inspect a failed Bauplan pipeline run on a dev branch, reconstruct the frozen data state, collect evidence, propose a minimal code fix using Git, and rerun deterministically where possible.”
 allowed-tools:
 - Bash(bauplan:*)
+- Bash(git)
+- Read
+- Write
+- Glob
+- Grep
+- WebFetch(domain:docs.bauplanlabs.com)
 
 ---
 
