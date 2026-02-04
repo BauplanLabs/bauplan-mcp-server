@@ -57,7 +57,7 @@ warnings.filterwarnings(
 
 # Get the global MCP server name and instructions
 MCP_SERVER_NAME = "mcp-bauplan"
-INSTRUCTIONS = (Path(__file__).parent / "CLAUDE.md").read_text()
+INSTRUCTIONS = (Path(__file__).parent.parent / "CLAUDE.md").read_text()
 
 # Configure logging
 logger = logging.getLogger(__name__)
