@@ -31,8 +31,8 @@ class TestWapSkillInvocation:
 
         # Check that the WAP skill was invoked
         # Note: Claude Code uses directory name ("wap") not SKILL.md name ("wap-ingestion")
-        assert result.skill_was_invoked("wap"), (
-            f"Expected 'wap' skill to be invoked. "
+        assert result.skill_was_invoked("quality-gated-updates"), (
+            f"Expected 'quality-gated-updates' skill to be invoked. "
             f"Tool calls made: {[c['name'] for c in result.tool_calls]}"
         )
 

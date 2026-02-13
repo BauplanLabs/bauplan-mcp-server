@@ -54,6 +54,7 @@ class ClaudeResult:
         for call in self.tool_calls:
             # Skills are invoked via the "Skill" tool
             if call.get("name") == "Skill":
+                print(f"Checking skill call: {call}")
                 invoked_skill = call.get("input", {}).get("skill", "")
                 if skill_name == invoked_skill:
                     return True

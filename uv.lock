@@ -642,6 +642,7 @@ dependencies = [
     { name = "bauplan" },
     { name = "fastmcp" },
     { name = "pydantic" },
+    { name = "pytest" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -656,6 +657,7 @@ requires-dist = [
     { name = "bauplan", specifier = ">=0.0.3a431" },
     { name = "fastmcp", specifier = ">=2.9.0,<3.0" },
     { name = "pydantic", specifier = ">=2.6" },
+    { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },
     { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"] },
