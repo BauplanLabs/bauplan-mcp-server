@@ -1,6 +1,6 @@
 ---
 name: quality-gated-updates
-description: "Ingest data from S3 into Bauplan using a Write-Audit-Publish (WAP) pattern for safe data loading. Use when loading new data from S3, performing safe data ingestion, or when the user mentions WAP, data ingestion, importing parquet/csv/jsonl files, or needs to safely load data with quality checks."
+description: "Ingest data from S3 into Bauplan safely using branch isolation and quality checks before publishing. Use when loading new data from S3, importing parquet/csv/jsonl files, or when the user needs to safely load data with validation before merging to main."
 allowed-tools:
   - Read
   - Write
@@ -10,11 +10,17 @@ allowed-tools:
   - WebFetch(domain:docs.bauplanlabs.com)
 ---
 
-# The Write-Audit-Publish (WAP) Pattern
+# Quality-Gated Updates
 
-Implement WAP by writing a Python script using the `bauplan` SDK. Do NOT use CLI commands.
+Safely ingest data from S3 into the Bauplan lakehouse by isolating changes on a temporary branch, running quality checks, and only merging to `main` after validation succeeds. 
+This pattern is formally known as Write-Audit-Publish (WAP) in the Iceberg ecosystem.
 
-**The three steps**: Write (ingest to temp branch) → Audit (quality checks) → Publish (merge to main)
+Implement this as a Python script using the `bauplan` SDK. Do NOT use CLI commands for the ingestion itself.
+
+**The three phases:**
+1. **Import** — load data onto a temporary branch (never `main`)
+2. **Validate** — run quality checks before publishing
+3. **Merge** — promote to `main` only after validation passes
 
 **Branch safety**: All operations happen on a temporary branch, NEVER on `main`. By default, branches are kept open for inspection after success or failure.
 
@@ -22,7 +28,7 @@ Implement WAP by writing a Python script using the `bauplan` SDK. Do NOT use CLI
 
 ## Required User Input
 
-Before writing the WAP script, you MUST ask the user for the following parameters:
+Before writing the script, you MUST ask the user for:
 
 1. **S3 path** (required): The S3 URI pattern for the source data (e.g., `s3://bucket/path/*.parquet`)
 2. **Table name** (required): The name for the target table
@@ -30,34 +36,36 @@ Before writing the WAP script, you MUST ask the user for the following parameter
    - `inspect` (default): Keep the branch open for user inspection before merging
    - `merge`: Automatically merge to main and delete the branch
 4. **On failure behavior** (optional):
-   - `keep` (default): Leave the branch open for inspection/debugging
+   - `inspect` (default): Leave the branch open for inspection/debugging
    - `delete`: Delete the failed branch
 
-## WAP Script Template
+## Script Template
 
-This is the complete template for WAP: 
 ```python
 """
-Quality gated update template for bauplan data ingestion ising a Write-Audit-Publish (WAP) Pattern
+Quality-gated update for Bauplan data ingestion.
+
+Safely imports data from S3 using branch isolation and validation
+before merging to main (Write-Audit-Publish pattern).
 
 Usage:
-    python wap_template.py
+    python quality_gated_update.py
 
-Or import and call wap_ingest() with your parameters.
+Or import and call quality_gated_update() with your parameters.
 """
 import bauplan
 from datetime import datetime
 
 
-def wap_update(
+def quality_gated_update(
     table_name: str,
     s3_path: str,
     namespace: str = "bauplan",
     on_success: str = "inspect",  # "inspect" (default) or "merge"
-    on_failure: str = "keep",  # "keep" (default) or "delete"
+    on_failure: str = "inspect",  # "inspect" (default) or "delete"
 ):
     """
-    Write-Audit-Publish flow for safe data ingestion.
+    Import → Validate → Merge flow for safe data ingestion.
 
     Args:
         table_name: Target table name
@@ -71,25 +79,25 @@ def wap_update(
     """
     client = bauplan.Client()
 
-    # Generate unique branch name using username
+    # Generate unique branch name
     info = client.info()
     username = info.user.username
-    branch_name = f"{username}.wap_{table_name}_{int(datetime.now().timestamp())}"
+    branch_name = f"{username}.import_{table_name}_{int(datetime.now().timestamp())}"
 
     success = False
     try:
-        # === WRITE PHASE ===
-        # 1. Create temporary branch from main (must not exist)
+        # === IMPORT PHASE ===
+        # 1. Create temporary branch from main
         assert not client.has_branch(branch_name), (
-            f"Branch '{branch_name}' already exists - this should be an ephemeral branch"
+            f"Branch '{branch_name}' already exists"
         )
         client.create_branch(branch_name, from_ref="main")
 
-        # 2. Verify table doesn't exist on branch before creating
+        # 2. Verify table doesn't already exist on branch
         assert not client.has_table(
             table=table_name, ref=branch_name, namespace=namespace
         ), (
-            f"Table '{namespace}.{table_name}' already exists on branch - refusing to overwrite"
+            f"Table '{namespace}.{table_name}' already exists on branch"
         )
 
         # 3. Create table (schema inferred from S3 files)
@@ -108,8 +116,8 @@ def wap_update(
             branch=branch_name,
         )
 
-        # === AUDIT PHASE ===
-        # 5. Run quality check: verify data was imported
+        # === VALIDATE PHASE ===
+        # 5. Quality check: verify data was imported
         fq_table = f"{namespace}.{table_name}"
         result = client.query(
             query=f"SELECT COUNT(*) as row_count FROM {fq_table}", ref=branch_name
@@ -120,24 +128,22 @@ def wap_update(
 
         success = True
 
-        # === PUBLISH PHASE ===
+        # === MERGE PHASE ===
         if on_success == "merge":
-            # 6. Merge to main and cleanup
             client.merge_branch(source_ref=branch_name, into_branch="main")
             print(f"Successfully published {table_name} to main")
             client.delete_branch(branch_name)
             print(f"Cleaned up branch: {branch_name}")
         else:
-            # Keep branch for inspection
             print(
-                f"WAP completed successfully. Branch '{branch_name}' ready for inspection."
+                f"Import complete. Branch '{branch_name}' ready for inspection."
             )
             print(
                 f"To merge manually: client.merge_branch(source_ref='{branch_name}', into_branch='main')"
             )
 
     except Exception as e:
-        print(f"WAP failed: {e}")
+        print(f"Import failed: {e}")
         if on_failure == "delete":
             if client.has_branch(branch_name):
                 client.delete_branch(branch_name)
@@ -150,8 +156,7 @@ def wap_update(
 
 
 if __name__ == "__main__":
-    # Example: customize these parameters
-    branch, success = wap_ingest(
+    branch, success = quality_gated_update(
         table_name="my_table",
         s3_path="s3://my-bucket/data/*.parquet",
         namespace="bauplan",
@@ -163,14 +168,13 @@ if __name__ == "__main__":
 Minimal usage:
 
 ```python
-from wap_template import wap_ingest
+from quality_gated_update import quality_gated_update
 
-branch, success = wap_ingest(
+branch, success = quality_gated_update(
     table_name="orders",
     s3_path="s3://my-bucket/data/*.parquet",
-    namespace="bauplan",
     on_success="inspect",  # or "merge"
-    on_failure="keep"      # or "delete"
+    on_failure="inspect",  # or "delete"
 )
 ```
 
@@ -193,72 +197,61 @@ branch, success = wap_ingest(
 
 ## Workflow Checklist
 
-Copy and track progress:
-
-
-WAP Progress:
 - [ ] Ask user for: S3 path, table name, on_success, on_failure
-- [ ] Write script using wap_template.py
-- [ ] Run script: python wap_script.py
+- [ ] Write script using the template above
+- [ ] Run script: `python quality_gated_update.py`
 - [ ] Verify output shows row count > 0
 - [ ] If on_success="inspect": confirm branch ready for review
 - [ ] If on_success="merge": confirm merge to main succeeded
 
-
 ## Example Output
 
 **Successful run (on_success="inspect")**:
-```bash
-$ python wap_script.py
+```
 Imported 15234 rows
-WAP completed successfully. Branch 'alice.wap_orders_1704067200' ready for inspection.
-To merge manually: client.merge_branch(source_ref='alice.wap_orders_1704067200', into_branch='main')
+Import complete. Branch ready for inspection: 'alice.import_orders_1704067200'.
+To merge manually: client.merge_branch(source_ref='alice.import_orders_1704067200', into_branch='main')
 ```
 
 **Successful run (on_success="merge")**:
-```bash
-$ python wap_script.py
+```
 Imported 15234 rows
 Successfully published orders to main
-Cleaned up branch: alice.wap_orders_1704067200
+Cleaned up branch: alice.import_orders_1704067200
 ```
 
 **Failed run (on_failure="keep")**:
-```bash
-$ python wap_script.py
-WAP failed: No data was imported
-Branch 'alice.wap_orders_1704067200' preserved for inspection/debugging.
+```
+**Failed run (on_failure="inspect")**:
+```
+Import failed: No data was imported
+Branch preserved for inspection/debugging: 'alice.import_orders_1704067200' 
 ```
 
-## WAP on Existing Tables
+## Appending to Existing Tables
 
-To append data to an existing table, skip `create_table` and only call `import_data`:
+To append data to a table that already exists on main, skip `create_table` and only call `import_data`:
 
 ```python
-# Table already exists on main - just import new data
+# Table already exists on main — just import new data
 client.import_data(
     table=table_name,
     search_uri=s3_path,
     namespace=namespace,
-    branch=branch_name
+    branch=branch_name,
 )
 ```
 
-This appends rows to the existing table schema. The audit and publish phases remain the same: the new rows are automatically sandboxed on the branch until merged.
+The validate and merge phases remain the same. New rows are sandboxed on the branch until merged.
 
 ## CLI Merge After Inspection
 
-When `on_success="inspect"` (default), the branch is left open for user review. If the user asks to merge after inspecting the data, use the CLI:
+When `on_success="inspect"` (default), the branch is left open for review. To merge after inspecting:
 
 ```bash
-# 1. Checkout to main first (required before merging)
 bauplan checkout main
-
-# 2. Merge the WAP branch into main
-bauplan branch merge <username>.wap_<table_name>_<timestamp>
-
-# 3. Optionally delete the branch after successful merge
-bauplan branch rm <username>.wap_<table_name>_<timestamp>
+bauplan branch merge <branch_name>
+bauplan branch rm <branch_name>  # optional cleanup
 ```
 
-> **Note**: You must be on `main` to run `bauplan branch merge`. The branch name is printed by the WAP script upon completion.
+The branch name is printed by the script upon completion.
