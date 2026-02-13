@@ -1,6 +1,6 @@
 ---
-name: wap-ingestion
-description: "Ingest data from S3 into bauplan using the Write-Audit-Publish pattern for safe data loading. Use when loading new data from S3, performing safe data ingestion, or when the user mentions WAP, data ingestion, importing parquet/csv/jsonl files, or needs to safely load data with quality checks."
+name: quality-gated-updates
+description: "Ingest data from S3 into Bauplan using a Write-Audit-Publish (WAP) pattern for safe data loading. Use when loading new data from S3, performing safe data ingestion, or when the user mentions WAP, data ingestion, importing parquet/csv/jsonl files, or needs to safely load data with quality checks."
 allowed-tools:
   - Read
   - Write
@@ -10,7 +10,7 @@ allowed-tools:
   - WebFetch(domain:docs.bauplanlabs.com)
 ---
 
-# Write-Audit-Publish (WAP) Pattern
+# The Write-Audit-Publish (WAP) Pattern
 
 Implement WAP by writing a Python script using the `bauplan` SDK. Do NOT use CLI commands.
 
@@ -38,7 +38,7 @@ Before writing the WAP script, you MUST ask the user for the following parameter
 This is the complete template for WAP: 
 ```python
 """
-WAP (Write-Audit-Publish) Template for bauplan data ingestion.
+Quality gated update template for bauplan data ingestion ising a Write-Audit-Publish (WAP) Pattern
 
 Usage:
     python wap_template.py
@@ -49,7 +49,7 @@ import bauplan
 from datetime import datetime
 
 
-def wap_ingest(
+def wap_update(
     table_name: str,
     s3_path: str,
     namespace: str = "bauplan",
