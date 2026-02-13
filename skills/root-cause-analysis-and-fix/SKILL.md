@@ -256,9 +256,3 @@ You must produce:
 	5.	Either:
 	•	a successful rerun on the debug branch, or
 	•	a single, concrete external blocker stated plainly
-
-
-If you want next, I can:
-	•	Strip this down into a “compact agent version”.
-	•	Add a strict decision tree that prevents Claude from touching code prematurely.
-	•	Align this 1:1 with how you want to document Bauplan + Claude workflows publicly.
