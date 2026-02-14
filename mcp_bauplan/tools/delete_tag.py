@@ -21,7 +21,7 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
         tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None
     ) -> TagDeleted:
         """
-        Delete a specified tag from a given branch in the user's Bauplan data catalog using a tag name and branch name.
+        Delete a specified tag from the user's Bauplan data catalog using a tag name.
 
         Args:
             tag: Name of the tag to delete.

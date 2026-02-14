@@ -26,7 +26,10 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def apply_table_creation_plan(
         plan: Dict[str, Any],
+        debug: Optional[bool] = None,
         args: Optional[Dict[str, str]] = None,
+        priority: Optional[int] = None,
+        verbose: Optional[bool] = None,
         client_timeout: int = 120,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
@@ -41,7 +44,10 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
 
         Args:
             plan: The plan dictionary or TableCreatePlanState to apply.
+            debug: Whether to enable or disable debug mode (optional).
             args: Additional arguments for plan application (optional).
+            priority: Job priority, 1-10 where 10 is highest priority (optional).
+            verbose: Whether to enable or disable verbose mode (optional).
             client_timeout: Timeout in seconds (defaults to 120).
 
         Returns:
@@ -53,7 +59,12 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
 
             # Call apply_table_creation_plan function
             result = bauplan_client.apply_table_creation_plan(
-                plan=plan, args=args, client_timeout=client_timeout
+                plan=plan,
+                debug=debug,
+                args=args,
+                priority=priority,
+                verbose=verbose,
+                client_timeout=client_timeout,
             )
 
             # Extract job_id from TableCreatePlanApplyState object
