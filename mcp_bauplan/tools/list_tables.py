@@ -35,7 +35,7 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
         IMPORTANT: Always use this tool BEFORE generating code with generate_code to ensure you're referencing tables that actually exist.
 
         Returns:
-            dict: TablesOut object with list of table names
+            TablesOut: object with list of table names
         """
 
         try:
