@@ -27,12 +27,6 @@ Use this when:
 - You have a failed job ID, a branch name with a broken run, or a time window to search for failures
 - You want to fix the pipeline and verify the fix against the exact data state that caused the failure
 
-Do NOT use this skill to:
-
-- Add data quality expectations proactively (use the expectations skill instead)
-- Debug issues unrelated to a specific failed job
-- Fix pipelines that haven't been run yet
-
 ## What You'll Need
 
 At least one of:
@@ -252,7 +246,7 @@ Prefer fixes closest to the data contract boundary, because contract-level issue
 
 1. **Schema corrections** — wrong column types, missing columns, mismatched output declarations
 2. **Input tightening** — add or fix `filter` / `columns` in `bauplan.Model()` to reject bad data earlier
-3. **Expectation fixes** — adjust or add data quality checks that should have caught the issue
+3. **Expectation fixes** — fix existing expectations that are misconfigured or too strict/lenient
 4. **Transform logic** — change the model's computation only if the above three don't resolve it
 
 Rules:
