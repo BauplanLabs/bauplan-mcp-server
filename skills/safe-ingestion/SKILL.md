@@ -1,5 +1,5 @@
 ---
-name: quality-gated-updates
+name: safe-ingestion
 description: "Ingest data from S3 into Bauplan safely using branch isolation and quality checks before publishing. Use when loading new data from S3, importing parquet/csv/jsonl files, or when the user needs to safely load data with validation before merging to main."
 allowed-tools:
   - Read
