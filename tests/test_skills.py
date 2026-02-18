@@ -46,8 +46,8 @@ class TestDebugAndFixPipelineSkillInvocation:
         Claude should invoke the debug-and-fix-pipeline skill.
         """
         prompt = (
-            "My bauplan pipeline just failed. The last run id is abc123. "
-            "Please debug and fix the pipeline."
+            "Check the failed pipelines in the past 5 hours."
+            "Take the most recent one, debug and fix it."
         )
 
         result = claude_runner(prompt, max_turns=6)
