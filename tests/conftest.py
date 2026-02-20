@@ -162,7 +162,11 @@ def run_claude(
             text=True,
             capture_output=True,
             timeout=timeout_seconds,
-            env={**os.environ, "CLAUDE_CODE_TELEMETRY_DISABLED": "1"},
+            env={
+                **os.environ,
+                "CLAUDE_CODE_TELEMETRY_DISABLED": "1",
+                "CLAUDECODE": "",  # Allow nested Claude Code invocations in tests
+            },
         )
     except subprocess.TimeoutExpired as e:
         return ClaudeResult(

@@ -10,7 +10,7 @@ Build AI-powered data engineering workflows with the Bauplan MCP Server and Agen
 This repository provides three complementary tools for AI-assisted data engineering with Bauplan:
 
 1. **Repository-based usage (CLAUDE.md + reference documentation)** - Add Bauplan workflow guidance and CLI reference directly to your repository's `.claude/` directory so AI coding assistants automatically understand Bauplan commands, safety rules, and your team's conventions without requiring tool integrations.
-2. **Agent Skills** - Reusable skill definitions for Claude Code that provide guided workflows for common code generation tasks like creating pipelines (`/data-pipeline`) and data ingestion (`/quality-gated-updates`).
+2. **Agent Skills** - Reusable skill definitions for Claude Code that provide guided workflows for common code generation tasks like creating pipelines (`/new-pipeline`) and data ingestion (`/wap`).
 3. **MCP Server** - A Model Context Protocol server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
 
 The intended usage for this repo is to help with *local development* by providing AI assistants access to your Bauplan lakehouse: a blog post with some context and background is available [here](https://www.bauplanlabs.com/post/bauplans-mcp-server).
@@ -49,13 +49,13 @@ your-repository/
 │   ├── bauplan-reference/
 │   │   └── bauplan_cli.md
 │   └── skills/
-│       ├── data-pipeline/
+│       ├── new-pipeline/
 │       │   └── SKILL.md
-│       ├── quality-gated-updates/
+│       ├── wap/
 │       │   └── SKILL.md
 │       ├── explore-data/
 │       │   └── SKILL.md
-│       └── root-cause-analysis-and-fix/
+│       └── root-cause-analysis/
 │           └── SKILL.md
 ├── your-bauplan-project/
 │   ├── models.py
@@ -92,12 +92,12 @@ The `skills/` folder contains reusable skill definitions for Claude Code that pr
 
 ### Available Skills
 
-| Skill                           | Description                                                                                                                              |
-|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| **data-pipeline**               | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure                   |
-| **quality-gated-updates**       | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production      |
-| **explore-data**                | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
-| **root-cause-analysis-and-fix** | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections                 |
+| Skill                   | Description                                                                                                                              |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| **new-pipeline**        | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure                   |
+| **wap**                 | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production      |
+| **explore-data**        | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
+| **root-cause-analysis** | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections                 |
 
 ### Using Skills
 
@@ -154,7 +154,7 @@ Et voilà! You can now start asking your AI questions about your data lakehouse 
 A `CLAUDE.md` file is provided at the repository root that instructs the model on how to best use the Bauplan MCP server and the Bauplan skills provided in the `skills/` folder.
 
 **For Claude Code users**: Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
-- Decision tree for when to use skills (`/quality-gated-updates`, `/data-pipeline`, `/explore-data`, `/root-cause-analysis-and-fix`) vs MCP tools vs CLI/SDK
+- Decision tree for when to use skills (`/wap`, `/new-pipeline`, `/explore-data`, `/root-cause-analysis`) vs MCP tools vs CLI/SDK
 - How to retrieve detailed instructions via `get_instructions`
 - How to verify SDK/CLI syntax
 - Canonical workflows for common tasks
@@ -182,12 +182,12 @@ The Beta release covers the local development use case. Authentication to your B
 
 The server supports the following CLI options, mostly useful for specifying alternative transport options:
 
-| Option        | Default     | Description                                              | Used With                     |
-|---------------|-------------|----------------------------------------------------------|-------------------------------|
-| `--transport` | `stdio`     | Transport protocol: `stdio`, `sse`, or `streamable-http` | All commands                  |
-| `--host`      | `127.0.0.1` | Host to bind to (localhost by default)                   | `sse`, `streamable-http` only |
-| `--port`      | `8000`      | Port to bind to                                          | `sse`, `streamable-http` only |
-| `--profile`   | `None`      | Bauplan profile to use                                   | All commands                  |
+| Option | Default | Description | Used With |
+| --- | --- | --- | --- |
+| `--transport` | `stdio` | Transport protocol: `stdio`, `sse`, or `streamable-http` | All commands |
+| `--host` | `127.0.0.1` | Host to bind to (localhost by default) | `sse`, `streamable-http` only |
+| `--port` | `8000` | Port to bind to | `sse`, `streamable-http` only |
+| `--profile` | `None` | Bauplan profile to use | All commands |
 
 **Note:** The `--host` and `--port` options are ignored when using `stdio` transport since it communicates through stdin/stdout.
 
@@ -315,6 +315,10 @@ If you have specific features you would like to see, please get in touch with us
 #### Instructions and Guidance
 
 - **`get_instructions`**: Get detailed instructions for specific Bauplan use cases (pipeline, data, repair, wap, test, sdk)
+
+Yes. Here is a **more concrete, procedural rewrite** of that section, aligned with what you actually ship today (`.claude/`, `bauplan-reference`, `CLAUDE.md`, skills). This tells users exactly what to do, not just that it exists.
+
+This should **replace** the lighter “Repository-based usage” section I wrote earlier.
 
 ---
 

@@ -35,18 +35,18 @@ Use skills for repeatable workflows that generate or modify code. Use CLI and SD
 
 Is this a code generation or repo-editing task?
 ├─ Yes: Create or modify a pipeline project
-│ -> Use skill: bauplan-data-pipelines (alias: /data-pipeline)
+│ -> Use skill: creating-bauplan-pipelines (alias: /new-pipeline)
 ├─ Yes: Ingest data with WAP (write, audit, publish)
-│ -> Use skill: quality-gated-updates (alias: /quality-gated-updates)
+│ -> Use skill: wap-ingestion (alias: /wap)
 └─ No: Explore, query, inspect, run, debug, publish
   -> Use CLI and SDK directly (see local references)
 
 ## Skill inventory
 
-- bauplan-data-pipelines
+- creating-bauplan-pipelines
   Use when you need to scaffold a new pipeline folder, define models, add environment declarations, and produce a runnable project layout.
 
-- quality-gated-updates
+- wap-ingestion
   Use when ingesting files from S3 into a branch with a publish step. Prefer this over ad-hoc imports for anything beyond a toy dataset.
 
 - explore-data
@@ -69,9 +69,9 @@ When emitting CLI commands or SDK code, verify syntax before final output.
 ## Canonical workflows
 
 ### A) Build and publish a pipeline (end-to-end)
-For this workflow use the `data-pipeline` skill.
+For this workflow use the `new-pipeline` skill. 
 ### B) Ingest data safely (WAP)
-For this workflow use the `quality-gated-updates` skill.
+For this workflow use the `wap` skill.
 ### C) Data exploration and investigation
 
 Prefer direct CLI:
