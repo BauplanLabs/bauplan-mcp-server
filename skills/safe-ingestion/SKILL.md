@@ -10,7 +10,7 @@ allowed-tools:
   - WebFetch(domain:docs.bauplanlabs.com)
 ---
 
-# Quality-Gated Updates
+# Safe-ingestion
 
 Safely ingest data from S3 into the Bauplan lakehouse by isolating changes on a temporary branch, running quality checks, and only merging to `main` after validation succeeds. 
 This pattern is formally known as Write-Audit-Publish (WAP) in the Iceberg ecosystem.
@@ -223,7 +223,6 @@ Cleaned up branch: alice.import_orders_1704067200
 **Failed run (on_failure="keep")**:
 ```
 **Failed run (on_failure="inspect")**:
-```
 Import failed: No data was imported
 Branch preserved for inspection/debugging: 'alice.import_orders_1704067200' 
 ```
@@ -231,7 +230,7 @@ Branch preserved for inspection/debugging: 'alice.import_orders_1704067200'
 ## Appending to Existing Tables
 
 To append data to a table that already exists on main, skip `create_table` and only call `import_data`:
-
+```
 ```python
 # Table already exists on main — just import new data
 client.import_data(
