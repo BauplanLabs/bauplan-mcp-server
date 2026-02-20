@@ -182,12 +182,12 @@ The Beta release covers the local development use case. Authentication to your B
 
 The server supports the following CLI options, mostly useful for specifying alternative transport options:
 
-| Option | Default | Description | Used With |
-| --- | --- | --- | --- |
-| `--transport` | `stdio` | Transport protocol: `stdio`, `sse`, or `streamable-http` | All commands |
-| `--host` | `127.0.0.1` | Host to bind to (localhost by default) | `sse`, `streamable-http` only |
-| `--port` | `8000` | Port to bind to | `sse`, `streamable-http` only |
-| `--profile` | `None` | Bauplan profile to use | All commands |
+| Option        | Default     | Description                                              | Used With                     |
+|---------------|-------------|----------------------------------------------------------|-------------------------------|
+| `--transport` | `stdio`     | Transport protocol: `stdio`, `sse`, or `streamable-http` | All commands                  |
+| `--host`      | `127.0.0.1` | Host to bind to (localhost by default)                   | `sse`, `streamable-http` only |
+| `--port`      | `8000`      | Port to bind to                                          | `sse`, `streamable-http` only |
+| `--profile`   | `None`      | Bauplan profile to use                                   | All commands                  |
 
 **Note:** The `--host` and `--port` options are ignored when using `stdio` transport since it communicates through stdin/stdout.
 
