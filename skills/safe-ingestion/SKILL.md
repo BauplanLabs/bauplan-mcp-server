@@ -230,7 +230,6 @@ Branch preserved for inspection/debugging: 'alice.import_orders_1704067200'
 ## Appending to Existing Tables
 
 To append data to a table that already exists on main, skip `create_table` and only call `import_data`:
-```
 ```python
 # Table already exists on main — just import new data
 client.import_data(
