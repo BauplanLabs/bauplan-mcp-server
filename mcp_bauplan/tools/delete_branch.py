@@ -43,4 +43,4 @@ def register_delete_branch_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as err:
-            raise ToolError(f"Error creating branch: {err}")
+            raise ToolError(f"Error deleting branch: {err}")
