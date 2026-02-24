@@ -4,7 +4,6 @@ Imports data into an existing table.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -29,7 +28,7 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         table: str,
         search_uri: str,
         branch: str,
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> DataImported:

@@ -3,7 +3,6 @@ Run a Bauplan project from code files provided as a dictionary.
 """
 
 from fastmcp import FastMCP
-from typing import Optional, Dict, Union
 from fastmcp.exceptions import ToolError
 import tempfile
 import os
@@ -23,11 +22,11 @@ def register_code_run_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="code_run", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def code_run(
-        project_files: Dict[str, str],
+        project_files: dict[str, str],
         ref: str,
-        parameters: Optional[Dict[str, Union[str, int, float, bool]]] = None,
-        ctx: Optional[Context] | None = None,
-        bauplan_client: Optional[bauplan.Client] | None = None,
+        parameters: dict[str, str | int | float | bool] | None = None,
+        ctx: Context | None = None,
+        bauplan_client: bauplan.Client | None = None,
     ) -> RunState:
         """
         Run a pipeline from provided source code files as a dictionary and a data ref,

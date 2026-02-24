@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Optional
 
 
 from .create_client import with_bauplan_client
@@ -14,7 +13,7 @@ class TagInfo(BaseModel):
 
 
 class TagsOut(BaseModel):
-    tags: List[TagInfo]
+    tags: list[TagInfo]
     total_count: int
 
 
@@ -22,8 +21,8 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_tags", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_tags(
-        filter_by_name: Optional[str] = None,
-        limit: Optional[int] = 10,
+        filter_by_name: str | None = None,
+        limit: int | None = 10,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TagsOut:

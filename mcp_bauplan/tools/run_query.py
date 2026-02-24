@@ -2,7 +2,7 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import Any
 import datetime
 import re
 
@@ -12,24 +12,24 @@ import bauplan
 
 class QueryMetadata(BaseModel):
     row_count: int
-    column_names: List[str]
-    column_types: List[str]
+    column_names: list[str]
+    column_types: list[str]
     query_time: str
     query: str
 
 
 class QueryOut(BaseModel):
     status: str
-    data: List[Dict[str, Any]]
-    metadata: Optional[QueryMetadata] = None
-    error: Optional[str] = None
+    data: list[dict[str, Any]]
+    metadata: QueryMetadata | None = None
+    error: str | None = None
 
 
 def execute_query(
     query: str,
     bauplan_client,
-    ref: Optional[str] = None,
-    namespace: Optional[str] = None,
+    ref: str | None = None,
+    namespace: str | None = None,
 ) -> QueryOut:
     try:
         # Use provided ref/namespace or fall back to config
@@ -72,8 +72,8 @@ def register_run_query_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def run_query(
         query: str,
-        ref: Optional[str] = None,
-        namespace: Optional[str] = None,
+        ref: str | None = None,
+        namespace: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> QueryOut:

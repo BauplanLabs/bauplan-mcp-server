@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -12,7 +11,7 @@ class MergeResult(BaseModel):
     merged: bool
     source_ref: str
     target_branch: str
-    message: Optional[str] = None
+    message: str | None = None
 
 
 def register_merge_branch_tool(mcp: FastMCP) -> None:
@@ -21,8 +20,8 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
     async def merge_branch(
         source_ref: str,
         into_branch: str,
-        commit_message: Optional[str] = None,
-        commit_body: Optional[str] = None,
+        commit_message: str | None = None,
+        commit_body: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> MergeResult:

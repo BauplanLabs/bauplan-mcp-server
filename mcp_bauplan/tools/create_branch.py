@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -10,9 +9,9 @@ import bauplan
 
 class BranchCreated(BaseModel):
     created: bool
-    name: Optional[str] = None
-    hash: Optional[str] = None
-    message: Optional[str] = None
+    name: str | None = None
+    hash: str | None = None
+    message: str | None = None
 
 
 def register_create_branch_tool(mcp: FastMCP) -> None:

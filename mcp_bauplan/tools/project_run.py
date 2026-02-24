@@ -4,7 +4,6 @@ Run a Bauplan project from a specified directory.
 
 from fastmcp import FastMCP
 
-from typing import Optional, Dict, Union
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -22,11 +21,11 @@ def register_project_run_tool(mcp: FastMCP) -> None:
     async def project_run(
         project_dir: str,
         ref: str,
-        namespace: Optional[str] = None,
-        parameters: Optional[Dict[str, Optional[Union[str, int, float, bool]]]] = None,
-        dry_run: Optional[bool] = False,
-        client_timeout: Optional[int] = 120,
-        ctx: Optional[Context] | None = None,
+        namespace: str | None = None,
+        parameters: dict[str, str | int | float | bool | None] | None = None,
+        dry_run: bool | None = False,
+        client_timeout: int | None = 120,
+        ctx: Context | None = None,
         bauplan_client: bauplan.Client = None,
     ) -> RunState:
         """

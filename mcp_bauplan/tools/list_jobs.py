@@ -5,7 +5,6 @@ List jobs in the Bauplan system.
 from fastmcp import FastMCP
 from pydantic import BaseModel
 from bauplan import JobState
-from typing import Optional, List
 from fastmcp.exceptions import ToolError
 from datetime import datetime
 from .create_client import with_bauplan_client
@@ -21,13 +20,13 @@ class JobInfo(BaseModel):
     kind: str
     user: str
     human_readable_status: str
-    created_at: Optional[str]
-    finished_at: Optional[str]
+    created_at: str | None
+    finished_at: str | None
     status: str
 
 
 class JobsList(BaseModel):
-    jobs: List[JobInfo]
+    jobs: list[JobInfo]
     total_count: int
 
 
@@ -35,11 +34,11 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="list_jobs", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def list_jobs(
-        job_id: Optional[str] = None,
-        status: Optional[str] = None,
-        user_name: Optional[str] = None,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
+        job_id: str | None = None,
+        status: str | None = None,
+        user_name: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> JobsList:

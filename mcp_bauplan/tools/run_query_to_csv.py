@@ -4,7 +4,6 @@ Execute queries and save results to CSV files.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -18,8 +17,8 @@ logger = logging.getLogger(__name__)
 class QueryToCSVResult(BaseModel):
     path: str
     query: str
-    ref: Optional[str]
-    namespace: Optional[str]
+    ref: str | None
+    namespace: str | None
     success: bool
     message: str
 
@@ -30,8 +29,8 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
     async def run_query_to_csv(
         path: str,
         query: str,
-        ref: Optional[str] = None,
-        namespace: Optional[str] = None,
+        ref: str | None = None,
+        namespace: str | None = None,
         client_timeout: int = 120,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,

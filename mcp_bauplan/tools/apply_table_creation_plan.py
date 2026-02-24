@@ -4,7 +4,7 @@ Apply a table creation plan to resolve schema conflicts.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Any
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -25,11 +25,11 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="apply_table_creation_plan", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def apply_table_creation_plan(
-        plan: Dict[str, Any],
-        debug: Optional[bool] = None,
-        args: Optional[Dict[str, str]] = None,
-        priority: Optional[int] = None,
-        verbose: Optional[bool] = None,
+        plan: dict[str, Any],
+        debug: bool | None = None,
+        args: dict[str, str] | None = None,
+        priority: int | None = None,
+        verbose: bool | None = None,
         client_timeout: int = 120,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
