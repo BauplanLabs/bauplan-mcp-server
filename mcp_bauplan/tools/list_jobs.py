@@ -2,6 +2,7 @@
 List jobs in the Bauplan system.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -72,7 +73,8 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             end_date_time = datetime.strptime(end_time, "%m/%d/%y %H:%M:%S") if end_time else None
 
             # Call list_jobs function
-            jobs_result = bauplan_client.list_jobs(
+            jobs_result = await asyncio.to_thread(
+                bauplan_client.list_jobs,
                 filter_by_id=job_id if job_id else None,
                 filter_by_status=JobState[status.upper()] if status else None,
                 filter_by_finish_time=(start_date_time, end_date_time),

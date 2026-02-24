@@ -72,7 +72,7 @@ def register_code_run_tool(mcp: FastMCP) -> None:
                 file_path.write_text(content)
                 logger.debug(f"Written file: {file_path}")
 
-            return run_project(
+            return await run_project(
                 project_dir=temp_dir,
                 ref=ref,
                 namespace="bauplan",  # default namespace

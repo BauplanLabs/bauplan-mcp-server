@@ -2,6 +2,7 @@
 Delete a table.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -45,7 +46,11 @@ def register_delete_table_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Deleting table '{table}' from branch '{branch}")
 
             # Call delete_table function
-            bauplan_client.delete_table(table=table, branch=branch)
+            await asyncio.to_thread(
+                bauplan_client.delete_table,
+                table=table,
+                branch=branch,
+            )
 
             # Log the result
             logger.info(f"Successfully deleted table '{table}' from branch '{branch}'")

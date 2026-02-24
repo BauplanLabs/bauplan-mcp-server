@@ -2,6 +2,7 @@
 Create a table import plan from an S3 location.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -60,7 +61,8 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Creating table plan for '{table}' from search URI '{search_uri}'")
 
             # Call plan_table_creation function
-            result = bauplan_client.plan_table_creation(
+            result = await asyncio.to_thread(
+                bauplan_client.plan_table_creation,
                 table=table,
                 search_uri=search_uri,
                 namespace=namespace,

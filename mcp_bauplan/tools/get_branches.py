@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -40,29 +42,29 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
             BranchesOut: Object containing list of branches with their names and hashes
         """
         try:
-            # Build kwargs for the API call
-            kwargs = {}
-            if name:
-                kwargs["name"] = name
-            if user:
-                kwargs["user"] = user
-            if limit:
-                kwargs["limit"] = limit
+            limit = limit or 10
 
             # Get branches with filters
             branches_list = []
-            branch_count = 0
 
-            for branch in bauplan_client.get_branches(**kwargs):
+            all_branches = await asyncio.to_thread(
+                lambda: list(
+                    bauplan_client.get_branches(
+                        name=name or None,
+                        user=user or None,
+                        limit=limit,
+                    )
+                )
+            )
+            for branch in all_branches:
                 if branch.hash is None:
                     raise ToolError(f"Branch '{branch.name}' does not have a valid hash.")
 
                 branch_info = BranchInfo(name=branch.name, hash=branch.hash)
                 branches_list.append(branch_info)
-                branch_count += 1
 
                 # If we have a limit and reached it, break
-                if limit and branch_count >= limit:
+                if limit and len(branches_list) >= limit:
                     break
 
             return BranchesOut(branches=branches_list, total_count=len(branches_list))

@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import re
 from typing import Any
@@ -25,7 +26,7 @@ class QueryOut(BaseModel):
     error: str | None = None
 
 
-def execute_query(
+async def execute_query(
     query: str,
     bauplan_client,
     ref: str | None = None,
@@ -37,7 +38,8 @@ def execute_query(
         query_namespace = namespace if namespace is not None else "bauplan"  # config.namespace
 
         # Execute query and get results as Arrow table
-        result = bauplan_client.query(
+        result = await asyncio.to_thread(
+            bauplan_client.query,
             query=query,
             ref=query_ref,
             namespace=query_namespace,
@@ -126,7 +128,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
                 if keyword in normalized_query:
                     raise ToolError(f"Query contains forbidden keywords: {keyword}")
 
-            result = execute_query(query, bauplan_client, ref, namespace)
+            result = await execute_query(query, bauplan_client, ref, namespace)
             return result
 
         except Exception as e:

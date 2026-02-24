@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import bauplan
@@ -9,7 +10,7 @@ class RunState(BaseModel):
     job_id: str | None = None
 
 
-def run_project(
+async def run_project(
     project_dir: str,
     ref: str,
     logger: logging.Logger,
@@ -30,7 +31,8 @@ def run_project(
     assert dry_run or ref != "main", "Runs not allowed with ref='main', unless dry_run=True"
 
     # Call run function
-    run_state = bauplan_client.run(
+    run_state = await asyncio.to_thread(
+        bauplan_client.run,
         project_dir=project_dir,
         ref=ref,
         namespace=namespace,

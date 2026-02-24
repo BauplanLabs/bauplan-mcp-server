@@ -2,6 +2,7 @@
 Execute queries and save results to CSV files.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -58,7 +59,8 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Executing query to CSV file: {path}")
 
             # Call query_to_csv_file function
-            bauplan_client.query_to_csv_file(
+            await asyncio.to_thread(
+                bauplan_client.query_to_csv_file,
                 path=path,
                 query=query,
                 ref=ref,

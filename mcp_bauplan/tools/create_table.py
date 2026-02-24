@@ -2,6 +2,7 @@
 Create a table from an S3 location.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -58,7 +59,8 @@ def register_create_table_tool(mcp: FastMCP) -> None:
             assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
 
             # Call create_table function
-            result = bauplan_client.create_table(
+            result = await asyncio.to_thread(
+                bauplan_client.create_table,
                 table=table,
                 search_uri=search_uri,
                 namespace=namespace,

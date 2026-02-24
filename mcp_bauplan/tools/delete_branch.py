@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -34,7 +36,10 @@ def register_delete_branch_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Deleting branch '{branch}")
 
             # Delete the branch
-            assert bauplan_client.delete_branch(branch)
+            assert await asyncio.to_thread(
+                bauplan_client.delete_branch,
+                branch=branch,
+            )
 
             return BranchDeleted(
                 deleted=True,

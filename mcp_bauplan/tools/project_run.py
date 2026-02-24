@@ -46,7 +46,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")
 
-            return run_project(
+            return await run_project(
                 project_dir=project_dir,
                 ref=ref,
                 namespace=namespace,

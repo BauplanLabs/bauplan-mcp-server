@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -36,7 +38,11 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
         """
 
         try:
-            ret = bauplan_client.get_tables(ref=ref, filter_by_namespace=namespace)
+            ret = await asyncio.to_thread(
+                bauplan_client.get_tables,
+                ref=ref,
+                filter_by_namespace=namespace,
+            )
             # Extract table names from TableWithMetadata objects
             table_names = [table.name for table in ret]
             return TablesOut(tables=table_names, ref=ref, namespace=namespace)

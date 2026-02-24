@@ -2,6 +2,7 @@
 Check if a table exists.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -44,7 +45,11 @@ def register_has_table_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Checking if table '{table}' exists in ref '{ref}'")
 
             # Call has_table function
-            exists = bauplan_client.has_table(table=table, ref=ref)
+            exists = await asyncio.to_thread(
+                bauplan_client.has_table,
+                table=table,
+                ref=ref,
+            )
 
             # Log the result
             logger.info(f"Table '{table}' exists: {exists}")

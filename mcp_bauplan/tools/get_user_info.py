@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -30,7 +32,8 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
 
         try:
             # Get user info from the client
-            user = bauplan_client.info().user
+            info = await asyncio.to_thread(bauplan_client.info)
+            user = info.user
 
             if user is None:
                 raise ToolError("No user information available for the authenticated user.")

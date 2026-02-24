@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -38,7 +40,11 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Creating branch '{branch}' from ref '{from_ref}'")
 
             # Create the branch
-            result = bauplan_client.create_branch(branch=branch, from_ref=from_ref)
+            result = await asyncio.to_thread(
+                bauplan_client.create_branch,
+                branch=branch,
+                from_ref=from_ref,
+            )
             return BranchCreated(
                 created=True,
                 name=result.name,
