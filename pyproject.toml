@@ -5,10 +5,24 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "fastmcp>=2.9.0,<3.0",
+  "fastmcp~=2.14.5",
   "uvicorn[standard]",
   "bauplan>=0.0.3a431",
-  "pydantic>=2.6,<3.0",
+  "pydantic~=2.12.5",
+]
+
+[project.optional-dependencies]
+otel = [
+  "opentelemetry-distro==0.60b1",
+  "opentelemetry-exporter-otlp==1.39.1",
+  "opentelemetry-instrumentation-fastapi==0.60b1",
+  "opentelemetry-instrumentation-starlette==0.60b1",
+  "opentelemetry-instrumentation-logging==0.60b1",
+  "opentelemetry-instrumentation-asyncio==0.60b1",
+  "opentelemetry-instrumentation-requests==0.60b1",
+  "opentelemetry-instrumentation-urllib3==0.60b1",
+  "opentelemetry-instrumentation-grpc==0.60b1",
+  "opentelemetry-instrumentation-mcp>=0.52.5",
 ]
 
 [project.scripts]
@@ -19,7 +33,7 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = ["pytest>=9.0.2,<10.0", "pytest-timeout>=2.0"]
+dev = ["pytest~=9.0.2", "pytest-timeout~=2.4.0", "watchdog[watchmedo]~=6.0.0"]
 
 [tool.setuptools]
 packages = ["mcp_bauplan"]
@@ -40,6 +54,7 @@ select = [
 ]
 ignore = [
   "E501", # Line too long -- handled by ruff format; only docstrings/comments exceed the limit
+  "B008", # Do not perform function call in argument defaults -- required by FastMCP Depends()
 ]
 
 [tool.ruff.format]

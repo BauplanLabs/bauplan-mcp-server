@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class TagDeleted(BaseModel):
@@ -15,12 +16,11 @@ class TagDeleted(BaseModel):
 
 
 def register_delete_tag_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="delete_tag", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="delete_tag")
     async def delete_tag(
-        bauplan_client: bauplan.Client,
         tag: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagDeleted:
         """
         Delete a specified tag from the user's Bauplan data catalog using a tag name.

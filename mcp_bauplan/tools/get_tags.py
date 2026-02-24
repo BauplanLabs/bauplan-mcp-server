@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class TagInfo(BaseModel):
@@ -18,13 +19,12 @@ class TagsOut(BaseModel):
 
 
 def register_get_tags_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_tags", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_tags")
     async def get_tags(
-        bauplan_client: bauplan.Client,
         filter_by_name: str | None = None,
         limit: int | None = 10,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagsOut:
         """
         Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.

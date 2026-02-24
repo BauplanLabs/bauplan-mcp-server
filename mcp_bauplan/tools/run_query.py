@@ -5,10 +5,11 @@ from typing import Any
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class QueryMetadata(BaseModel):
@@ -68,14 +69,13 @@ async def execute_query(
 
 
 def register_run_query_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="run_query", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="run_query")
     async def run_query(
-        bauplan_client: bauplan.Client,
         query: str,
         ref: str | None = None,
         namespace: str | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> QueryOut:
         """
         Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace.

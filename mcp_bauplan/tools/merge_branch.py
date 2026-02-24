@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class MergeResult(BaseModel):
@@ -16,15 +17,14 @@ class MergeResult(BaseModel):
 
 
 def register_merge_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="merge_branch", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="merge_branch")
     async def merge_branch(
-        bauplan_client: bauplan.Client,
         source_ref: str,
         into_branch: str,
         commit_message: str | None = None,
         commit_body: str | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> MergeResult:
         """
         Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.
@@ -40,14 +40,6 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
             MergeResult: Object indicating success/failure with merge details
         """
         try:
-            # Build kwargs for the API call
-            kwargs = {"source_ref": source_ref, "into_branch": into_branch}
-
-            if commit_message:
-                kwargs["commit_message"] = commit_message
-            if commit_body:
-                kwargs["commit_body"] = commit_body
-
             if ctx:
                 await ctx.info(f"Merging '{source_ref}' into '{into_branch}'")
 
