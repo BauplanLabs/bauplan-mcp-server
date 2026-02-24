@@ -1,0 +1,68 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+      - run: uv sync --group dev
+      - run: mise run check
+
+  docker-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            docker:
+              - "mcp_bauplan/**"
+              - "main.py"
+              - "CLAUDE.md"
+              - "Dockerfile"
+              - "entrypoint.sh"
+              - "pyproject.toml"
+              - "uv.lock"
+
+  docker-build:
+    needs: [check, docker-changes]
+    if: needs.docker-changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build -t mcp-bauplan .
+
+      - name: Start container
+        run: docker run -d --name mcp -p 8000:8000 mcp-bauplan
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/healthz; then
+              echo ""
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Waiting for server... ($i/15)"
+            sleep 1
+          done
+          echo "Health check failed"
+          docker logs mcp
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker stop mcp || true
