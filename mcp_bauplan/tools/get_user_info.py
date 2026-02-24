@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class UserInfo(BaseModel):
@@ -38,4 +37,4 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
             return UserInfo(username=username, full_name=full_name)
 
         except Exception as e:
-            raise ToolError(f"Failed to get user info: {str(e)}")
+            raise ToolError(f"Failed to get user info: {e!s}") from e

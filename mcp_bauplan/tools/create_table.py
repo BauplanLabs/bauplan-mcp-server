@@ -2,14 +2,14 @@
 Create a table from an S3 location.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +53,9 @@ def register_create_table_tool(mcp: FastMCP) -> None:
         """
         try:
             if ctx:
-                await ctx.info(
-                    f"Creating table '{table}' from search URI '{search_uri}'"
-                )
+                await ctx.info(f"Creating table '{table}' from search URI '{search_uri}'")
 
-            assert branch and branch != "main", (
-                "Branch name must be provided, and it cannot be 'main'"
-            )
+            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
 
             # Call create_table function
             result = bauplan_client.create_table(
@@ -72,9 +68,7 @@ def register_create_table_tool(mcp: FastMCP) -> None:
             )
 
             # Log successful creation with Table object attributes
-            logger.info(
-                f"Successfully created table: {result.name} in namespace: {result.namespace}"
-            )
+            logger.info(f"Successfully created table: {result.name} in namespace: {result.namespace}")
 
             return TableCreated(
                 table_name=result.name,
@@ -84,5 +78,5 @@ def register_create_table_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error creating table {table}: {str(e)}")
-            raise ToolError(f"Failed to create table {table}: {str(e)}")
+            logger.error(f"Error creating table {table}: {e!s}")
+            raise ToolError(f"Failed to create table {table}: {e!s}") from e

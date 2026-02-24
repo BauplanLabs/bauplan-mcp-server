@@ -1,11 +1,11 @@
-from fastmcp import FastMCP, Context
-from fastmcp.exceptions import ToolError
-
-from pydantic import BaseModel
 from typing import Any
 
-from .create_client import with_bauplan_client
 import bauplan
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
+
+from .create_client import with_bauplan_client
 
 
 class TableSchema(BaseModel):
@@ -50,15 +50,11 @@ def register_get_table_tool(mcp: FastMCP) -> None:
                 full_table_name = table_name
             else:
                 full_table_name = f"{namespace}.{table_name}"
-            table_info = bauplan_client.get_table(
-                table=full_table_name, ref=ref, include_raw=True
-            )
+            table_info = bauplan_client.get_table(table=full_table_name, ref=ref, include_raw=True)
 
-            table_schema = TableSchema(
-                name=table_name, fields=table_info.raw["schemas"][0]["fields"]
-            )
+            table_schema = TableSchema(name=table_name, fields=table_info.raw["schemas"][0]["fields"])
 
             return TableOut(table=table_schema)
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_table: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_table: {e}") from e

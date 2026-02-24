@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 import logging
+
 import bauplan
+from pydantic import BaseModel
 
 
 class RunState(BaseModel):
@@ -11,12 +12,12 @@ class RunState(BaseModel):
 def run_project(
     project_dir: str,
     ref: str,
+    logger: logging.Logger,
+    bauplan_client: bauplan.Client,
     namespace: str | None = None,
     parameters: dict[str, str | int | float | bool | None] | None = None,
     dry_run: bool | None = False,
     client_timeout: int | None = 120,
-    logger: logging.Logger = None,
-    bauplan_client: bauplan.Client = None,
 ) -> RunState:
     # Ensure parameters are of correct type
     if parameters:
@@ -26,9 +27,7 @@ def run_project(
             )
 
     # We dry-run everywhere, but no non-dry-run can be done with ref = 'main'
-    assert dry_run or ref != "main", (
-        "Runs not allowed with ref='main', unless dry_run=True"
-    )
+    assert dry_run or ref != "main", "Runs not allowed with ref='main', unless dry_run=True"
 
     # Call run function
     run_state = bauplan_client.run(
@@ -43,9 +42,7 @@ def run_project(
     # Log run
     logger.info(f"Run job, with ID: {run_state.job_id}, status {run_state.job_status}")
 
-    is_success = (
-        run_state.job_status.lower() == "success" if run_state.job_status else False
-    )
+    is_success = run_state.job_status.lower() == "success" if run_state.job_status else False
     if is_success:
         assert run_state.job_id is not None
 

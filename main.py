@@ -11,9 +11,7 @@ if __name__ == "__main__":
     import argparse
 
     ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--transport", default="stdio", choices=["stdio", "sse", "streamable-http"]
-    )
+    ap.add_argument("--transport", default="stdio", choices=["stdio", "sse", "streamable-http"])
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--profile", type=str, default=None, help="Bauplan profile to use")

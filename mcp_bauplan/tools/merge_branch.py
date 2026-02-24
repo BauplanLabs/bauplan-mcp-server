@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class MergeResult(BaseModel):
@@ -65,5 +64,5 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
                 message=f"Successfully merged '{source_ref}' into '{into_branch}'",
             )
 
-        except Exception as err:
-            raise ToolError(f"Error merging branch: {err}")
+        except Exception as e:
+            raise ToolError(f"Error merging branch: {e!s}") from e

@@ -1,11 +1,10 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
-from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 from .create_client import with_bauplan_client
-import bauplan
+from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 
 class Prompt(BaseModel):
@@ -51,5 +50,5 @@ def register_get_instructions_tool(mcp: FastMCP) -> None:
 
             return Prompt(prompt=instructions)
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_instructions: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_instructions: {e}") from e

@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class BranchInfo(BaseModel):
@@ -65,5 +64,5 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
 
             return BranchesOut(branches=branches_list, total_count=len(branches_list))
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_branches: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_branches: {e}") from e

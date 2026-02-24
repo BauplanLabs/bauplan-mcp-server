@@ -2,14 +2,13 @@
 Run a Bauplan project from a specified directory.
 """
 
-from fastmcp import FastMCP
+import logging
 
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 from .run_bauplan_project import RunState, run_project
 
 logger = logging.getLogger(__name__)
@@ -58,5 +57,5 @@ def register_project_run_tool(mcp: FastMCP) -> None:
                 bauplan_client=bauplan_client,
             )
         except Exception as e:
-            logger.error(f"Error running project from {project_dir}: {str(e)}")
-            raise ToolError(f"Failed to run project from {project_dir}: {str(e)}")
+            logger.error(f"Error running project from {project_dir}: {e!s}")
+            raise ToolError(f"Failed to run project from {project_dir}: {e!s}") from e

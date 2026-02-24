@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class NamespaceInfo(BaseModel):
@@ -53,14 +52,10 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
 
             try:
                 # Call with direct parameters instead of kwargs
-                for ns in bauplan_client.get_namespaces(
-                    ref=ref, filter_by_name=namespace, limit=limit
-                ):
+                for ns in bauplan_client.get_namespaces(ref=ref, filter_by_name=namespace, limit=limit):
                     try:
                         # Extract namespace information
-                        namespace_info = NamespaceInfo(
-                            name=getattr(ns, "name", str(ns))
-                        )
+                        namespace_info = NamespaceInfo(name=getattr(ns, "name", str(ns)))
                         namespaces_list.append(namespace_info)
                         namespace_count += 1
 
@@ -70,16 +65,14 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
 
                     except Exception as e:
                         if ctx:
-                            await ctx.debug(f"Error processing namespace: {str(e)}")
+                            await ctx.debug(f"Error processing namespace: {e!s}")
                         continue
 
             except Exception as e:
                 if ctx:
-                    await ctx.error(f"Error iterating namespaces: {str(e)}")
+                    await ctx.error(f"Error iterating namespaces: {e!s}")
 
-            return NamespacesOut(
-                namespaces=namespaces_list, total_count=len(namespaces_list)
-            )
+            return NamespacesOut(namespaces=namespaces_list, total_count=len(namespaces_list))
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_namespaces: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_namespaces: {e}") from e

@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class TagDeleted(BaseModel):
@@ -16,9 +15,7 @@ class TagDeleted(BaseModel):
 def register_delete_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_tag", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def delete_tag(
-        tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None
-    ) -> TagDeleted:
+    async def delete_tag(tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> TagDeleted:
         """
         Delete a specified tag from the user's Bauplan data catalog using a tag name.
 
@@ -35,9 +32,7 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
             # Delete the tag
             assert bauplan_client.delete_tag(tag=tag)
 
-            return TagDeleted(
-                deleted=True, tag=tag, message=f"Successfully deleted tag '{tag}'"
-            )
+            return TagDeleted(deleted=True, tag=tag, message=f"Successfully deleted tag '{tag}'")
 
-        except Exception as err:
-            raise ToolError(f"Error executing delete_tag: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing delete_tag: {e}") from e

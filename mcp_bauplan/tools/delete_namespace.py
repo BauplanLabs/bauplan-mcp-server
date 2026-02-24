@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class NamespaceDeleted(BaseModel):
@@ -36,9 +35,7 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
         """
         try:
             if ctx:
-                await ctx.info(
-                    f"Deleting namespace '{namespace}' from branch '{branch}'"
-                )
+                await ctx.info(f"Deleting namespace '{namespace}' from branch '{branch}'")
 
             # Delete the namespace
             assert bauplan_client.delete_namespace(namespace=namespace, branch=branch)
@@ -50,5 +47,5 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
                 message=f"Successfully deleted namespace '{namespace}' from branch '{branch}'",
             )
 
-        except Exception as err:
-            raise ToolError(f"Error executing delete_namespace: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing delete_namespace: {e}") from e

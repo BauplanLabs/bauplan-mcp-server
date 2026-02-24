@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class BranchDeleted(BaseModel):
@@ -41,5 +40,5 @@ def register_delete_branch_tool(mcp: FastMCP) -> None:
                 message=f"Successfully deleted branch '{branch}'",
             )
 
-        except Exception as err:
-            raise ToolError(f"Error deleting branch: {err}")
+        except Exception as e:
+            raise ToolError(f"Error deleting branch: {e}") from e

@@ -2,14 +2,14 @@
 Execute queries and save results to CSV files.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -81,17 +81,13 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
         except Exception as e:
             error_msg = str(e)
             # Handle complex data type errors specifically
-            if "Unsupported Type" in error_msg and (
-                "list" in error_msg or "array" in error_msg
-            ):
-                logger.error(
-                    f"CSV export failed due to complex data types: {error_msg}"
-                )
+            if "Unsupported Type" in error_msg and ("list" in error_msg or "array" in error_msg):
+                logger.error(f"CSV export failed due to complex data types: {error_msg}")
                 raise ToolError(
                     f"Cannot export to CSV: Query contains complex data types (arrays/lists) that are not supported in CSV format. "
                     f"Consider: 1) Using run_query tool instead for complex data, 2) Flattening arrays in SQL with functions like unnest(), "
                     f"3) Converting arrays to strings with array_to_string() or similar functions. Original error: {error_msg}"
-                )
+                ) from e
             else:
                 logger.error(f"Error executing query to CSV {path}: {error_msg}")
-                raise ToolError(f"Failed to execute query to CSV {path}: {error_msg}")
+                raise ToolError(f"Failed to execute query to CSV {path}: {error_msg}") from e

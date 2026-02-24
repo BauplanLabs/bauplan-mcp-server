@@ -1,13 +1,13 @@
-from fastmcp import FastMCP, Context
-from fastmcp.exceptions import ToolError
-
-from pydantic import BaseModel
-from typing import Any
 import datetime
 import re
+from typing import Any
+
+import bauplan
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class QueryMetadata(BaseModel):
@@ -34,9 +34,7 @@ def execute_query(
     try:
         # Use provided ref/namespace or fall back to config
         query_ref = ref if ref is not None else None  # config.branch
-        query_namespace = (
-            namespace if namespace is not None else "bauplan"
-        )  # config.namespace
+        query_namespace = namespace if namespace is not None else "bauplan"  # config.namespace
 
         # Execute query and get results as Arrow table
         result = bauplan_client.query(
@@ -47,8 +45,8 @@ def execute_query(
 
         # Convert pyarrow.Table to list of dictionaries with native Python values
         data_rows = [
-            dict(zip(result.column_names, [val.as_py() for val in row]))
-            for row in zip(*[result[col] for col in result.column_names])
+            dict(zip(result.column_names, [val.as_py() for val in row], strict=True))
+            for row in zip(*[result[col] for col in result.column_names], strict=True)
         ]
 
         # Create metadata
@@ -63,8 +61,8 @@ def execute_query(
         # Return successful response
         return QueryOut(status="success", data=data_rows, metadata=metadata, error=None)
 
-    except Exception as err:
-        raise ToolError(f"Error executing run_query: {err}")
+    except Exception as e:
+        raise ToolError(f"Error executing run_query: {e!s}") from e
 
 
 def register_run_query_tool(mcp: FastMCP) -> None:
@@ -97,24 +95,15 @@ def register_run_query_tool(mcp: FastMCP) -> None:
 
             # Remove comments (both -- and /* */ style)
             # Remove single-line comments
-            normalized_query = re.sub(
-                r"--.*$", "", normalized_query, flags=re.MULTILINE
-            )
+            normalized_query = re.sub(r"--.*$", "", normalized_query, flags=re.MULTILINE)
             # Remove multi-line comments
-            normalized_query = re.sub(
-                r"/\*.*?\*/", "", normalized_query, flags=re.DOTALL
-            )
+            normalized_query = re.sub(r"/\*.*?\*/", "", normalized_query, flags=re.DOTALL)
             # Remove leading whitespace again after comment removal
             normalized_query = normalized_query.strip()
 
             # Check if it's a SELECT query (also allow WITH for CTEs)
-            if not (
-                normalized_query.startswith("SELECT")
-                or normalized_query.startswith("WITH")
-            ):
-                raise ToolError(
-                    "Only SELECT queries (including CTEs with WITH) are permitted."
-                )
+            if not (normalized_query.startswith("SELECT") or normalized_query.startswith("WITH")):
+                raise ToolError("Only SELECT queries (including CTEs with WITH) are permitted.")
 
             # Additional security checks for dangerous keywords
             dangerous_keywords = [
@@ -140,5 +129,5 @@ def register_run_query_tool(mcp: FastMCP) -> None:
             result = execute_query(query, bauplan_client, ref, namespace)
             return result
 
-        except Exception as err:
-            raise ToolError(f"Error executing run_query: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing run_query: {e!s}") from e

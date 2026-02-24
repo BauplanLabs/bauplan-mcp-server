@@ -1,9 +1,9 @@
-from pydantic import BaseModel
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class TablesOut(BaseModel):
@@ -40,5 +40,5 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
             # Extract table names from TableWithMetadata objects
             table_names = [table.name for table in ret]
             return TablesOut(tables=table_names, ref=ref, namespace=namespace)
-        except Exception as err:
-            raise ToolError(f"Error executing list_tables: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing list_tables: {e!s}") from e

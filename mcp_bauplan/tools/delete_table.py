@@ -2,14 +2,14 @@
 Delete a table.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -57,5 +57,5 @@ def register_delete_table_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error deleting table {table}: {str(e)}")
-            raise ToolError(f"Failed to delete table {table}: {str(e)}")
+            logger.error(f"Error deleting table {table}: {e!s}")
+            raise ToolError(f"Failed to delete table {table}: {e!s}") from e

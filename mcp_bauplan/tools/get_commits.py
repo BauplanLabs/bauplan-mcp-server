@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class AuthorInfo(BaseModel):
@@ -112,7 +111,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                 response = bauplan_client.get_commits(**kwargs)
             except Exception as e:
                 if ctx:
-                    await ctx.error(f"Error calling get_commits API: {str(e)}")
+                    await ctx.error(f"Error calling get_commits API: {e!s}")
                 # Try with just ref parameter if other filters caused issues
                 response = bauplan_client.get_commits(ref=ref, limit=kwargs["limit"])
 
@@ -129,9 +128,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                             username=getattr(commit.author, "username", None)
                             if hasattr(commit, "author")
                             else None,
-                            name=getattr(commit.author, "name", None)
-                            if hasattr(commit, "author")
-                            else None,
+                            name=getattr(commit.author, "name", None) if hasattr(commit, "author") else None,
                             email=getattr(commit.author, "email", None)
                             if hasattr(commit, "author")
                             else None,
@@ -139,9 +136,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
 
                         # Create commit info
                         # Handle both ref and hash attributes for commit ID
-                        commit_hash = getattr(
-                            commit, "hash", getattr(commit, "ref", str(commit))
-                        )
+                        commit_hash = getattr(commit, "hash", getattr(commit, "ref", str(commit)))
 
                         commit_info = CommitInfo(
                             hash=str(commit_hash),  # Ensure it's a string
@@ -159,14 +154,14 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                             break
                     except Exception as e:
                         if ctx:
-                            await ctx.debug(f"Error processing commit: {str(e)}")
+                            await ctx.debug(f"Error processing commit: {e!s}")
                         continue
 
             except Exception as e:
                 if ctx:
-                    await ctx.error(f"Error iterating commits: {str(e)}")
+                    await ctx.error(f"Error iterating commits: {e!s}")
 
             return CommitsOut(commits=commits_list, total_count=len(commits_list))
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_commits: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_commits: {e}") from e
