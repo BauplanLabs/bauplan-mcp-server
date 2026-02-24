@@ -1,18 +1,15 @@
 from pydantic import BaseModel
-from typing import List
 from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
-
-from typing import Optional
 
 from .create_client import with_bauplan_client
 import bauplan
 
 
 class TablesOut(BaseModel):
-    tables: List[str]
+    tables: list[str]
     ref: str
-    namespace: Optional[str] = None
+    namespace: str | None = None
 
 
 def register_list_tables_tool(mcp: FastMCP) -> None:
@@ -20,7 +17,7 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def list_tables(
         ref: str,
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TablesOut:

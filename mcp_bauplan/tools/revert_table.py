@@ -4,7 +4,6 @@ Revert a table from a source reference to a target branch.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -30,7 +29,7 @@ def register_revert_table_tool(mcp: FastMCP) -> None:
         table: str,
         source_ref: str,
         into_branch: str,
-        replace: Optional[bool] = None,
+        replace: bool | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TableReverted:

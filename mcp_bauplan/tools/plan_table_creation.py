@@ -4,7 +4,6 @@ Create a table import plan from an S3 location.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -21,8 +20,8 @@ class TablePlanCreated(BaseModel):
     search_uri: str
     success: bool
     message: str
-    namespace: Optional[str]
-    branch: Optional[str]
+    namespace: str | None
+    branch: str | None
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
@@ -31,10 +30,10 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
     async def plan_table_creation(
         table: str,
         search_uri: str,
-        namespace: Optional[str] = None,
-        branch: Optional[str] = None,
-        partitioned_by: Optional[str] = None,
-        replace: Optional[bool] = None,
+        namespace: str | None = None,
+        branch: str | None = None,
+        partitioned_by: str | None = None,
+        replace: bool | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TablePlanCreated:

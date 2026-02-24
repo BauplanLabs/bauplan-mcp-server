@@ -4,7 +4,6 @@ Create a table from an S3 location.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -29,9 +28,9 @@ def register_create_table_tool(mcp: FastMCP) -> None:
         table: str,
         search_uri: str,
         branch: str,
-        namespace: Optional[str] = None,
-        partitioned_by: Optional[str] = None,
-        replace: Optional[bool] = None,
+        namespace: str | None = None,
+        partitioned_by: str | None = None,
+        replace: bool | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TableCreated:

@@ -2,16 +2,15 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Optional
 
 from .create_client import with_bauplan_client
 import bauplan
 
 
 class AuthorInfo(BaseModel):
-    username: Optional[str] = None
-    name: Optional[str] = None
-    email: Optional[str] = None
+    username: str | None = None
+    name: str | None = None
+    email: str | None = None
 
 
 class CommitInfo(BaseModel):
@@ -19,11 +18,11 @@ class CommitInfo(BaseModel):
     message: str
     author: AuthorInfo
     authored_date: str
-    parent_hashes: List[str]
+    parent_hashes: list[str]
 
 
 class CommitsOut(BaseModel):
-    commits: List[CommitInfo]
+    commits: list[CommitInfo]
     total_count: int
 
 
@@ -32,12 +31,12 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def get_commits(
         ref: str,
-        message_filter: Optional[str] = None,
-        author_username: Optional[str] = None,
-        author_email: Optional[str] = None,
-        date_start: Optional[str] = None,
-        date_end: Optional[str] = None,
-        limit: Optional[int] = 10,
+        message_filter: str | None = None,
+        author_username: str | None = None,
+        author_email: str | None = None,
+        date_start: str | None = None,
+        date_end: str | None = None,
+        limit: int | None = 10,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> CommitsOut:

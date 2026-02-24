@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -13,7 +12,7 @@ class NamespaceInfo(BaseModel):
 
 
 class NamespacesOut(BaseModel):
-    namespaces: List[NamespaceInfo]
+    namespaces: list[NamespaceInfo]
     total_count: int
 
 
@@ -22,8 +21,8 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def get_namespaces(
         ref: str,
-        namespace: Optional[str] = None,
-        limit: Optional[int] = 10,
+        namespace: str | None = None,
+        limit: int | None = 10,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> NamespacesOut:

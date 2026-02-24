@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -14,7 +13,7 @@ class BranchInfo(BaseModel):
 
 
 class BranchesOut(BaseModel):
-    branches: List[BranchInfo]
+    branches: list[BranchInfo]
     total_count: int
 
 
@@ -22,9 +21,9 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_branches", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_branches(
-        name: Optional[str] = None,
-        user: Optional[str] = None,
-        limit: Optional[int] = 10,
+        name: str | None = None,
+        user: str | None = None,
+        limit: int | None = 10,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> BranchesOut:

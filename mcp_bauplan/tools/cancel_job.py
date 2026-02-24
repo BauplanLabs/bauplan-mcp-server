@@ -4,7 +4,6 @@ Cancel a job by ID.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
@@ -20,8 +19,8 @@ class JobInfo(BaseModel):
     kind: str
     user: str
     human_readable_status: str
-    created_at: Optional[str]
-    finished_at: Optional[str]
+    created_at: str | None
+    finished_at: str | None
     status: str
 
 

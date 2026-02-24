@@ -2,7 +2,7 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -10,7 +10,7 @@ import bauplan
 
 class TableSchema(BaseModel):
     name: str
-    fields: List[Dict[str, Any]]
+    fields: list[dict[str, Any]]
 
 
 class TableOut(BaseModel):
@@ -23,7 +23,7 @@ def register_get_table_tool(mcp: FastMCP) -> None:
     async def get_table(
         ref: str,
         table_name: str,
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         ctx: Context = None,
         bauplan_client: bauplan.Client = None,
     ) -> TableOut:

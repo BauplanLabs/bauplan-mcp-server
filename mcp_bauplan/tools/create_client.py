@@ -1,13 +1,13 @@
 import bauplan
 import logging
-from typing import Optional, Callable
+from typing import Callable
 import os
 from functools import wraps
 
 logger = logging.getLogger(__name__)
 
 
-def create_bauplan_client(api_key: Optional[str] = None) -> bauplan.Client:
+def create_bauplan_client(api_key: str | None = None) -> bauplan.Client:
     """
     Creates and validates a connection Bauplan.
     Retrieves connection parameters from config, establishes a connection.

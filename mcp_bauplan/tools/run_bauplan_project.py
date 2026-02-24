@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Union
 import logging
 import bauplan
 
@@ -12,10 +11,10 @@ class RunState(BaseModel):
 def run_project(
     project_dir: str,
     ref: str,
-    namespace: Optional[str] = None,
-    parameters: Optional[Dict[str, Optional[Union[str, int, float, bool]]]] = None,
-    dry_run: Optional[bool] = False,
-    client_timeout: Optional[int] = 120,
+    namespace: str | None = None,
+    parameters: dict[str, str | int | float | bool | None] | None = None,
+    dry_run: bool | None = False,
+    client_timeout: int | None = 120,
     logger: logging.Logger = None,
     bauplan_client: bauplan.Client = None,
 ) -> RunState:

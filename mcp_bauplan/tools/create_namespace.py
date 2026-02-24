@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -12,7 +11,7 @@ class NamespaceCreated(BaseModel):
     created: bool
     namespace: str
     branch: str
-    message: Optional[str] = None
+    message: str | None = None
 
 
 def register_create_namespace_tool(mcp: FastMCP) -> None:

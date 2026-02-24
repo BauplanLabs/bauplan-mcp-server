@@ -4,7 +4,6 @@ Get a specific job by ID.
 
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional
 from fastmcp.exceptions import ToolError
 from .create_client import with_bauplan_client
 import bauplan
@@ -21,15 +20,15 @@ class JobInfo(BaseModel):
     kind: str
     user: str
     human_readable_status: str
-    created_at: Optional[str]
-    finished_at: Optional[str]
+    created_at: str | None
+    finished_at: str | None
     status: str
-    logs: Optional[str] = None
-    code_snapshot_path: Optional[Path] = None
-    ref: Optional[str] = None
-    transactional_branch: Optional[str] = None
-    project_yml: Optional[str] = None
-    project_files: Optional[dict[str, str]] = None
+    logs: str | None = None
+    code_snapshot_path: Path | None = None
+    ref: str | None = None
+    transactional_branch: str | None = None
+    project_yml: str | None = None
+    project_files: dict[str, str] | None = None
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:

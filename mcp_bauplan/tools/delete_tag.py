@@ -2,7 +2,6 @@ from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 
 from pydantic import BaseModel
-from typing import Optional
 
 from .create_client import with_bauplan_client
 import bauplan
@@ -11,7 +10,7 @@ import bauplan
 class TagDeleted(BaseModel):
     deleted: bool
     tag: str
-    message: Optional[str] = None
+    message: str | None = None
 
 
 def register_delete_tag_tool(mcp: FastMCP) -> None:
