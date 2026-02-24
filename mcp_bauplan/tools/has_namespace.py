@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class NamespaceExists(BaseModel):
     namespace_name: str
-    branch_name: str
+    ref_name: str
     exists: bool
     message: str
 
@@ -27,7 +27,7 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
     async def has_namespace(
         bauplan_client: bauplan.Client,
         namespace: str,
-        branch: str,
+        ref: str,
         ctx: Context | None = None,
     ) -> NamespaceExists:
         """
@@ -35,28 +35,28 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
 
         Args:
             namespace: Name of the namespace to check for existence.
-            branch: Branch name where to check for the namespace.
+            ref: The ref, branch name or tag name to check the namespace on.
 
         Returns:
             NamespaceExists: Object indicating whether the namespace exists with details
         """
         try:
             if ctx:
-                await ctx.info(f"Checking if namespace '{namespace}' exists in branch '{branch}'")
+                await ctx.info(f"Checking if namespace '{namespace}' exists in ref '{ref}'")
 
             # Call has_namespace function
-            exists = bauplan_client.has_namespace(namespace=namespace, branch=branch)
+            exists = bauplan_client.has_namespace(namespace=namespace, ref=ref)
 
             # Log the result
-            logger.info(f"Namespace '{namespace}' exists in branch '{branch}': {exists}")
+            logger.info(f"Namespace '{namespace}' exists in ref '{ref}': {exists}")
 
             return NamespaceExists(
                 namespace_name=namespace,
-                branch_name=branch,
+                ref_name=ref,
                 exists=exists,
-                message=f"Namespace '{namespace}' {'exists' if exists else 'does not exist'} in branch '{branch}'",
+                message=f"Namespace '{namespace}' {'exists' if exists else 'does not exist'} in ref '{ref}'",
             )
 
         except Exception as e:
-            logger.error(f"Error checking namespace {namespace} in branch {branch}: {e!s}")
-            raise ToolError(f"Failed to check namespace {namespace} in branch {branch}: {e!s}") from e
+            logger.error(f"Error checking namespace {namespace} in ref {ref}: {e!s}")
+            raise ToolError(f"Failed to check namespace {namespace} in ref {ref}: {e!s}") from e
