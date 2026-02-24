@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -39,6 +41,8 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
             NamespacesOut: Object containing list of namespaces and total count
         """
 
+        limit = limit or 10
+
         try:
             # Debug logging
             if ctx:
@@ -52,7 +56,16 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
 
             try:
                 # Call with direct parameters instead of kwargs
-                for ns in bauplan_client.get_namespaces(ref=ref, filter_by_name=namespace, limit=limit):
+                all_namespaces = await asyncio.to_thread(
+                    lambda: list(
+                        bauplan_client.get_namespaces(
+                            ref=ref,
+                            filter_by_name=namespace,
+                            limit=limit,
+                        )
+                    )
+                )
+                for ns in all_namespaces:
                     try:
                         # Extract namespace information
                         namespace_info = NamespaceInfo(name=getattr(ns, "name", str(ns)))

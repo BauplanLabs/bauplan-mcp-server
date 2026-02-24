@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -37,7 +39,11 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Creating namespace '{namespace}' in branch '{branch}")
 
             # Create the namespace
-            assert bauplan_client.create_namespace(namespace=namespace, branch=branch)
+            assert await asyncio.to_thread(
+                bauplan_client.create_namespace,
+                namespace=namespace,
+                branch=branch,
+            )
 
             return NamespaceCreated(
                 created=True,

@@ -2,6 +2,7 @@
 Imports data into an existing table.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -51,7 +52,8 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
 
             # Call import_data function
-            result = bauplan_client.import_data(
+            result = await asyncio.to_thread(
+                bauplan_client.import_data,
                 table=table,
                 search_uri=search_uri,
                 namespace=namespace,

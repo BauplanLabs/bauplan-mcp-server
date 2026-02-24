@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -36,6 +38,8 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
             TagsOut: Object containing list of tags and total count
         """
 
+        limit = limit or 10
+
         try:
             # Debug logging
             if ctx:
@@ -47,7 +51,15 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
 
             try:
                 # Call with direct parameters instead of kwargs
-                for tag in bauplan_client.get_tags(filter_by_name=filter_by_name, limit=limit):
+                all_tags = await asyncio.to_thread(
+                    lambda: list(
+                        bauplan_client.get_tags(
+                            filter_by_name=filter_by_name,
+                            limit=limit,
+                        )
+                    )
+                )
+                for tag in all_tags:
                     try:
                         # Extract tag information
                         tag_info = TagInfo(name=getattr(tag, "name", str(tag)))

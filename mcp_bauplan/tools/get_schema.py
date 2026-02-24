@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import bauplan
@@ -46,13 +47,20 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
             if namespace is None:
                 namespace = "bauplan"  # get_table() needs a not null namespace in the table name
             # Get the tables list
-            ret = bauplan_client.get_tables(ref=ref, filter_by_namespace=namespace)
+            ret = await asyncio.to_thread(
+                bauplan_client.get_tables,
+                ref=ref,
+                filter_by_namespace=namespace,
+            )
             tables = {"tables": [{"name": table.name} for table in ret]}
             # Iterate to get schemas and build final structure
             schema_list = []
             for t in tables["tables"]:
-                table_info = bauplan_client.get_table(
-                    table=f"{namespace}.{t['name']}", ref=ref, include_raw=True
+                table_info = await asyncio.to_thread(
+                    bauplan_client.get_table,
+                    table=f"{namespace}.{t['name']}",
+                    ref=ref,
+                    include_raw=True,
                 )
 
                 if table_info.raw is None:

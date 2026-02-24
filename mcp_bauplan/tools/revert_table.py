@@ -2,6 +2,7 @@
 Revert a table from a source reference to a target branch.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -53,7 +54,8 @@ def register_revert_table_tool(mcp: FastMCP) -> None:
                 )
 
             # Call revert_table function
-            bauplan_client.revert_table(
+            await asyncio.to_thread(
+                bauplan_client.revert_table,
                 table=table,
                 source_ref=source_ref,
                 into_branch=into_branch,

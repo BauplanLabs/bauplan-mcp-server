@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -50,7 +52,8 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Merging '{source_ref}' into '{into_branch}'")
 
             # Perform the merge
-            assert bauplan_client.merge_branch(
+            assert await asyncio.to_thread(
+                bauplan_client.merge_branch,
                 source_ref=source_ref,
                 into_branch=into_branch,
                 commit_message=commit_message,

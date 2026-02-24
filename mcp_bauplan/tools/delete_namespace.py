@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -38,7 +40,11 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Deleting namespace '{namespace}' from branch '{branch}'")
 
             # Delete the namespace
-            assert bauplan_client.delete_namespace(namespace=namespace, branch=branch)
+            assert await asyncio.to_thread(
+                bauplan_client.delete_namespace,
+                namespace=namespace,
+                branch=branch,
+            )
 
             return NamespaceDeleted(
                 deleted=True,

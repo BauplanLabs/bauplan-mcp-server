@@ -2,6 +2,7 @@
 Check if a namespace exists.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -45,7 +46,11 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Checking if namespace '{namespace}' exists in ref '{ref}'")
 
             # Call has_namespace function
-            exists = bauplan_client.has_namespace(namespace=namespace, ref=ref)
+            exists = await asyncio.to_thread(
+                bauplan_client.has_namespace,
+                namespace=namespace,
+                ref=ref,
+            )
 
             # Log the result
             logger.info(f"Namespace '{namespace}' exists in ref '{ref}': {exists}")

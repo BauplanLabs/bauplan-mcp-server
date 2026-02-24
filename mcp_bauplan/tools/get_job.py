@@ -2,6 +2,7 @@
 Get a specific job by ID.
 """
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -71,11 +72,21 @@ def register_get_job_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Getting job details for job ID: {job_id}")
 
             # First get the job by id, if there, then add the the context
-            jobs = bauplan_client.list_jobs(filter_by_id=job_id)
+            jobs = await asyncio.to_thread(
+                bauplan_client.list_jobs,
+                filter_by_id=job_id,
+            )
+
             if not jobs:
                 raise ToolError(f"Job {job_id} not found")
+
             job = jobs[0]
-            job_context = bauplan_client.get_job_context(job_id, include_snapshot=True, include_logs=True)
+            job_context = await asyncio.to_thread(
+                bauplan_client.get_job_context,
+                job_id,
+                include_snapshot=True,
+                include_logs=True,
+            )
             logs_as_string = "\n".join(log.message for log in job_context.logs) if job_context.logs else None
             project_yml = None
             project_files = {}

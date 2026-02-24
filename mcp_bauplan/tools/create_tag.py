@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -38,7 +40,11 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Creating tag '{tag}' from reference '{from_ref}")
 
             # Create the tag
-            assert bauplan_client.create_tag(tag=tag, from_ref=from_ref)
+            assert await asyncio.to_thread(
+                bauplan_client.create_tag,
+                tag=tag,
+                from_ref=from_ref,
+            )
 
             return TagCreated(
                 created=True,

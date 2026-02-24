@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -34,7 +36,10 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Deleting tag '{tag}")
 
             # Delete the tag
-            assert bauplan_client.delete_tag(tag=tag)
+            assert await asyncio.to_thread(
+                bauplan_client.delete_tag,
+                tag=tag,
+            )
 
             return TagDeleted(deleted=True, tag=tag, message=f"Successfully deleted tag '{tag}'")
 

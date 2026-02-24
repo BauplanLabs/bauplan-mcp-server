@@ -2,6 +2,7 @@
 Check if a tag exists.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -42,7 +43,10 @@ def register_has_tag_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Checking if tag '{tag}' exists")
 
             # Call has_tag function
-            exists = bauplan_client.has_tag(tag=tag)
+            exists = await asyncio.to_thread(
+                bauplan_client.has_tag,
+                tag=tag,
+            )
 
             # Log the result
             logger.info(f"Tag '{tag}' exists: {exists}")

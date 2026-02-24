@@ -2,6 +2,7 @@
 Check if a branch exists.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -43,7 +44,10 @@ def register_has_branch_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Checking if branch '{branch}' exists")
 
             # Call has_branch function
-            exists = bauplan_client.has_branch(branch=branch)
+            exists = await asyncio.to_thread(
+                bauplan_client.has_branch,
+                branch=branch,
+            )
 
             # Log the result
             logger.info(f"Branch '{branch}' exists: {exists}")

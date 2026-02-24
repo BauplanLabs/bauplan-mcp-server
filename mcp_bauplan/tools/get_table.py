@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import bauplan
@@ -50,7 +51,12 @@ def register_get_table_tool(mcp: FastMCP) -> None:
                 full_table_name = table_name
             else:
                 full_table_name = f"{namespace}.{table_name}"
-            table_info = bauplan_client.get_table(table=full_table_name, ref=ref, include_raw=True)
+            table_info = await asyncio.to_thread(
+                bauplan_client.get_table,
+                table=full_table_name,
+                ref=ref,
+                include_raw=True,
+            )
 
             if table_info.raw is None:
                 raise ToolError(

@@ -2,6 +2,7 @@
 Cancel a job by ID.
 """
 
+import asyncio
 import logging
 
 import bauplan
@@ -46,10 +47,16 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Cancelling job with ID: {job_id}")
 
             # Call cancel_job function
-            bauplan_client.cancel_job(job_id=job_id)
+            await asyncio.to_thread(
+                bauplan_client.cancel_job,
+                job_id=job_id,
+            )
 
             # Get the updated job details after cancellation
-            job = bauplan_client.get_job(job_id=job_id)
+            job = await asyncio.to_thread(
+                bauplan_client.get_job,
+                job_id=job_id,
+            )
 
             # Convert Job object to JobInfo BaseModel instance
             job_info = JobInfo(

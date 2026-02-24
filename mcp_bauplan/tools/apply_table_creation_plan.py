@@ -2,6 +2,7 @@
 Apply a table creation plan to resolve schema conflicts.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -58,7 +59,8 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
                 await ctx.info("Applying table creation plan")
 
             # Call apply_table_creation_plan function
-            result = bauplan_client.apply_table_creation_plan(
+            result = await asyncio.to_thread(
+                bauplan_client.apply_table_creation_plan,
                 plan=plan,
                 debug=debug,
                 args=args,

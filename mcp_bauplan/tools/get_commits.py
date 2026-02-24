@@ -1,3 +1,5 @@
+import asyncio
+
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -84,25 +86,36 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         #    if ctx:
         #        await ctx.info(f"Ref is a commit hash: '{ref}'")
 
-        try:
-            limit = limit or 10
+        limit = limit or 10
 
+        try:
             # Get commits from Bauplan
             try:
-                response = bauplan_client.get_commits(
-                    ref=ref,
-                    filter_by_message=message_filter or None,
-                    filter_by_author_username=author_username or None,
-                    filter_by_author_email=author_email or None,
-                    filter_by_authored_date_start_at=date_start or None,
-                    filter_by_authored_date_end_at=date_end or None,
-                    limit=limit,
+                response = await asyncio.to_thread(
+                    lambda: list(
+                        bauplan_client.get_commits(
+                            ref=ref,
+                            filter_by_message=message_filter or None,
+                            filter_by_author_username=author_username or None,
+                            filter_by_author_email=author_email or None,
+                            filter_by_authored_date_start_at=date_start or None,
+                            filter_by_authored_date_end_at=date_end or None,
+                            limit=limit,
+                        )
+                    )
                 )
             except Exception as e:
                 if ctx:
                     await ctx.error(f"Error calling get_commits API: {e!s}")
                 # Try with just ref parameter if other filters caused issues
-                response = bauplan_client.get_commits(ref=ref, limit=limit)
+                response = await asyncio.to_thread(
+                    lambda: list(
+                        bauplan_client.get_commits(
+                            ref=ref,
+                            limit=limit,
+                        )
+                    )
+                )
 
             # Convert response to our model format
             commits_list = []
