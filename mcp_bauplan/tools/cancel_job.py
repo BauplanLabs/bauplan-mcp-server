@@ -27,7 +27,11 @@ class JobInfo(BaseModel):
 def register_cancel_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="cancel_job", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def cancel_job(job_id: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> JobInfo:
+    async def cancel_job(
+        bauplan_client: bauplan.Client,
+        job_id: str,
+        ctx: Context | None = None,
+    ) -> JobInfo:
         """
         Cancel a running job in the Bauplan system by its job_id and return the updated job status.
 

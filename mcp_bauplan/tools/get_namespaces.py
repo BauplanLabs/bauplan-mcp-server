@@ -19,11 +19,11 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_namespaces", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_namespaces(
+        bauplan_client: bauplan.Client,
         ref: str,
         namespace: str | None = None,
         limit: int | None = 10,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> NamespacesOut:
         """
         Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.

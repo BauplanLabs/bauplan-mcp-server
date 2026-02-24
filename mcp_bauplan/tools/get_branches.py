@@ -20,11 +20,11 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_branches", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_branches(
+        bauplan_client: bauplan.Client,
         name: str | None = None,
         user: str | None = None,
         limit: int | None = 10,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> BranchesOut:
         """
         Retrieve branches from the user's Bauplan data catalog as a list, with optional user and limit (integer) filters to reduce response size.
@@ -54,6 +54,9 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
             branch_count = 0
 
             for branch in bauplan_client.get_branches(**kwargs):
+                if branch.hash is None:
+                    raise ToolError(f"Branch '{branch.name}' does not have a valid hash.")
+
                 branch_info = BranchInfo(name=branch.name, hash=branch.hash)
                 branches_list.append(branch_info)
                 branch_count += 1

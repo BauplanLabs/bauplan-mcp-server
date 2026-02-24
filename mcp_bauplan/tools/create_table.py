@@ -25,14 +25,14 @@ def register_create_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_table", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def create_table(
+        bauplan_client: bauplan.Client,
         table: str,
         search_uri: str,
         branch: str,
         namespace: str | None = None,
         partitioned_by: str | None = None,
         replace: bool | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TableCreated:
         """
         Create an empty table from an S3 URI identifying parquet, csv or JSONL files in S3.

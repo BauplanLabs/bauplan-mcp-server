@@ -171,7 +171,7 @@ def run_claude(
     except subprocess.TimeoutExpired as e:
         return ClaudeResult(
             returncode=-1,
-            stdout=e.stdout or "",
+            stdout=e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or ""),
             stderr=f"Timeout after {timeout_seconds}s",
             stream_messages=[],
             result=None,

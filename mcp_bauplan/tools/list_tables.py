@@ -16,10 +16,10 @@ def register_list_tables_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="list_tables", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def list_tables(
+        bauplan_client: bauplan.Client,
         ref: str,
         namespace: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TablesOut:
         """
         Retrieve a list of all data tables in a specified branch or reference of the user's Bauplan data catalog using a ref name.

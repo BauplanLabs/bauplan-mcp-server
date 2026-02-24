@@ -17,10 +17,10 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_branch", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def create_branch(
+        bauplan_client: bauplan.Client,
         branch: str,
         from_ref: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> BranchCreated:
         """
         Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation.

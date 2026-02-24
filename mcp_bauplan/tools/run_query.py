@@ -69,11 +69,11 @@ def register_run_query_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="run_query", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def run_query(
+        bauplan_client: bauplan.Client,
         query: str,
         ref: str | None = None,
         namespace: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> QueryOut:
         """
         Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace.

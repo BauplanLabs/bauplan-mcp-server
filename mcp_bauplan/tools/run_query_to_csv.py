@@ -27,13 +27,13 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="run_query_to_csv", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def run_query_to_csv(
+        bauplan_client: bauplan.Client,
         path: str,
         query: str,
         ref: str | None = None,
         namespace: str | None = None,
         client_timeout: int = 120,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> QueryToCSVResult:
         """
         Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path.

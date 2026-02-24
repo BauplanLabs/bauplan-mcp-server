@@ -25,10 +25,10 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="has_namespace", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def has_namespace(
+        bauplan_client: bauplan.Client,
         namespace: str,
         branch: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> NamespaceExists:
         """
         Check if a specified namespace exists in a given branch of the user's Bauplan data catalog using a namespace name and branch name.

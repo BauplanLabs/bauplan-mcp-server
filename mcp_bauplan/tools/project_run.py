@@ -18,6 +18,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="project_run", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def project_run(
+        bauplan_client: bauplan.Client,
         project_dir: str,
         ref: str,
         namespace: str | None = None,
@@ -25,7 +26,6 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         dry_run: bool | None = False,
         client_timeout: int | None = 120,
         ctx: Context | None = None,
-        bauplan_client: bauplan.Client = None,
     ) -> RunState:
         """
         Run a pipeline from a specified directory and data ref,

@@ -17,10 +17,10 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_namespace", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def delete_namespace(
+        bauplan_client: bauplan.Client,
         namespace: str,
         branch: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> NamespaceDeleted:
         """
         Delete a specified namespace from a given branch in the user's Bauplan data catalog using a namespace name and branch name.

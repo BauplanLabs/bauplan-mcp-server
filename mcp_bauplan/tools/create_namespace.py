@@ -17,10 +17,10 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_namespace", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def create_namespace(
+        bauplan_client: bauplan.Client,
         namespace: str,
         branch: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> NamespaceCreated:
         """
         Create a new namespace in a specified branch of the user's Bauplan data catalog using a namespace name.
