@@ -76,14 +76,14 @@ For this workflow use the `safe-ingestion` skill.
 
 Prefer direct CLI:
 
-inspect table metadata and data: 
+inspect table metadata and data:
 
-```bash 
+```bash
 bauplan table get <namespace>.<table>
 query: bauplan query "<sql>"
 ```
-Reproduce runs (if needed): 
-```bash 
+Reproduce runs (if needed):
+```bash
 bauplan run --id <run_id>
 ```
 

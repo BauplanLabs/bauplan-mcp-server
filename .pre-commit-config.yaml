@@ -1,0 +1,28 @@
+default_stages: ["pre-commit"]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: detect-aws-credentials
+        args: [--allow-missing-credentials]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        types_or: [python]
+      - id: ruff-format
+        types_or: [python]
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty type check
+        entry: mise exec -- ty check .
+        language: system
+        pass_filenames: false
+        types_or: [python]

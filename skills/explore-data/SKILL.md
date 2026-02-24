@@ -27,7 +27,7 @@ Allowed:
 * List namespaces and tables
 * Inspect table schemas and metadata
 * Preview rows
-* Run ad-hoc SELECT queries, including JOINS 
+* Run ad-hoc SELECT queries, including JOINS
 * Compute basic stats and distributions
 * Export query results to CSV, Parquet, or JSON for offline inspection
 
@@ -44,7 +44,7 @@ If the user asks for any operation that writes data, stop and suggest switching 
 
 ## Branch and Ref Context
 
-All reads MUST be scoped to a ref (branch name or ref object, also optionally tag and namespace). 
+All reads MUST be scoped to a ref (branch name or ref object, also optionally tag and namespace).
 
 In the Python SDK, most read APIs take `ref=` or `branch=`. ALWAYS make the ref explicit in code; NEVER rely on implicit defaults.
 
@@ -153,7 +153,7 @@ Rules:
 ## Preview Rows as DataFrames
 Bauplan query method returns a class pyarrow.lib.Table. When useful, use DataFrame libraries like Pandas or Polars to facilitate visualization or manipulation of the tables:
 
-### Polars 
+### Polars
 Polars is the cleanest next step because it consumes Arrow zero-copy.
 
 ```python
@@ -198,7 +198,7 @@ print(table.num_rows)
 ```python
 
 import bauplan
-import pandas 
+import pandas
 
 client = bauplan.Client()
 
@@ -209,7 +209,7 @@ LIMIT 10
 """
 res = client.query(q, ref=ref, max_rows=10)
 
-df = res.to_pandas() 
+df = res.to_pandas()
 print(df.head())
 ```
 
@@ -355,7 +355,7 @@ This summary is the default final output unless the user explicitly requests a d
 The summary MUST:
 
 - Clearly state the ref(s) and branche(s) that were explored.
-- List the tables inspected, grouped by namespace. 
+- List the tables inspected, grouped by namespace.
 - For each table, include: Table name, Approximate row count (if available), Key columns and their types (omit extremely wide schemas; show only relevant or representative columns), Partitioning (if any), Notable observations (null-heavy columns, empty tables, schema drift, unexpected types, missing keys), Explicitly separate observations (facts derived from inspection) from assumptions or hypotheses (if any).
 
 The summary MUST NOT:
