@@ -142,6 +142,12 @@ def main(
     if transport != "stdio":
         ## add middleware to add the Bauplan api_key to all requests
         mcp.add_middleware(LoggingMiddleware())
+
+        # Health check endpoint (must be registered before http_app())
+        @mcp.custom_route("/healthz", methods=["GET"])
+        async def health(_: Request) -> PlainTextResponse:
+            return PlainTextResponse("ok")
+
         # Create the app based on transport type
         if transport == "sse":
             app = mcp.http_app(transport="sse")
@@ -157,11 +163,6 @@ def main(
             allow_methods=["*"],
             allow_headers=["*"],
         )
-
-        # Health check endpoint
-        @mcp.custom_route("/healthz", methods=["GET"])
-        async def health(_: Request) -> PlainTextResponse:
-            return PlainTextResponse("ok")
 
         # Run server
         uvicorn.run(app, host=host, port=port)

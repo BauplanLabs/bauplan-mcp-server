@@ -1,0 +1,76 @@
+name: Build & Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mcp_bauplan/**"
+      - "main.py"
+      - "CLAUDE.md"
+      - "Dockerfile"
+      - "entrypoint.sh"
+      - "pyproject.toml"
+      - "uv.lock"
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          echo "image=${{ env.REGISTRY }}/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg CI_DOCKER_SHA=${{ github.sha }} \
+            --build-arg CI_DOCKER_REF=${{ github.ref_name }} \
+            --build-arg CI_DOCKER_IMAGE_TAG=latest \
+            --build-arg "CI_DOCKER_BUILD_DATETIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t ${{ steps.meta.outputs.image }}:latest \
+            -t ${{ steps.meta.outputs.image }}:sha-${{ steps.meta.outputs.short_sha }} \
+            .
+
+      - name: Start container
+        run: docker run -d --name mcp -p 8000:8000 ${{ steps.meta.outputs.image }}:latest
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/healthz; then
+              echo ""
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Waiting for server... ($i/15)"
+            sleep 1
+          done
+          echo "Health check failed"
+          docker logs mcp
+          exit 1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR
+        run: |
+          docker push ${{ steps.meta.outputs.image }}:sha-${{ steps.meta.outputs.short_sha }}
+          docker push ${{ steps.meta.outputs.image }}:latest
+
+      - name: Stop container
+        if: always()
+        run: docker stop mcp || true
