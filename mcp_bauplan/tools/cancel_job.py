@@ -7,10 +7,11 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +27,11 @@ class JobInfo(BaseModel):
 
 
 def register_cancel_job_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="cancel_job", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="cancel_job")
     async def cancel_job(
-        bauplan_client: bauplan.Client,
         job_id: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> JobInfo:
         """
         Cancel a running job in the Bauplan system by its job_id and return the updated job status.

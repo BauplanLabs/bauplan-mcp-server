@@ -1,9 +1,7 @@
-import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
 from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 
@@ -12,11 +10,8 @@ class Prompt(BaseModel):
 
 
 def register_get_instructions_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_instructions", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_instructions")
     async def get_instructions(
-        # can only be one of the keys in USE_CASE_TO_PROMPT
-        bauplan_client: bauplan.Client,
         use_case: str,
         ctx: Context | None = None,
     ) -> Prompt:

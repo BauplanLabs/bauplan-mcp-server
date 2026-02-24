@@ -7,10 +7,11 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,8 @@ class TableCreated(BaseModel):
 
 
 def register_create_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="create_table", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="create_table")
     async def create_table(
-        bauplan_client: bauplan.Client,
         table: str,
         search_uri: str,
         branch: str,
@@ -34,6 +33,7 @@ def register_create_table_tool(mcp: FastMCP) -> None:
         partitioned_by: str | None = None,
         replace: bool | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableCreated:
         """
         Create an empty table from an S3 URI identifying parquet, csv or JSONL files in S3.

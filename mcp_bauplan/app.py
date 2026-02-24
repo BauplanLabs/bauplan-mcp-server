@@ -6,9 +6,7 @@ from typing import Literal
 
 import uvicorn
 from fastmcp import FastMCP
-from fastmcp.server.dependencies import get_http_request
 from fastmcp.server.middleware import Middleware, MiddlewareContext
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
@@ -66,36 +64,25 @@ logging.basicConfig(
 )
 
 
-class SimpleLoggingMiddleware(Middleware):
-    """
-    FastMCP middleware to capture the header of a call_tool request.
-    """
+class LoggingMiddleware(Middleware):
+    """FastMCP middleware that logs tool calls with name and duration."""
 
     async def on_call_tool(self, context: MiddlewareContext, call_next):
-        request: Request = get_http_request()
-        headers = request.headers
+        import time
 
-        # If 'bauplan' or 'Bauplan' is explicitly in the headers, use it as the API key
-        # This allows the model to pass a custom API key for Bauplan operations instead of
-        # relying on the default one in the config file.
-        if "bauplan" in headers or "Bauplan" in headers:
-            api_key = headers.get("bauplan") or headers.get("Bauplan")
-            if api_key and api_key.lower().startswith("bearer "):
-                api_key = api_key[7:].strip()
-            context.message.arguments["api_key"] = api_key
-
+        tool_name = context.message.name
+        args = context.message.arguments
+        logger.info(f"Calling tool '{tool_name}' with args: {args}")
+        t0 = time.perf_counter()
         try:
             result = await call_next(context)
+            elapsed = time.perf_counter() - t0
+            logger.info(f"Tool '{tool_name}' completed in {elapsed:.2f}s")
             return result
         except Exception as e:
-            print(f"Failed {context.method}: {e}", flush=True)
+            elapsed = time.perf_counter() - t0
+            logger.error(f"Tool '{tool_name}' failed after {elapsed:.2f}s: {e}")
             raise
-
-
-class HTTPLoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        return response
 
 
 def main(
@@ -114,6 +101,7 @@ def main(
     mcp = FastMCP(
         MCP_SERVER_NAME,
         instructions=INSTRUCTIONS,
+        stateless_http=True,
     )
 
     # Register tools
@@ -153,7 +141,7 @@ def main(
 
     if transport != "stdio":
         ## add middleware to add the Bauplan api_key to all requests
-        mcp.add_middleware(SimpleLoggingMiddleware())
+        mcp.add_middleware(LoggingMiddleware())
         # Create the app based on transport type
         if transport == "sse":
             app = mcp.http_app(transport="sse")

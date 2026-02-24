@@ -6,19 +6,18 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 from .run_bauplan_project import RunState, run_project
 
 logger = logging.getLogger(__name__)
 
 
 def register_project_run_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="project_run", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="project_run")
     async def project_run(
-        bauplan_client: bauplan.Client,
         project_dir: str,
         ref: str,
         namespace: str | None = None,
@@ -26,6 +25,7 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         dry_run: bool | None = False,
         client_timeout: int | None = 120,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> RunState:
         """
         Run a pipeline from a specified directory and data ref,

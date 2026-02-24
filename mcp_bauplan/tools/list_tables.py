@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class TablesOut(BaseModel):
@@ -15,13 +16,12 @@ class TablesOut(BaseModel):
 
 
 def register_list_tables_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="list_tables", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="list_tables")
     async def list_tables(
-        bauplan_client: bauplan.Client,
         ref: str,
         namespace: str | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TablesOut:
         """
         Retrieve a list of all data tables in a specified branch or reference of the user's Bauplan data catalog using a ref name.

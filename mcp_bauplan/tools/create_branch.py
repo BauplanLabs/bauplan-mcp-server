@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class BranchCreated(BaseModel):
@@ -16,13 +17,12 @@ class BranchCreated(BaseModel):
 
 
 def register_create_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="create_branch", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="create_branch")
     async def create_branch(
-        bauplan_client: bauplan.Client,
         branch: str,
         from_ref: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchCreated:
         """
         Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation.

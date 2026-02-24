@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class AuthorInfo(BaseModel):
@@ -28,10 +29,8 @@ class CommitsOut(BaseModel):
 
 
 def register_get_commits_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_commits", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_commits")
     async def get_commits(
-        bauplan_client: bauplan.Client,
         ref: str,
         message_filter: str | None = None,
         author_username: str | None = None,
@@ -40,6 +39,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         date_end: str | None = None,
         limit: int | None = 10,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> CommitsOut:
         """
         Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).

@@ -33,5 +33,11 @@ description = "Run all checks (lint, format, typecheck)"
 depends = ["lint", "format:check", "typecheck"]
 
 [tasks.dev]
-description = "Start MCP server locally (stdio)"
-run = "uv run python main.py"
+description = "Start MCP HTTP server with auto-reload on code changes"
+run = """
+uv run watchmedo auto-restart \
+  --directory mcp_bauplan \
+  --pattern '*.py;*.md' \
+  --recursive \
+  -- python main.py --transport streamable-http
+"""

@@ -7,10 +7,11 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,8 @@ class TablePlanCreated(BaseModel):
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="plan_table_creation", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="plan_table_creation")
     async def plan_table_creation(
-        bauplan_client: bauplan.Client,
         table: str,
         search_uri: str,
         namespace: str | None = None,
@@ -37,6 +36,7 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         partitioned_by: str | None = None,
         replace: bool | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TablePlanCreated:
         """
         Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking).

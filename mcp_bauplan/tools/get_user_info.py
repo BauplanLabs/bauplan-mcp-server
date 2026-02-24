@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class UserInfo(BaseModel):
@@ -14,11 +15,10 @@ class UserInfo(BaseModel):
 
 
 def register_get_user_info_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_user_info", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_user_info")
     async def get_user_info(
-        bauplan_client: bauplan.Client,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> UserInfo:
         """
         Retrieve user information about the current authenticated Bauplan user.

@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class NamespaceInfo(BaseModel):
@@ -18,14 +19,13 @@ class NamespacesOut(BaseModel):
 
 
 def register_get_namespaces_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_namespaces", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_namespaces")
     async def get_namespaces(
-        bauplan_client: bauplan.Client,
         ref: str,
         namespace: str | None = None,
         limit: int | None = 10,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> NamespacesOut:
         """
         Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.

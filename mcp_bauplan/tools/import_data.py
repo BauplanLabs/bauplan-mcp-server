@@ -7,10 +7,11 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +24,14 @@ class DataImported(BaseModel):
 
 
 def register_import_data_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="import_data", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="import_data")
     async def import_data(
-        bauplan_client: bauplan.Client,
         table: str,
         search_uri: str,
         branch: str,
         namespace: str | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> DataImported:
         """
         Import data into a specified existing table using a table name and data source.

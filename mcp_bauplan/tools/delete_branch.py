@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class BranchDeleted(BaseModel):
@@ -15,12 +16,11 @@ class BranchDeleted(BaseModel):
 
 
 def register_delete_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="delete_branch", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="delete_branch")
     async def delete_branch(
-        bauplan_client: bauplan.Client,
         branch: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchDeleted:
         """
         Delete a specified branch from the user's Bauplan data catalog using a branch name.

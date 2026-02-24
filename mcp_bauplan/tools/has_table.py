@@ -7,10 +7,11 @@ import logging
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +23,12 @@ class TableExists(BaseModel):
 
 
 def register_has_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="has_table", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="has_table")
     async def has_table(
-        bauplan_client: bauplan.Client,
         table: str,
         ref: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableExists:
         """
         Check if a specified table exists in a given branch of the user's Bauplan data catalog using a table name and branch name.

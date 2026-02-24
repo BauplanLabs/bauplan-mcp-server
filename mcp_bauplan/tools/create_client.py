@@ -1,9 +1,8 @@
 import logging
 import os
-from functools import wraps
-from typing import Callable
 
 import bauplan
+from fastmcp.server.dependencies import get_http_request
 
 logger = logging.getLogger(__name__)
 
@@ -41,29 +40,18 @@ def create_bauplan_client(api_key: str | None = None) -> bauplan.Client:
         raise ConnectionError(f"Unable to connect to Bauplan: {e!s}") from e
 
 
-def with_bauplan_client(func: Callable) -> Callable:
+def get_bauplan_client() -> bauplan.Client:
     """
-    Decorator that automatically creates and injects a Bauplan client into the decorated function.
-    The client is created based on the api_key parameter if provided.
-
-    The decorated function should have 'bauplan_client' as a parameter to receive the client instance.
+    Dependency function for FastMCP Depends().
+    Extracts the API key from the HTTP request header (if present) and creates a Bauplan client.
+    Falls back to default credentials in stdio transport or when no header is provided.
     """
-
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        # Extract api_key from kwargs if present
-        api_key = kwargs.get("api_key", None)
-
-        # Create the Bauplan client
-        bauplan_client = create_bauplan_client(api_key)
-
-        # Inject the client into kwargs
-        kwargs["bauplan_client"] = bauplan_client
-
-        # Remove api_key from kwargs as it's no longer needed
-        kwargs.pop("api_key", None)
-
-        # Call the original function
-        return await func(*args, **kwargs)
-
-    return wrapper
+    api_key = None
+    try:
+        request = get_http_request()
+        raw = request.headers.get("bauplan") or request.headers.get("Bauplan")
+        if raw:
+            api_key = raw[7:].strip() if raw.lower().startswith("bearer ") else raw
+    except Exception:
+        pass  # stdio transport — no HTTP request available
+    return create_bauplan_client(api_key)

@@ -10,23 +10,23 @@ from pathlib import Path
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 from .run_bauplan_project import RunState, run_project
 
 logger = logging.getLogger(__name__)
 
 
 def register_code_run_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="code_run", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="code_run")
     async def code_run(
-        bauplan_client: bauplan.Client,
         project_files: dict[str, str],
         ref: str,
         parameters: dict[str, str | int | float | bool | None] | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> RunState:
         """
         Run a pipeline from provided source code files as a dictionary and a data ref,

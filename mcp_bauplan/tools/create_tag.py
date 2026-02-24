@@ -2,10 +2,11 @@ import asyncio
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class TagCreated(BaseModel):
@@ -16,13 +17,12 @@ class TagCreated(BaseModel):
 
 
 def register_create_tag_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="create_tag", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="create_tag")
     async def create_tag(
-        bauplan_client: bauplan.Client,
         tag: str,
         from_ref: str,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagCreated:
         """
         Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.

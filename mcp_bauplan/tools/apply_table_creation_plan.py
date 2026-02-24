@@ -8,10 +8,11 @@ from typing import Any
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,8 @@ class TablePlanApplied(BaseModel):
 
 
 def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="apply_table_creation_plan", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="apply_table_creation_plan")
     async def apply_table_creation_plan(
-        bauplan_client: bauplan.Client,
         plan: dict[str, Any],
         debug: bool | None = None,
         args: dict[str, str] | None = None,
@@ -34,6 +33,7 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
         verbose: bool | None = None,
         client_timeout: int = 120,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TablePlanApplied:
         """
         Apply a provided table creation plan to resolve schema conflicts and create a new table in the system.

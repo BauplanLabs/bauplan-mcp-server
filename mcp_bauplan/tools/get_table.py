@@ -3,10 +3,11 @@ from typing import Any
 
 import bauplan
 from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
-from .create_client import with_bauplan_client
+from .create_client import get_bauplan_client
 
 
 class TableSchema(BaseModel):
@@ -19,14 +20,13 @@ class TableOut(BaseModel):
 
 
 def register_get_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_table", exclude_args=["bauplan_client"])
-    @with_bauplan_client
+    @mcp.tool(name="get_table")
     async def get_table(
-        bauplan_client: bauplan.Client,
         ref: str,
         table_name: str,
         namespace: str | None = None,
         ctx: Context | None = None,
+        bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableOut:
         """
         Retrieve the schema of a specified data table in the user's Bauplan data catalog using a table name, returning a schema object.
