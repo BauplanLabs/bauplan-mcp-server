@@ -45,10 +45,7 @@ class TestDebugAndFixPipelineSkillInvocation:
         Given a prompt about diagnosing a failed bauplan run,
         Claude should invoke the debug-and-fix-pipeline skill.
         """
-        prompt = (
-            "Check the failed pipelines in the past 5 hours."
-            "Take the most recent one, debug and fix it."
-        )
+        prompt = "Check the failed pipelines in the past 5 hours.Take the most recent one, debug and fix it."
 
         result = claude_runner(prompt, max_turns=6)
 
@@ -77,9 +74,7 @@ class TestNoSkillInvocation:
         assert result.result is not None
         # No skills should be invoked for simple math
         skill_calls = [c for c in result.tool_calls if c.get("name") == "Skill"]
-        assert len(skill_calls) == 0, (
-            f"Expected no skills to be invoked. Skills called: {skill_calls}"
-        )
+        assert len(skill_calls) == 0, f"Expected no skills to be invoked. Skills called: {skill_calls}"
 
 
 class TestClaudeResultParsing:

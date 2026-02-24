@@ -1,11 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
-
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class TagInfo(BaseModel):
@@ -41,9 +39,7 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
         try:
             # Debug logging
             if ctx:
-                await ctx.debug(
-                    f"Calling get_tags with filter_by_name='{filter_by_name}', limit={limit}"
-                )
+                await ctx.debug(f"Calling get_tags with filter_by_name='{filter_by_name}', limit={limit}")
 
             # Get tags with filters
             tags_list = []
@@ -51,9 +47,7 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
 
             try:
                 # Call with direct parameters instead of kwargs
-                for tag in bauplan_client.get_tags(
-                    filter_by_name=filter_by_name, limit=limit
-                ):
+                for tag in bauplan_client.get_tags(filter_by_name=filter_by_name, limit=limit):
                     try:
                         # Extract tag information
                         tag_info = TagInfo(name=getattr(tag, "name", str(tag)))
@@ -66,14 +60,14 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
 
                     except Exception as e:
                         if ctx:
-                            await ctx.debug(f"Error processing tag: {str(e)}")
+                            await ctx.debug(f"Error processing tag: {e!s}")
                         continue
 
             except Exception as e:
                 if ctx:
-                    await ctx.error(f"Error iterating tags: {str(e)}")
+                    await ctx.error(f"Error iterating tags: {e!s}")
 
             return TagsOut(tags=tags_list, total_count=len(tags_list))
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_tags: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_tags: {e}") from e

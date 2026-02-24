@@ -1,8 +1,9 @@
-import bauplan
 import logging
-from typing import Callable
 import os
 from functools import wraps
+from typing import Callable
+
+import bauplan
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ def create_bauplan_client(api_key: str | None = None) -> bauplan.Client:
     try:
         # Establish connection to Bauplan - note that a profile variable
         # will be used if present
-        if "BAUPLAN_PROFILE" in os.environ and os.environ["BAUPLAN_PROFILE"]:
+        if os.environ.get("BAUPLAN_PROFILE"):
             logger.info("Using Bauplan profile from environment variable")
             client = bauplan.Client(profile=os.environ["BAUPLAN_PROFILE"])
         # if api key is passed, use it
@@ -36,8 +37,8 @@ def create_bauplan_client(api_key: str | None = None) -> bauplan.Client:
 
     except Exception as e:
         # Handle unexpected errors
-        logger.error(f"Failed to connect to Bauplan: {str(e)}", exc_info=True)
-        raise ConnectionError(f"Unable to connect to Bauplan: {str(e)}")
+        logger.error(f"Failed to connect to Bauplan: {e!s}", exc_info=True)
+        raise ConnectionError(f"Unable to connect to Bauplan: {e!s}") from e
 
 
 def with_bauplan_client(func: Callable) -> Callable:

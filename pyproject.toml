@@ -8,8 +8,7 @@ dependencies = [
   "fastmcp>=2.9.0,<3.0",
   "uvicorn[standard]",
   "bauplan>=0.0.3a431",
-  "pydantic>=2.6",
-  "pytest>=9.0.2",
+  "pydantic>=2.6,<3.0",
 ]
 
 [project.scripts]
@@ -19,14 +18,34 @@ mcp-bauplan = "mcp_bauplan.app:main"
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[project.optional-dependencies]
-test = [
-  "pytest>=8.0",
-  "pytest-timeout>=2.0",
-]
+[dependency-groups]
+dev = ["pytest>=9.0.2,<10.0", "pytest-timeout>=2.0"]
 
 [tool.setuptools]
 packages = ["mcp_bauplan"]
+
+[tool.ruff]
+fix = true
+line-length = 110
+exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+  "F",   # Pyflakes
+  "E",   # pycodestyle error
+  "W",   # pycodestyle warning
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "RUF", # Ruff-specific rules
+]
+ignore = [
+  "E501", # Line too long -- handled by ruff format; only docstrings/comments exceed the limit
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

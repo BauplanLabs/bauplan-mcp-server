@@ -2,14 +2,14 @@
 Create a table import plan from an S3 location.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +57,7 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
         """
         try:
             if ctx:
-                await ctx.info(
-                    f"Creating table plan for '{table}' from search URI '{search_uri}'"
-                )
+                await ctx.info(f"Creating table plan for '{table}' from search URI '{search_uri}'")
 
             # Call plan_table_creation function
             result = bauplan_client.plan_table_creation(
@@ -75,9 +73,7 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
             job_id = result.job_id
 
             # Log successful plan creation with job_id
-            logger.info(
-                f"Successfully created table plan for '{table}' with job_id: {job_id}"
-            )
+            logger.info(f"Successfully created table plan for '{table}' with job_id: {job_id}")
 
             return TablePlanCreated(
                 job_id=job_id,
@@ -90,5 +86,5 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error creating table plan for {table}: {str(e)}")
-            raise ToolError(f"Failed to create table plan for {table}: {str(e)}")
+            logger.error(f"Error creating table plan for {table}: {e!s}")
+            raise ToolError(f"Failed to create table plan for {table}: {e!s}") from e

@@ -1,11 +1,11 @@
-from fastmcp import FastMCP, Context
-from fastmcp.exceptions import ToolError
-
-from pydantic import BaseModel
 from typing import Any
 
-from .create_client import with_bauplan_client
 import bauplan
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
+
+from .create_client import with_bauplan_client
 
 
 class TableSchema(BaseModel):
@@ -54,12 +54,10 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
                 table_info = bauplan_client.get_table(
                     table=f"{namespace}.{t['name']}", ref=ref, include_raw=True
                 )
-                table_schema = TableSchema(
-                    name=t["name"], fields=table_info.raw["schemas"][0]["fields"]
-                )
+                table_schema = TableSchema(name=t["name"], fields=table_info.raw["schemas"][0]["fields"])
                 schema_list.append(TableWrapper(table=table_schema))
 
             return SchemasOut(tables=schema_list)
 
-        except Exception as err:
-            raise ToolError(f"Error executing get_schema: {err}")
+        except Exception as e:
+            raise ToolError(f"Error executing get_schema: {e}") from e

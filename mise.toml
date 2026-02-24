@@ -1,0 +1,37 @@
+[tools]
+uv = "0.10.5"
+ruff = "0.15.2"
+ty = "0.0.18"
+pre-commit = "latest"
+
+
+[settings]
+experimental = true
+
+[tasks.lint]
+description = "Run ruff linter"
+run = "ruff check ."
+
+[tasks.format]
+description = "Format code with ruff"
+run = "ruff format ."
+
+[tasks."format:check"]
+description = "Check formatting without modifying files"
+run = "ruff format --check ."
+
+[tasks.typecheck]
+description = "Run ty type checker"
+run = "ty check ."
+
+[tasks.test]
+description = "Run tests with pytest"
+run = "uv run pytest"
+
+[tasks.check]
+description = "Run all checks (lint, format, typecheck)"
+depends = ["lint", "format:check", "typecheck"]
+
+[tasks.dev]
+description = "Start MCP server locally (stdio)"
+run = "uv run python main.py"

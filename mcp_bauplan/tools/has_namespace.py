@@ -2,14 +2,14 @@
 Check if a namespace exists.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -42,17 +42,13 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
         """
         try:
             if ctx:
-                await ctx.info(
-                    f"Checking if namespace '{namespace}' exists in branch '{branch}'"
-                )
+                await ctx.info(f"Checking if namespace '{namespace}' exists in branch '{branch}'")
 
             # Call has_namespace function
             exists = bauplan_client.has_namespace(namespace=namespace, branch=branch)
 
             # Log the result
-            logger.info(
-                f"Namespace '{namespace}' exists in branch '{branch}': {exists}"
-            )
+            logger.info(f"Namespace '{namespace}' exists in branch '{branch}': {exists}")
 
             return NamespaceExists(
                 namespace_name=namespace,
@@ -62,9 +58,5 @@ def register_has_namespace_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(
-                f"Error checking namespace {namespace} in branch {branch}: {str(e)}"
-            )
-            raise ToolError(
-                f"Failed to check namespace {namespace} in branch {branch}: {str(e)}"
-            )
+            logger.error(f"Error checking namespace {namespace} in branch {branch}: {e!s}")
+            raise ToolError(f"Failed to check namespace {namespace} in branch {branch}: {e!s}") from e

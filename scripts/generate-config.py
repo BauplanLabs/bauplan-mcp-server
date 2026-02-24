@@ -31,7 +31,7 @@ def generate_config():
 
     print(json.dumps(config, indent=4))
 
-    print("\To use this configuration:", file=sys.stderr)
+    print("To use this configuration:", file=sys.stderr)
     print(" 1. Copy the JSON output above", file=sys.stderr)
     print(" 2. Add it to your Claude Desktop configuration file:", file=sys.stderr)
     print(

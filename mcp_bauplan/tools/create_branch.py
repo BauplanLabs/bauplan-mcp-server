@@ -1,10 +1,9 @@
-from fastmcp import FastMCP, Context
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
 
 
 class BranchCreated(BaseModel):
@@ -47,5 +46,5 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
                 message=f"Successfully created branch: {result.name}. Commit: {result.hash}'",
             )
 
-        except Exception as err:
-            raise ToolError(f"Error creating branch: {err}")
+        except Exception as e:
+            raise ToolError(f"Error creating branch: {e}") from e

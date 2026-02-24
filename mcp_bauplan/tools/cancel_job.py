@@ -2,14 +2,14 @@
 Cancel a job by ID.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +27,7 @@ class JobInfo(BaseModel):
 def register_cancel_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="cancel_job", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def cancel_job(
-        job_id: str, ctx: Context = None, bauplan_client: bauplan.Client = None
-    ) -> JobInfo:
+    async def cancel_job(job_id: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> JobInfo:
         """
         Cancel a running job in the Bauplan system by its job_id and return the updated job status.
 
@@ -70,10 +68,8 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
                 or "Failed to cancel job" in error_msg
                 or "job" in error_msg.lower()
             ):
-                logger.error(
-                    f"Job not found or error cancelling job {job_id}: {error_msg}"
-                )
-                raise ToolError(f"Job {job_id} not found or could not be cancelled")
+                logger.error(f"Job not found or error cancelling job {job_id}: {error_msg}")
+                raise ToolError(f"Job {job_id} not found or could not be cancelled") from e
             else:
                 logger.error(f"Unexpected error cancelling job {job_id}: {error_msg}")
-                raise ToolError(f"Failed to cancel job {job_id}: {error_msg}")
+                raise ToolError(f"Failed to cancel job {job_id}: {error_msg}") from e

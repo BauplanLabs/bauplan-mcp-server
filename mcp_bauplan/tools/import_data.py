@@ -2,14 +2,14 @@
 Imports data into an existing table.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +46,9 @@ def register_import_data_tool(mcp: FastMCP) -> None:
         """
         try:
             if ctx:
-                await ctx.info(
-                    f"Importing data into table '{table}' from search URI '{search_uri}'"
-                )
+                await ctx.info(f"Importing data into table '{table}' from search URI '{search_uri}'")
 
-            assert branch and branch != "main", (
-                "Branch name must be provided, and it cannot be 'main'"
-            )
+            assert branch and branch != "main", "Branch name must be provided, and it cannot be 'main'"
 
             # Call import_data function
             result = bauplan_client.import_data(
@@ -65,9 +61,7 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             )
 
             # Log successful import with job_id from TableDataImportState object
-            logger.info(
-                f"Successfully started data import for table '{table}' with job_id: {result.job_id}"
-            )
+            logger.info(f"Successfully started data import for table '{table}' with job_id: {result.job_id}")
 
             return DataImported(
                 table_name=table,
@@ -77,5 +71,5 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error importing data into table {table}: {str(e)}")
-            raise ToolError(f"Failed to import data into table {table}: {str(e)}")
+            logger.error(f"Error importing data into table {table}: {e!s}")
+            raise ToolError(f"Failed to import data into table {table}: {e!s}") from e

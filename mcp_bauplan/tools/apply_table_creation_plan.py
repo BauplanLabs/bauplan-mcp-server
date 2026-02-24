@@ -2,15 +2,15 @@
 Apply a table creation plan to resolve schema conflicts.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
+import logging
 from typing import Any
+
+import bauplan
+from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
 
 from .create_client import with_bauplan_client
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +71,7 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
             job_id = result.job_id
 
             # Log successful plan application with job_id
-            logger.info(
-                f"Successfully applied table creation plan with job_id: {job_id}"
-            )
+            logger.info(f"Successfully applied table creation plan with job_id: {job_id}")
 
             return TablePlanApplied(
                 job_id=job_id,
@@ -82,5 +80,5 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error applying table creation plan: {str(e)}")
-            raise ToolError(f"Failed to apply table creation plan: {str(e)}")
+            logger.error(f"Error applying table creation plan: {e!s}")
+            raise ToolError(f"Failed to apply table creation plan: {e!s}") from e

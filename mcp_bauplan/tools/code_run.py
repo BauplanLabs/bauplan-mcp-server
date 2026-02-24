@@ -2,18 +2,18 @@
 Run a Bauplan project from code files provided as a dictionary.
 """
 
-from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
-import tempfile
+import logging
 import os
 import shutil
+import tempfile
 from pathlib import Path
+
+import bauplan
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
 
 from .create_client import with_bauplan_client
 from .run_bauplan_project import RunState, run_project
-import bauplan
-import logging
-from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +55,7 @@ def register_code_run_tool(mcp: FastMCP) -> None:
                         )
 
             if ctx:
-                await ctx.info(
-                    f"Running project from {len(project_files)} provided files with ref '{ref}'"
-                )
+                await ctx.info(f"Running project from {len(project_files)} provided files with ref '{ref}'")
 
             # Create temporary directory
             temp_dir = tempfile.mkdtemp(prefix="bauplan_code_run_")
@@ -86,8 +84,8 @@ def register_code_run_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error running code project: {str(e)}")
-            raise ToolError(f"Failed to run code project: {str(e)}")
+            logger.error(f"Error running code project: {e!s}")
+            raise ToolError(f"Failed to run code project: {e!s}") from e
 
         finally:
             # Clean up temporary directory if it was created
@@ -96,6 +94,4 @@ def register_code_run_tool(mcp: FastMCP) -> None:
                     shutil.rmtree(temp_dir)
                     logger.debug(f"Cleaned up temporary directory: {temp_dir}")
                 except Exception as cleanup_error:
-                    logger.warning(
-                        f"Failed to clean up temporary directory {temp_dir}: {cleanup_error}"
-                    )
+                    logger.warning(f"Failed to clean up temporary directory {temp_dir}: {cleanup_error}")

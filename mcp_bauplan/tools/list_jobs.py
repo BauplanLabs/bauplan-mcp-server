@@ -2,15 +2,16 @@
 List jobs in the Bauplan system.
 """
 
-from fastmcp import FastMCP
-from pydantic import BaseModel
-from bauplan import JobState
-from fastmcp.exceptions import ToolError
-from datetime import datetime
-from .create_client import with_bauplan_client
-import bauplan
 import logging
-from fastmcp import Context
+from datetime import datetime
+
+import bauplan
+from bauplan import JobState
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import BaseModel
+
+from .create_client import with_bauplan_client
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +68,8 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
                     f"Invalid job status: {status}: should be one of {job_statuses}"
                 )
 
-            start_date_time = (
-                datetime.strptime(start_time, "%m/%d/%y %H:%M:%S")
-                if start_time
-                else None
-            )
-            end_date_time = (
-                datetime.strptime(end_time, "%m/%d/%y %H:%M:%S") if end_time else None
-            )
+            start_date_time = datetime.strptime(start_time, "%m/%d/%y %H:%M:%S") if start_time else None
+            end_date_time = datetime.strptime(end_time, "%m/%d/%y %H:%M:%S") if end_time else None
 
             # Call list_jobs function
             jobs_result = bauplan_client.list_jobs(
@@ -102,9 +97,7 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
                     user=job.user,
                     human_readable_status=job.human_readable_status,
                     created_at=job.created_at.isoformat() if job.created_at else None,
-                    finished_at=job.finished_at.isoformat()
-                    if job.finished_at
-                    else None,
+                    finished_at=job.finished_at.isoformat() if job.finished_at else None,
                     status=str(job.status),
                 )
                 job_info_list.append(job_info)
@@ -118,4 +111,4 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             # Handle job-related errors more gracefully
             error_msg = str(e)
             logger.error(f"Error listing jobs: {error_msg}")
-            raise ToolError(f"Failed to list jobs: {error_msg}")
+            raise ToolError(f"Failed to list jobs: {error_msg}") from e
