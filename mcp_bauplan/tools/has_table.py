@@ -24,7 +24,10 @@ def register_has_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="has_table", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def has_table(
-        table: str, ref: str, ctx: Context = None, bauplan_client: bauplan.Client = None
+        bauplan_client: bauplan.Client,
+        table: str,
+        ref: str,
+        ctx: Context | None = None,
     ) -> TableExists:
         """
         Check if a specified table exists in a given branch of the user's Bauplan data catalog using a table name and branch name.

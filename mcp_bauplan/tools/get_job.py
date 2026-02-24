@@ -35,7 +35,11 @@ class JobInfo(BaseModel):
 def register_get_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_job", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def get_job(job_id: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> JobInfo:
+    async def get_job(
+        bauplan_client: bauplan.Client,
+        job_id: str,
+        ctx: Context | None = None,
+    ) -> JobInfo:
         """
         Retrieve details of a job by job ID, such as user logs, code snapshot, project id.
         Get details of a specific job by its ID.
@@ -106,7 +110,7 @@ def register_get_job_tool(mcp: FastMCP) -> None:
             # Convert Job object to JobInfo BaseModel instance
             job_info = JobInfo(
                 id=job.id,
-                kind=job.kind,
+                kind=str(job.kind),
                 user=job.user,
                 human_readable_status=job.human_readable_status,
                 created_at=job.created_at.isoformat() if job.created_at else None,

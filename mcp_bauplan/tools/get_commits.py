@@ -29,6 +29,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_commits", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_commits(
+        bauplan_client: bauplan.Client,
         ref: str,
         message_filter: str | None = None,
         author_username: str | None = None,
@@ -36,8 +37,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         date_start: str | None = None,
         date_end: str | None = None,
         limit: int | None = 10,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> CommitsOut:
         """
         Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).
@@ -85,35 +85,24 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         #        await ctx.info(f"Ref is a commit hash: '{ref}'")
 
         try:
-            # Build filter parameters
-            kwargs = {"ref": ref}
-
-            if message_filter:
-                kwargs["filter_by_message"] = message_filter
-
-            if author_username:
-                kwargs["filter_by_author_username"] = author_username
-
-            if author_email:
-                kwargs["filter_by_author_email"] = author_email
-
-            if date_start:
-                kwargs["filter_by_authored_date_start_at"] = date_start
-
-            if date_end:
-                kwargs["filter_by_authored_date_end_at"] = date_end
-
-            # Always set a limit to avoid timeout
-            kwargs["limit"] = limit if limit else 10
+            limit = limit or 10
 
             # Get commits from Bauplan
             try:
-                response = bauplan_client.get_commits(**kwargs)
+                response = bauplan_client.get_commits(
+                    ref=ref,
+                    filter_by_message=message_filter or None,
+                    filter_by_author_username=author_username or None,
+                    filter_by_author_email=author_email or None,
+                    filter_by_authored_date_start_at=date_start or None,
+                    filter_by_authored_date_end_at=date_end or None,
+                    limit=limit,
+                )
             except Exception as e:
                 if ctx:
                     await ctx.error(f"Error calling get_commits API: {e!s}")
                 # Try with just ref parameter if other filters caused issues
-                response = bauplan_client.get_commits(ref=ref, limit=kwargs["limit"])
+                response = bauplan_client.get_commits(ref=ref, limit=limit)
 
             # Convert response to our model format
             commits_list = []
@@ -150,7 +139,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                         commit_count += 1
 
                         # If we have a limit and reached it, break
-                        if commit_count >= kwargs["limit"]:
+                        if commit_count >= limit:
                             break
                     except Exception as e:
                         if ctx:

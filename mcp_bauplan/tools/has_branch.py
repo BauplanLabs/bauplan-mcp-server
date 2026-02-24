@@ -24,7 +24,9 @@ def register_has_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="has_branch", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def has_branch(
-        branch: str, ctx: Context = None, bauplan_client: bauplan.Client = None
+        bauplan_client: bauplan.Client,
+        branch: str,
+        ctx: Context | None = None,
     ) -> BranchExists:
         """
         Check if a specified branch exists in the user's Bauplan data catalog using a branch name.

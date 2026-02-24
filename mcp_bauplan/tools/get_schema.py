@@ -25,10 +25,10 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_schema", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_schema(
+        bauplan_client: bauplan.Client,
         ref: str,
         namespace: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> SchemasOut:
         """
         Retrieve schemas of all data tables in a specified branch or reference of the user's Bauplan data catalog as a list, using a branch name.
@@ -54,6 +54,12 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
                 table_info = bauplan_client.get_table(
                     table=f"{namespace}.{t['name']}", ref=ref, include_raw=True
                 )
+
+                if table_info.raw is None:
+                    raise ToolError(
+                        f"No raw schema information available for table '{namespace}.{t['name']}' at ref '{ref}'."
+                    )
+
                 table_schema = TableSchema(name=t["name"], fields=table_info.raw["schemas"][0]["fields"])
                 schema_list.append(TableWrapper(table=table_schema))
 

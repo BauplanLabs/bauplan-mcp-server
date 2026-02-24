@@ -21,11 +21,11 @@ def register_get_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_table", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_table(
+        bauplan_client: bauplan.Client,
         ref: str,
         table_name: str,
         namespace: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TableOut:
         """
         Retrieve the schema of a specified data table in the user's Bauplan data catalog using a table name, returning a schema object.
@@ -51,6 +51,11 @@ def register_get_table_tool(mcp: FastMCP) -> None:
             else:
                 full_table_name = f"{namespace}.{table_name}"
             table_info = bauplan_client.get_table(table=full_table_name, ref=ref, include_raw=True)
+
+            if table_info.raw is None:
+                raise ToolError(
+                    f"No raw schema information available for table '{full_table_name}' at ref '{ref}'."
+                )
 
             table_schema = TableSchema(name=table_name, fields=table_info.raw["schemas"][0]["fields"])
 

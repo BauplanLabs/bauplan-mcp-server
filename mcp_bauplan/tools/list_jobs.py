@@ -35,13 +35,13 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="list_jobs", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def list_jobs(
+        bauplan_client: bauplan.Client,
         job_id: str | None = None,
         status: str | None = None,
         user_name: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> JobsList:
         """
         Retrieve a list of jobs in Bauplan, optionally filter by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, start and end time (UTC, format '%m/%d/%y %H:%M:%S').

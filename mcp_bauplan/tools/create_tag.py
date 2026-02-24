@@ -17,10 +17,10 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_tag", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def create_tag(
+        bauplan_client: bauplan.Client,
         tag: str,
         from_ref: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TagCreated:
         """
         Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.

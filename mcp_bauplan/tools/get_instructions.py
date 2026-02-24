@@ -16,9 +16,9 @@ def register_get_instructions_tool(mcp: FastMCP) -> None:
     @with_bauplan_client
     async def get_instructions(
         # can only be one of the keys in USE_CASE_TO_PROMPT
+        bauplan_client: bauplan.Client,
         use_case: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> Prompt:
         """
         Get detailed instructions for specific Bauplan use cases to be used to solve the task,

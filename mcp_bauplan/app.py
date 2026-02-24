@@ -2,6 +2,7 @@ import logging
 import os
 import warnings
 from pathlib import Path
+from typing import Literal
 
 import uvicorn
 from fastmcp import FastMCP
@@ -98,7 +99,7 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
 
 
 def main(
-    transport: str = "stdio",
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
     host: str = "0.0.0.0",
     port: int = 8000,
     profile: str | None = None,
@@ -162,7 +163,7 @@ def main(
 
         # Add CORS middleware
         app.add_middleware(
-            CORSMiddleware,
+            CORSMiddleware,  # type: ignore[arg-type]
             allow_origins=["*"],
             allow_credentials=True,
             allow_methods=["*"],

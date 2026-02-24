@@ -17,12 +17,12 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="merge_branch", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def merge_branch(
+        bauplan_client: bauplan.Client,
         source_ref: str,
         into_branch: str,
         commit_message: str | None = None,
         commit_body: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> MergeResult:
         """
         Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.

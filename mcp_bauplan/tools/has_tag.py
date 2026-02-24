@@ -23,7 +23,11 @@ class TagExists(BaseModel):
 def register_has_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="has_tag", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def has_tag(tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> TagExists:
+    async def has_tag(
+        bauplan_client: bauplan.Client,
+        tag: str,
+        ctx: Context | None = None,
+    ) -> TagExists:
         """
         Check if a specified tag exists in a given branch of the user's Bauplan data catalog using a tag name and branch name.
 

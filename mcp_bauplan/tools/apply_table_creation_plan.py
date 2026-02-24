@@ -25,14 +25,14 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="apply_table_creation_plan", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def apply_table_creation_plan(
+        bauplan_client: bauplan.Client,
         plan: dict[str, Any],
         debug: bool | None = None,
         args: dict[str, str] | None = None,
         priority: int | None = None,
         verbose: bool | None = None,
         client_timeout: int = 120,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TablePlanApplied:
         """
         Apply a provided table creation plan to resolve schema conflicts and create a new table in the system.

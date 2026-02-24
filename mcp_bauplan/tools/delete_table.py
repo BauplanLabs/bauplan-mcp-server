@@ -24,10 +24,10 @@ def register_delete_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_table", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def delete_table(
+        bauplan_client: bauplan.Client,
         table: str,
         branch: str,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TableDeleted:
         """
         Delete a specified table from the user's Bauplan data catalog using a table name.

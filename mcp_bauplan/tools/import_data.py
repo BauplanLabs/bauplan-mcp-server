@@ -25,12 +25,12 @@ def register_import_data_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="import_data", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def import_data(
+        bauplan_client: bauplan.Client,
         table: str,
         search_uri: str,
         branch: str,
         namespace: str | None = None,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> DataImported:
         """
         Import data into a specified existing table using a table name and data source.

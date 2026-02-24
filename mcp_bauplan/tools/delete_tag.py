@@ -15,7 +15,11 @@ class TagDeleted(BaseModel):
 def register_delete_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_tag", exclude_args=["bauplan_client"])
     @with_bauplan_client
-    async def delete_tag(tag: str, ctx: Context = None, bauplan_client: bauplan.Client = None) -> TagDeleted:
+    async def delete_tag(
+        bauplan_client: bauplan.Client,
+        tag: str,
+        ctx: Context | None = None,
+    ) -> TagDeleted:
         """
         Delete a specified tag from the user's Bauplan data catalog using a tag name.
 

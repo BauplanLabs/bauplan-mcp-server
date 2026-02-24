@@ -19,10 +19,10 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_tags", exclude_args=["bauplan_client"])
     @with_bauplan_client
     async def get_tags(
+        bauplan_client: bauplan.Client,
         filter_by_name: str | None = None,
         limit: int | None = 10,
-        ctx: Context = None,
-        bauplan_client: bauplan.Client = None,
+        ctx: Context | None = None,
     ) -> TagsOut:
         """
         Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.
