@@ -12,7 +12,7 @@ allowed-tools:
 
 # Safe-ingestion
 
-Safely ingest data from S3 into the Bauplan lakehouse by isolating changes on a temporary branch, running quality checks, and only merging to `main` after validation succeeds. 
+Safely ingest data from S3 into the Bauplan lakehouse by isolating changes on a temporary branch, running quality checks, and only merging to `main` after validation succeeds.
 This pattern is formally known as Write-Audit-Publish (WAP) in the Iceberg ecosystem.
 
 Implement this as a Python script using the `bauplan` SDK. Do NOT use CLI commands for the ingestion itself.
@@ -224,7 +224,7 @@ Cleaned up branch: alice.import_orders_1704067200
 ```
 **Failed run (on_failure="inspect")**:
 Import failed: No data was imported
-Branch preserved for inspection/debugging: 'alice.import_orders_1704067200' 
+Branch preserved for inspection/debugging: 'alice.import_orders_1704067200'
 ```
 
 ## Appending to Existing Tables

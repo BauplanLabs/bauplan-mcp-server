@@ -329,7 +329,7 @@ import bauplan
 
 @bauplan.model(
     materialization_strategy='REPLACE',
-    columns=['event_id', 'event_type', 'product_id', 'brand', 
+    columns=['event_id', 'event_type', 'product_id', 'brand',
              'price', 'user_id', 'user_session', 'event_time']
 )
 @bauplan.python('3.11', pip={'polars': '1.15.0'})
@@ -471,7 +471,7 @@ def test_staging_completeness(data=bauplan.Model('staging')):
 # 1. Verify source table exists
 bauplan table get bauplan.raw_ecommerce_events
 
-# 2. create a branch to run 
+# 2. create a branch to run
 bauplan branch create <username>.<branch_name>
 bauplan checkout <username>.<branch_name>
 
