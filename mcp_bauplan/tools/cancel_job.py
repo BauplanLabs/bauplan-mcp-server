@@ -46,12 +46,15 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
                 await ctx.info(f"Cancelling job with ID: {job_id}")
 
             # Call cancel_job function
-            job = bauplan_client.cancel_job(job_id=job_id)
+            bauplan_client.cancel_job(job_id=job_id)
+
+            # Get the updated job details after cancellation
+            job = bauplan_client.get_job(job_id=job_id)
 
             # Convert Job object to JobInfo BaseModel instance
             job_info = JobInfo(
                 id=job.id,
-                kind=job.kind,
+                kind=str(job.kind),
                 user=job.user,
                 human_readable_status=job.human_readable_status,
                 created_at=job.created_at.isoformat() if job.created_at else None,
