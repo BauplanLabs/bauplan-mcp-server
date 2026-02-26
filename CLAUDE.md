@@ -1,3 +1,13 @@
+# CLAUDE.md
+
+## Git Workflow
+
+- Always create a new branch before making any changes. Use a descriptive branch name based on the task (e.g., `fix/login-bug`, `feat/add-search`).
+- All work happens on feature branches. The `main` branch is off-limits for direct edits.
+- Commit every change immediately after making it. Each commit should have a clear, one-line message describing what changed.
+- Keep commits small and focused. One logical change per commit.
+- When the task is complete, leave the branch ready for review. Do not merge into `main`.
+
 # Bauplan (agent playbook)
 
 Bauplan is a data lakehouse platform where data changes follow a Git-like workflow. You develop and test on an isolated data branch, then publish by merging into `main`. Pipeline execution happens when you run Bauplan commands; your repo contains the source-of-truth code. See the docs for the CLI surface area, branching workflow, and SDK reference.
@@ -12,7 +22,7 @@ Assume the assistant can:
 - run Python locally (for SDK scripts and tests)
 
 Preference: do not use the Bauplan MCP server. Use the full tool surface via:
-- Local CLI reference: `.claude/reference/bauplan_cli.md`
+- Local CLI reference: `.claude/bauplan-reference/bauplan_cli.md`
 - PySDK reference: `https://docs.bauplanlabs.com/reference/bauplan`
 
 Authoritative fallback sources (when local references are missing or stale):
@@ -35,29 +45,40 @@ Use skills for repeatable workflows that generate or modify code. Use CLI and SD
 
 Is this a code generation or repo-editing task?
 ├─ Yes: Create or modify a pipeline project
-│ -> Use skill: bauplan-data-pipelines (alias: /data-pipeline)
-├─ Yes: Ingest data with WAP (write, audit, publish)
-│ -> Use skill: safe-ingestion (alias: /safe-ingestion)
+│ -> Use skill: data-pipeline
+├─ Yes: Ingest data safely from S3
+│ -> Use skill: safe-ingestion
+├─ Yes: Add data quality checks to a pipeline or ingestion script
+│ -> Use skill: data-quality-checks
 └─ No: Explore, query, inspect, run, debug, publish
   -> Use CLI and SDK directly (see local references)
 
 ## Skill inventory
 
-- bauplan-data-pipelines
+- data-pipeline
   Use when you need to scaffold a new pipeline folder, define models, add environment declarations, and produce a runnable project layout.
 
 - safe-ingestion
   Use when ingesting files from S3 into a branch with a publish step. Prefer this over ad-hoc imports for anything beyond a toy dataset.
 
+- data-quality-checks
+  Use when writing data quality checks for pipelines or ingestion workflows. Produces expectations.py or validation logic for WAP scripts.
+
 - explore-data
-  Use for structured exploration tasks when it exists (schemas, sample queries, rough profiling). If it is not available, do the same work with `bauplan query`, `bauplan table get`, and `bauplan table ls`.
+  Use for structured exploration tasks (schemas, sample queries, rough profiling). If it is not available, do the same work with `bauplan query`, `bauplan table get`, and `bauplan table ls`.
+
+- debug-and-fix-pipeline
+  Use when diagnosing and fixing failed pipeline runs. Evidence first, changes second.
+
+- data-assessment
+  Use when assessing whether a business question can be answered with available data. Maps concepts to tables, validates semantic fit, and produces a feasibility report.
 
 ## Syntax discipline (non-negotiable)
 
 When emitting CLI commands or SDK code, verify syntax before final output.
 
 1) Check references:
-   - `.claude/bauplan_reference/bauplan_cli.md`
+   - `.claude/bauplan-reference/bauplan_cli.md`
    - `https://docs.bauplanlabs.com/reference/bauplan`
 
 2) Confirm with CLI help when possible:

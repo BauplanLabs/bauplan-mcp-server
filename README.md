@@ -53,9 +53,13 @@ your-repository/
 │       │   └── SKILL.md
 │       ├── safe-ingestion/
 │       │   └── SKILL.md
+│       ├── data-quality-checks/
+│       │   └── SKILL.md
 │       ├── explore-data/
 │       │   └── SKILL.md
-│       └── debug-and-fix-pipeline/
+│       ├── debug-and-fix-pipeline/
+│       │   └── SKILL.md
+│       └── data-assessment/
 │           └── SKILL.md
 ├── your-bauplan-project/
 │   ├── models.py
@@ -96,8 +100,10 @@ The `skills/` folder contains reusable skill definitions for Claude Code that pr
 |---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | **data-pipeline**               | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure                   |
 | **safe-ingestion**              | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production      |
+| **data-quality-checks**         | Generate data quality check code for pipelines and ingestion workflows. Produces expectations.py or validation logic for WAP scripts     |
 | **explore-data**                | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
 | **debug-and-fix-pipeline**      | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections                 |
+| **data-assessment**             | Assess whether a business question can be answered with available data. Maps concepts to tables, validates semantic fit, produces a feasibility report |
 
 ### Using Skills
 
@@ -107,7 +113,7 @@ To incorporate these skills into your Claude Code projects, see the [official do
 
 If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?).
 
-While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `wap` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
+While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `safe-ingestion` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
 
 ```bash
 BAUPLAN_TEST_S3_PATH="s3://public-read-bucket/my-file.parquet" uv run pytest -v
@@ -155,7 +161,7 @@ A `CLAUDE.md` file is provided at the repository root that instructs the model o
 
 **For Claude Code users**: Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
 
-* Decision tree for when to use skills (`/safe-ingestion`, `/data-pipeline`, `/explore-data`, `/debug-and-fix-pipeline`) vs MCP tools vs CLI/SDK
+* Decision tree for when to use skills (`/data-pipeline`, `/safe-ingestion`, `/data-quality-checks`, `/explore-data`, `/debug-and-fix-pipeline`, `/data-assessment`) vs MCP tools vs CLI/SDK
 * How to retrieve detailed instructions via `get_instructions`
 * How to verify SDK/CLI syntax
 * Canonical workflows for common tasks
