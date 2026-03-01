@@ -15,8 +15,9 @@ and how it integrates into the WAP flow. See the safe-ingestion skill
 for the full WAP script template.
 """
 
-import bauplan
 from datetime import datetime, timedelta
+
+import bauplan
 
 
 def validate_import(
@@ -66,7 +67,7 @@ def validate_import(
     expected_columns = {"order_id", "customer_id", "total", "order_date"}
     missing = expected_columns - actual_columns
     assert not missing, f"Missing expected columns: {missing}"
-    print(f"  ✓ Schema: all expected columns present")
+    print("  ✓ Schema: all expected columns present")
 
     # ==================================================================
     # Completeness: join keys must not be null
@@ -82,7 +83,7 @@ def validate_import(
         )
         null_count = result.column("nulls")[0].as_py()
         assert null_count == 0, f"{col} has {null_count} null values"
-    print(f"  ✓ Completeness: order_id and customer_id have no nulls")
+    print("  ✓ Completeness: order_id and customer_id have no nulls")
 
     # ==================================================================
     # Uniqueness: order_id is the grain of the table
@@ -96,7 +97,7 @@ def validate_import(
     )
     dupe_count = result.column("dupes")[0].as_py()
     assert dupe_count == 0, f"order_id has {dupe_count} duplicates"
-    print(f"  ✓ Uniqueness: order_id is unique")
+    print("  ✓ Uniqueness: order_id is unique")
 
     # ==================================================================
     # Validity: total must be non-negative
@@ -110,7 +111,7 @@ def validate_import(
     )
     min_total = result.column("min_total")[0].as_py()
     assert min_total is None or min_total >= 0, f"total has negative values (min: {min_total})"
-    print(f"  ✓ Validity: all totals are non-negative")
+    print("  ✓ Validity: all totals are non-negative")
 
     # ==================================================================
     # Freshness: most recent order should be recent
@@ -132,7 +133,7 @@ def validate_import(
         else:
             print(f"  ✓ Freshness: most recent order_date is {latest}")
     else:
-        print(f"  ⚠ Freshness: order_date is entirely null — cannot assess")
+        print("  ⚠ Freshness: order_date is entirely null — cannot assess")
 
     # ==================================================================
     # Consistency: order_date should not be in the future
@@ -148,7 +149,7 @@ def validate_import(
     if future_count > 0:
         print(f"  ⚠ Consistency: {future_count} rows have order_date in the future")
     else:
-        print(f"  ✓ Consistency: no future-dated orders")
+        print("  ✓ Consistency: no future-dated orders")
 
     print(f"Validation passed for {fq_table}")
 

@@ -1,7 +1,6 @@
 import logging
 import os
 import warnings
-from pathlib import Path
 from typing import Literal
 
 import uvicorn
@@ -54,7 +53,18 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.p
 
 # Get the global MCP server name and instructions
 MCP_SERVER_NAME = "mcp-bauplan"
-INSTRUCTIONS = (Path(__file__).parent.parent / "CLAUDE.md").read_text()
+INSTRUCTIONS = (
+    "This is the MCP server for Bauplan, an AI-first data lakehouse entirely "
+    "programmable as code. Bauplan is built on two fundamental abstractions: "
+    "Git-for-data branching, which lets you develop and test on isolated data "
+    "branches before merging into main, and serverless multi-language pipelines "
+    "that run SQL and Python transformations without managing infrastructure.\n\n"
+    "Through this MCP server you can manage branches, run queries, execute "
+    "pipelines, inspect tables and schemas, import data, and perform all core "
+    "lakehouse operations programmatically. Every write operation follows the "
+    "branch-based workflow: create a branch, make changes, review, and merge — "
+    "ensuring safe, auditable data development."
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
