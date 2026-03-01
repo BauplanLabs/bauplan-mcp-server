@@ -16,7 +16,6 @@ alongside models.py and bauplan_project.yml.
 
 import bauplan
 
-
 # ==========================================================================
 # Expectations on: staging
 # Consumer: session_metrics model (groups by user_session, aggregates price)
@@ -144,8 +143,9 @@ def test_daily_summary_freshness(data=bauplan.Model("daily_summary", columns=["d
     Severity: WARN (stale data is bad but not corrupting; may just mean
     the source hasn't delivered yet).
     """
-    import polars as pl
     from datetime import datetime, timedelta
+
+    import polars as pl
 
     df = pl.from_arrow(data)
     max_date = df.select(pl.col("date").max()).item()
