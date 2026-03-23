@@ -50,7 +50,7 @@ ENV PATH="/app/.venv/bin:${PATH}"
 USER bauplan
 
 COPY --from=builder --chown=bauplan:bauplan /app/.venv /app/.venv
-COPY --chown=bauplan:bauplan main.py CLAUDE.md entrypoint.sh ./
+COPY --chown=bauplan:bauplan main.py entrypoint.sh ./
 COPY --chown=bauplan:bauplan mcp_bauplan/ mcp_bauplan/
 
 ENV PORT=8000

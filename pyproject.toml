@@ -33,13 +33,7 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = ["pytest~=9.0.2", "pytest-timeout~=2.4.0", "watchdog[watchmedo]~=6.0.0"]
-
-[tool.ty.src]
-# Example files in skills/ are templates meant to run inside Bauplan's runtime,
-# which injects dependencies (polars) and resolves Model objects to Arrow tables.
-# They are not valid for static analysis outside that context.
-exclude = ["skills/**/*.py"]
+dev = ["watchdog[watchmedo]~=6.0.0"]
 
 [tool.setuptools]
 packages = ["mcp_bauplan"]
@@ -68,10 +62,3 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-markers = [
-  "integration: marks tests as integration tests (may be slow, requires Claude CLI)",
-]
-# Default timeout for integration tests (5 minutes)
-timeout = 300

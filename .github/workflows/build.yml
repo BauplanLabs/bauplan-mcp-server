@@ -6,7 +6,6 @@ on:
     paths:
       - "mcp_bauplan/**"
       - "main.py"
-      - "CLAUDE.md"
       - "Dockerfile"
       - "entrypoint.sh"
       - "pyproject.toml"
