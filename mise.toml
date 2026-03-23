@@ -24,10 +24,6 @@ run = "ruff format --check ."
 description = "Run ty type checker"
 run = "ty check ."
 
-[tasks.test]
-description = "Run tests with pytest"
-run = "uv run pytest"
-
 [tasks.check]
 description = "Run all checks (lint, format, typecheck)"
 depends = ["lint", "format:check", "typecheck"]
