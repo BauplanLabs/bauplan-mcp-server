@@ -29,7 +29,6 @@ jobs:
             docker:
               - "mcp_bauplan/**"
               - "main.py"
-              - "CLAUDE.md"
               - "Dockerfile"
               - "entrypoint.sh"
               - "pyproject.toml"

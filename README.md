@@ -1,125 +1,19 @@
-# Bauplan tools, MCP Server & Agent Skills
+# Bauplan MCP Server
 
-Build AI-powered data engineering workflows with the Bauplan MCP Server and Agent Skills.
+A Model Context Protocol (MCP) server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
 
 > [!NOTE]
 > This project is released in Beta under MIT license. APIs and features may change without notice as we continue development.
 
+> [!IMPORTANT]
+> **Server-side deployment is now available** for existing Bauplan users. You no longer need to run the MCP server locally — contact your Bauplan account team for details.
+
 ## Overview
 
-This repository provides three complementary tools for AI-assisted data engineering with Bauplan:
+This repository contains the Bauplan MCP Server — a Model Context Protocol server that gives AI assistants access to Bauplan lakehouse operations. A blog post with context and background [is available here](https://www.bauplanlabs.com/post/bauplans-mcp-server).
 
-1. **Repository-based usage (CLAUDE.md + reference documentation)** - Add Bauplan workflow guidance and CLI reference directly to your repository's `.claude/` directory so AI coding assistants automatically understand Bauplan commands, safety rules, and your team's conventions without requiring tool integrations.
-2. **Agent Skills** - Reusable skill definitions for Claude Code that provide guided workflows for common code generation tasks like creating pipelines (`/data-pipeline`) and data ingestion (`/safe-ingestion`).
-3. **MCP Server** - A Model Context Protocol server that gives AI assistants (Claude Code, Claude Desktop, Cursor) access to Bauplan lakehouse operations: querying tables, schema inspection, branch management, and running pipelines. A [video walkthrough](https://www.loom.com/share/651e2bd7ad4442928f539859a621c562) demonstrates setup and usage.
-
-The intended usage for this repo is to help with *local development* by providing AI assistants access to your Bauplan lakehouse: a blog post with some context and background [is available here](https://www.bauplanlabs.com/post/bauplans-mcp-server).
-
-## Repository-based usage (CLAUDE.md + references)
-
-Bauplan can be used with AI coding assistants **without running the MCP server**, by providing the assistant with explicit, repository-local context. In this mode, the assistant operates by reading documentation, writing code, and invoking Bauplan through the CLI or Python SDK.
-
-This is the recommended default for IDE-based assistants such as Claude Code or Cursor.
-
-### How it works
-
-The integration is entirely file-based. You give the assistant:
-
-1. **An agent playbook (`CLAUDE.md`)** that explains how to work with Bauplan
-2. **Reference documentation** it can consult for correct CLI and SDK usage
-3. **Optional Skills** that template multi-step workflows
-
-The assistant then:
-
-* Reads instructions from `CLAUDE.md`
-* Writes Python or SQL in your repository
-* Runs explicit Bauplan CLI commands or SDK calls
-* Follows the same branch, run, validate, publish workflow a human would
-
-No background service or MCP transport is required.
-
-### Repository structure
-
-A typical setup looks like this:
-
-```text
-your-repository/
-├── .claude/
-│   ├── CLAUDE.md
-│   ├── bauplan-reference/
-│   │   └── bauplan_cli.md
-│   └── skills/
-│       ├── data-pipeline/
-│       │   └── SKILL.md
-│       ├── safe-ingestion/
-│       │   └── SKILL.md
-│       ├── data-quality-checks/
-│       │   └── SKILL.md
-│       ├── explore-data/
-│       │   └── SKILL.md
-│       ├── debug-and-fix-pipeline/
-│       │   └── SKILL.md
-│       └── data-assessment/
-│           └── SKILL.md
-├── your-bauplan-project/
-│   ├── models.py
-│   └── bauplan_project.yml
-└── README.md
-```
-
-### Bauplan (agent playbook) with `CLAUDE.md`
-
-`CLAUDE.md` is the primary control surface for the assistant.
-
-It defines:
-
-* When to use Skills vs direct CLI / SDK calls
-* How to create and manage data branches
-* How to run pipelines safely (never write to `main`)
-* How to validate results and publish changes
-* How to retrieve detailed instructions
-
-For Claude Code, `CLAUDE.md` is automatically loaded and used as context on every interaction. For other tools, its contents can be used as a system prompt or initial context.
-
-### Reference documentation
-
-The `./claude/bauplan-reference/` directory contains authoritative documentation for the Bauplan CLI and SDK. Assistants use this to verify syntax, flags, and expected behavior before executing commands.
-
-This avoids hallucinated commands and keeps generated code aligned with the actual API surface.
-
-## Skills
-
-> [!WARNING]
-> Skills are very experimental and subject to change at any time.
-
-The `skills/` folder contains reusable skill definitions for Claude Code that provide guided workflows for common Bauplan tasks. These skills can be incorporated into your Claude Code projects to enable AI-assisted data engineering.
-
-### Available Skills
-
-| Skill                           | Description                                                                                                                              |
-|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| **data-pipeline**               | Create a new bauplan data pipeline project from scratch, including SQL and Python models with proper project structure                   |
-| **safe-ingestion**              | Implement the Write-Audit-Publish (WAP) pattern for safe data ingestion from S3 with quality checks before publishing to production      |
-| **data-quality-checks**         | Generate data quality check code for pipelines and ingestion workflows. Produces expectations.py or validation logic for WAP scripts     |
-| **explore-data**                | Structured exploration of Bauplan data lakehouse: inspect schemas, sample data, analyze table profiles, and generate exploratory queries |
-| **debug-and-fix-pipeline**      | Investigate and fix data issues in your Bauplan lakehouse: identify root causes, propose fixes, and validate corrections                 |
-| **data-assessment**             | Assess whether a business question can be answered with available data. Maps concepts to tables, validates semantic fit, produces a feasibility report |
-
-### Using Skills
-
-To incorporate these skills into your Claude Code projects, see the [official documentation on distributing and installing skills](https://code.claude.com/docs/en/skills#distribute-skills). Each skill folder contains the skill definitinon along with examples and usage patterns.
-
-## Developer Notes
-
-If you are actively developing within this repo, an experimental integration test suite is available in `tests/`. These integration tests treat Claude as a black box process: a prompt is fed to Claude in non-interactive mode, and the output is analyzed to verify appropriate skill and tool usage, as well as the presence of expected side effects in the lakehouse (i.e., did the system accomplish the goal?).
-
-While not perfect, this setup allows us to rapidly iterate on Bauplan-related affordances with some level of confidence and some degree of repeatability (i.e., even as models evolve and prompts change, we can verify that certain core LLM decisions remain intact, for example, using `safe-ingestion` as a skill when prompts mention safe data ingestion). To run the tests from the root, you can use `pytest` and specify a real S3 file for testing:
-
-```bash
-BAUPLAN_TEST_S3_PATH="s3://public-read-bucket/my-file.parquet" uv run pytest -v
-```
-
-As best practices emerge, Bauplan skills multiply and AI-assisted workflows rise, this suite will evolve to provide more comprehensive coverage and guidance.
+> [!TIP]
+> **Looking for the best local AI setup with Bauplan?** Check out **[BauplanLabs/bauplan-skills](https://github.com/BauplanLabs/bauplan-skills)** — it includes agent playbooks (`CLAUDE.md`), skills, and everything you need to get AI coding assistants working with Bauplan via CLI and SDK, without running an MCP server.
 
 ## MCP Quick Start
 
@@ -153,29 +47,6 @@ Similar commands can be run on [Claude Desktop](https://modelcontextprotocol.io/
 
 Et voilà! You can now start asking your AI questions about your data lakehouse (and much more!).
 
-## Documentation
-
-### CLAUDE.md for Guided Usage
-
-A `CLAUDE.md` file is provided at the repository root that instructs the model on how to best use the Bauplan MCP server and the Bauplan skills provided in the `skills/` folder.
-
-**For Claude Code users**: Claude Code automatically picks up `CLAUDE.md` files and uses them as context for every interaction. This ensures the model knows:
-
-* Decision tree for when to use skills (`/data-pipeline`, `/safe-ingestion`, `/data-quality-checks`, `/explore-data`, `/debug-and-fix-pipeline`, `/data-assessment`) vs MCP tools vs CLI/SDK
-* How to retrieve detailed instructions via `get_instructions`
-* How to verify SDK/CLI syntax
-* Canonical workflows for common tasks
-
-For other MCP clients, include the contents as a system prompt or initial context.
-
-### CLI Reference
-
-Comprehensive reference documentation for the Bauplan CLI is available in `bauplan_reference/cli.md`. This includes:
-
-* Full command syntax and options
-* Common workflows and examples
-* Detailed parameter descriptions
-
 ## Advanced Configurations
 
 ### Bauplan Credentials
@@ -203,31 +74,19 @@ The server supports the following CLI options, mostly useful for specifying alte
 
 To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file.
 
-#### Automatic Configuration Generation
-
-Use the provided script to generate the configuration with the correct paths:
-
-```bash
-uv run scripts/generate-config.py
-```
-
-This will output a JSON configuration with all paths properly set to your installation directory. Copy the output and add it to your `claude_desktop_config.json` file.
-
-#### Manual Configuration
-
-Alternatively, you can manually add this configuration (modify the paths as needed):
+You can then add this configuration (modify the paths as needed):
 
 ```json
 {
   "mcpServers": {
     "mcp-bauplan": {
-      "command": "/path/to/bauplan-mcp-and-skills/.venv/bin/python3",
+      "command": "/path/to/bauplan-mcp-server/.venv/bin/python3",
       "args": [
-        "/path/to/bauplan-mcp-and-skills/main.py",
+        "/path/to/bauplan-mcp-server/main.py",
         "--transport",
         "stdio"
       ],
-      "workingDirectory": "/path/to/bauplan-mcp-and-skills/"
+      "workingDirectory": "/path/to/bauplan-mcp-server/"
     }
   }
 }
@@ -250,17 +109,6 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 * **Session Token**: Use the token from inspector output
 
 ## Features
-
-### Roadmap
-
-The beta release exposes the core Bauplan functionalities for data lakehouse and pipeline management: thanks to the API-first nature of the platform, a competent AI assistant properly prompted should already be a very effective co-pilot for your lakehouse, including data exploration, schema inspection, iterating on pipelines, etc.
-
-The Bauplan platform is constantly evolving, with new agent-specific commands and fine-grained permissions coming soon. We are now actively improving the MCP server and adding new features, including:
-
-* a server-side deployment option for existing Bauplan users;
-* further iterations on MCP and best practices around it for improved code generation (both in co-pilot and in agentic use cases).
-
-If you have specific features you would like to see, please get in touch with us!
 
 ### Tool List
 
