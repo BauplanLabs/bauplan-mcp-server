@@ -9,6 +9,8 @@ dependencies = [
   "uvicorn[standard]",
   "bauplan>=0.0.3a431",
   "pydantic~=2.12.5",
+  "authlib>=1.6.0",
+  "cryptography>=46.0.0",
 ]
 
 [project.optional-dependencies]
@@ -33,10 +35,16 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = ["watchdog[watchmedo]~=6.0.0"]
+dev = [
+  "pytest>=9.0.0",
+  "watchdog[watchmedo]~=6.0.0",
+]
 
-[tool.setuptools]
-packages = ["mcp_bauplan"]
+[tool.setuptools.packages.find]
+include = ["mcp_bauplan*"]
+
+[tool.setuptools.package-data]
+"mcp_bauplan.tools" = ["instructions/*.md"]
 
 [tool.ruff]
 fix = true
@@ -61,4 +69,3 @@ ignore = [
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
-

@@ -10,6 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
+from .auth.config import API_KEY_OAUTH_MODE, get_auth_mode, load_oauth_config
 from .tools.apply_table_creation_plan import register_apply_table_creation_plan_tool
 from .tools.cancel_job import register_cancel_job_tool
 from .tools.code_run import register_code_run_tool
@@ -108,9 +109,17 @@ def main(
     if profile:
         os.environ["BAUPLAN_PROFILE"] = profile
 
+    auth_provider = None
+    if get_auth_mode() == API_KEY_OAUTH_MODE:
+        from .auth.api_key_oauth import create_api_key_oauth_provider
+
+        auth_provider = create_api_key_oauth_provider(load_oauth_config())
+        logger.info("Enabled API-key-backed OAuth authentication")
+
     mcp = FastMCP(
         MCP_SERVER_NAME,
         instructions=INSTRUCTIONS,
+        auth=auth_provider,
         stateless_http=True,
     )
 
