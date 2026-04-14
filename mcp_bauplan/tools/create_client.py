@@ -1,43 +1,24 @@
 import logging
-import os
 
 import bauplan
-from fastmcp.server.dependencies import get_http_request
+from fastmcp.server.dependencies import get_access_token, get_http_request
 
 logger = logging.getLogger(__name__)
 
 
-def create_bauplan_client(api_key: str | None = None) -> bauplan.Client:
-    """
-    Creates and validates a connection Bauplan.
-    Retrieves connection parameters from config, establishes a connection.
+def _extract_token(raw: str | None) -> str | None:
+    """Normalize bearer-style headers to a plain token string."""
+    if not raw:
+        return None
 
-    Returns:
-        Client: A configured Bauplan client instance
+    value = raw.strip()
+    if not value:
+        return None
 
-    Raises:
-        ConnectionError: When connection cannot be established
-    """
-    try:
-        # Establish connection to Bauplan - note that a profile variable
-        # will be used if present
-        if os.environ.get("BAUPLAN_PROFILE"):
-            logger.info("Using Bauplan profile from environment variable")
-            client = bauplan.Client(profile=os.environ["BAUPLAN_PROFILE"])
-        # if api key is passed, use it
-        elif api_key:
-            logger.info("Init Bauplan client without profile")
-            client = bauplan.Client(api_key=api_key)
-        else:
-            logger.info("Init Bauplan client without profile or api_key")
-            client = bauplan.Client()
-        logger.info("Connected to Bauplan")
-        return client
+    if value.lower().startswith("bearer "):
+        value = value[7:].strip()
 
-    except Exception as e:
-        # Handle unexpected errors
-        logger.error(f"Failed to connect to Bauplan: {e!s}", exc_info=True)
-        raise ConnectionError(f"Unable to connect to Bauplan: {e!s}") from e
+    return value or None
 
 
 def get_bauplan_client() -> bauplan.Client:
@@ -46,12 +27,33 @@ def get_bauplan_client() -> bauplan.Client:
     Extracts the API key from the HTTP request header (if present) and creates a Bauplan client.
     Falls back to default credentials in stdio transport or when no header is provided.
     """
-    api_key = None
     try:
-        request = get_http_request()
-        raw = request.headers.get("bauplan") or request.headers.get("Bauplan")
-        if raw:
-            api_key = raw[7:].strip() if raw.lower().startswith("bearer ") else raw
+        http_headers = get_http_request().headers
     except Exception:
-        pass  # stdio transport — no HTTP request available
-    return create_bauplan_client(api_key)
+        # It's not an HTTP request context
+        return bauplan.Client()
+
+    # First, check for a Bauplan-specific API key header (e.g., "Bauplan" or "bauplan")
+    api_key = _extract_token(http_headers.get("Bauplan"))
+    if api_key:
+        logger.info("Using Bauplan credentials from HTTP header")
+        return bauplan.Client(api_key=api_key)
+
+    # Check for a valid OAuth access token if available
+    try:
+        access_token = get_access_token()
+        if access_token and access_token.token:
+            logger.info("Using Bauplan credentials from validated OAuth access token")
+            return bauplan.Client(api_key=access_token.token)
+    except Exception:
+        # No valid access token available, continue to check headers
+        pass
+
+    # Finally, check the standard Authorization header for a bearer token
+    api_key = _extract_token(http_headers.get("Authorization"))
+    if api_key:
+        logger.info("Using Bauplan credentials from HTTP header")
+        return bauplan.Client(api_key=api_key)
+
+    # No valid credentials found in headers, falling back to default client
+    return bauplan.Client()
