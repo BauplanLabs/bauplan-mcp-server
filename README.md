@@ -55,7 +55,14 @@ The Beta release covers the local development use case. Authentication to your B
 
 * if you do not specify a Bauplan profile as a flag, the default one on the machine running the server will be used at every interaction with the lakehouse.
 * if you specify a profile as a flag, this profile will be used instead when instantiating a Bauplan client.
-* if you specify a header in your assistant - key=`Bauplan`, value=`your_api_key` (e.g. in Claude code `claude mcp add -H "Bauplan: <your-bauplan-api-key>" ...`) -, `your_api_key` will be used instead when instantiating a Bauplan client. This is convenient for quick tests, and opens up the possibility of hosting the catalog on a shared infrastructure, delegating to clients the Bauplan API key management.
+* if you specify a header in your assistant - either `Authorization: Bearer <your-bauplan-api-key>` or `Bauplan: <your-bauplan-api-key>` (e.g. in Claude Code `claude mcp add -H "Authorization: Bearer <your-bauplan-api-key>" ...`) -, that value will be used instead when instantiating a Bauplan client. This is convenient for quick tests, and opens up the possibility of hosting the catalog on a shared infrastructure, delegating to clients the Bauplan API key management.
+
+For example, if you are connecting to a remotely hosted MCP server that delegates Bauplan authentication to the client, you can register it in Claude Code and pass your own bearer token with:
+
+```bash
+claude mcp add -t http -H "Authorization: Bearer <your-bauplan-api-key>" mcp-bauplan https://<your-mcp-host>/mcp
+
+```
 
 ### Server CLI Options
 
