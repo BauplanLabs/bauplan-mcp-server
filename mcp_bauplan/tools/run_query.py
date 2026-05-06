@@ -78,7 +78,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> QueryOut:
         """
-        Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a DataFrame using a query, optional ref, and optional namespace.
+        Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a QueryOut object using a query, optional ref, and optional namespace.
         Executes a SQL query against the user's Bauplan data lake.
 
         Args:

@@ -30,7 +30,7 @@ def register_has_tag_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagExists:
         """
-        Check if a specified tag exists in a given branch of the user's Bauplan data catalog using a tag name and branch name.
+        Check if a specified tag exists in the user's Bauplan data catalog using a tag name.
 
         Args:
             tag: Name of the tag to check for existence.

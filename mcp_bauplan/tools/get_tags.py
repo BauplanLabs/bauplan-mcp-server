@@ -27,8 +27,8 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagsOut:
         """
-        Retrieve tags for a specified branch in the user's Bauplan data catalog as a list, using a branch name with optional filter_by_name and limit (integer) to reduce response size.
-        Get the tags of a branch using optional filters.
+        Retrieve tags from the user's Bauplan data catalog as a list, with optional filter_by_name and limit (integer) to reduce response size.
+        Get the tags using optional filters.
 
         Args:
             filter_by_name: Optional filter for tag names (substring match)
