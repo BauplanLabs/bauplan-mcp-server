@@ -152,6 +152,66 @@ def test_api_key_oauth_rejects_mismatched_resource():
     asyncio.run(run())
 
 
+def test_api_key_oauth_submit_redirects_with_found_status():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda key: key == api_key,
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Claude",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        body = f"txn_id={txn_id}&api_key={api_key}".encode()
+        from collections.abc import MutableMapping
+        from typing import Any
+
+        from starlette.requests import Request
+
+        async def receive() -> MutableMapping[str, Any]:
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+
+        request: Request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/bauplan-api-key",
+                "headers": [
+                    (b"content-type", b"application/x-www-form-urlencoded"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            },
+            receive=receive,
+        )
+
+        response = await provider._handle_submit(request)
+
+        assert response.status_code == 302
+        assert response.headers["location"].startswith("https://claude.ai/api/mcp/auth_callback?code=")
+        assert "state=state-1" in response.headers["location"]
+
+    asyncio.run(run())
+
+
 def test_api_key_oauth_loads_access_token_without_revalidating_key():
     async def run():
         api_key = "bp_secret_test_key"
