@@ -6,7 +6,8 @@ import logging
 import secrets
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, cast
 
 from authlib.jose import JsonWebToken
 from authlib.jose.errors import JoseError
@@ -24,7 +25,7 @@ from mcp.server.auth.provider import (
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl, TypeAdapter, ValidationError
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse, Response
+from starlette.responses import HTMLResponse, Response
 from starlette.routing import Route
 
 from .config import BAUPLAN_API_KEY_CLAIM, OAuthConfig
@@ -38,7 +39,7 @@ _CLIENT_REGISTRATION_USE = "client-registration"
 
 _SIGNING_SALT = "bauplan-mcp-oauth-signing"
 _STORAGE_SALT = "bauplan-mcp-api-key-storage"
-_AUTH_CODE_TTL_SECONDS = 60
+_AUTH_CODE_TTL_SECONDS = 5 * 60
 _TXN_TTL_SECONDS = 15 * 60
 _PUBLIC_CLIENT_AUTH_METHOD = "none"
 
@@ -54,7 +55,14 @@ _HTML_SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
 }
 
-ValidateApiKey = Callable[[str], bool | Awaitable[bool]]
+
+@dataclass(frozen=True)
+class BauplanUserInfo:
+    username: str | None
+    full_name: str | None
+
+
+ValidateApiKey = Callable[[str], BauplanUserInfo | None | Awaitable[BauplanUserInfo | None]]
 
 
 class APIKeyOAuthProvider(OAuthProvider):
@@ -189,7 +197,8 @@ class APIKeyOAuthProvider(OAuthProvider):
         if not api_key:
             return _html_response("A Bauplan API key is required.", 400)
 
-        if not await self._call_validate_api_key(api_key):
+        user_info = await self._call_validate_api_key(api_key)
+        if user_info is None:
             logger.info("Rejected Bauplan API key during OAuth authorization")
             return _html_response("The provided Bauplan API key could not be validated.", 401)
 
@@ -204,13 +213,35 @@ class APIKeyOAuthProvider(OAuthProvider):
         location = construct_redirect_uri(
             str(txn["redirect_uri"]), code=code, state=str(txn.get("state") or "")
         )
-        return RedirectResponse(location, status_code=302, headers=_NO_STORE_HEADERS)
+        escaped_location = html.escape(location, quote=True)
+        escaped_username = html.escape(user_info.username) if user_info.username else None
+        escaped_full_name = html.escape(user_info.full_name) if user_info.full_name else None
+        user_lines = ""
+        if escaped_username:
+            user_lines += f"  <p>Username: <strong>{escaped_username}</strong></p>\n"
+        if escaped_full_name:
+            user_lines += f"  <p>Name: <strong>{escaped_full_name}</strong></p>\n"
+        page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bauplan MCP Authorization Complete</title>
+</head>
+<body>
+  <h1>Authorization complete</h1>
+  <p>Your Bauplan API key was validated.</p>
+{user_lines}  <p>Continue to complete the Claude connection.</p>
+  <p><a href="{escaped_location}" role="button">Return to Claude</a></p>
+</body>
+</html>"""
+        return HTMLResponse(page, headers=_HTML_SECURITY_HEADERS)
 
-    async def _call_validate_api_key(self, api_key: str) -> bool:
+    async def _call_validate_api_key(self, api_key: str) -> BauplanUserInfo | None:
         result = self._validate_api_key(api_key)
         if asyncio.iscoroutine(result) or isinstance(result, Awaitable):
             result = await result
-        return bool(result)
+        return cast(BauplanUserInfo | None, result)
 
     async def load_authorization_code(
         self,
@@ -402,15 +433,19 @@ class APIKeyOAuthProvider(OAuthProvider):
         return dict(payload)
 
 
-async def validate_bauplan_api_key(api_key: str) -> bool:
+async def validate_bauplan_api_key(api_key: str) -> BauplanUserInfo | None:
     """Validate a Bauplan API key without leaking exception details to clients."""
     try:
         import bauplan
 
-        await asyncio.to_thread(bauplan.Client(api_key=api_key).info)
+        info = await asyncio.to_thread(bauplan.Client(api_key=api_key).info)
+        user = info.user
     except Exception:
-        return False
-    return True
+        return None
+    return BauplanUserInfo(
+        username=getattr(user, "username", None),
+        full_name=getattr(user, "full_name", None),
+    )
 
 
 def create_api_key_oauth_provider(config: OAuthConfig) -> APIKeyOAuthProvider:
