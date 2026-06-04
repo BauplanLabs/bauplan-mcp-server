@@ -9,7 +9,7 @@ dependencies = [
   "uvicorn[standard]",
   "bauplan>=0.0.3a431",
   "pydantic~=2.12.5",
-  "authlib>=1.6.0",
+  "authlib>=1.6.12",
   "cryptography>=46.0.0",
 ]
 
