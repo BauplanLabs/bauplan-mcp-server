@@ -8,7 +8,7 @@ from mcp.server.auth.provider import AuthorizationParams, AuthorizeError, Refres
 from mcp.shared.auth import OAuthClientInformationFull
 from pydantic import AnyUrl, TypeAdapter
 
-from mcp_bauplan.auth.api_key_oauth import APIKeyOAuthProvider
+from mcp_bauplan.auth.api_key_oauth import APIKeyOAuthProvider, BauplanUserInfo
 from mcp_bauplan.auth.config import BAUPLAN_API_KEY_CLAIM, OAuthConfig
 
 _ANY_URL = TypeAdapter(AnyUrl)
@@ -24,14 +24,18 @@ def _url(value: str) -> AnyUrl:
     return _ANY_URL.validate_python(value)
 
 
+def _user_info() -> BauplanUserInfo:
+    return BauplanUserInfo(username="test-user", full_name="Test User")
+
+
 def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
     async def run():
         api_key = "bp_secret_test_key"
         validation_calls = []
 
-        def validate(key: str) -> bool:
+        def validate(key: str) -> BauplanUserInfo | None:
             validation_calls.append(key)
-            return key == api_key
+            return _user_info() if key == api_key else None
 
         provider = APIKeyOAuthProvider(
             config=OAuthConfig(
@@ -92,7 +96,7 @@ def test_api_key_oauth_registration_is_stateless_across_provider_instances():
             base_url="https://mcp.example.com",
             secret="x" * 32,
         )
-        provider = APIKeyOAuthProvider(config=config, validate_api_key=lambda _: True)
+        provider = APIKeyOAuthProvider(config=config, validate_api_key=lambda _: _user_info())
         client = OAuthClientInformationFull(
             client_id="original-client-id",
             client_secret="original-client-secret",
@@ -108,7 +112,7 @@ def test_api_key_oauth_registration_is_stateless_across_provider_instances():
         assert client.client_secret is None
         assert client.token_endpoint_auth_method == "none"
 
-        fresh_provider = APIKeyOAuthProvider(config=config, validate_api_key=lambda _: True)
+        fresh_provider = APIKeyOAuthProvider(config=config, validate_api_key=lambda _: _user_info())
         decoded_client = await fresh_provider.get_client(client.client_id)
 
         assert decoded_client is not None
@@ -128,7 +132,7 @@ def test_api_key_oauth_rejects_mismatched_resource():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda _: True,
+            validate_api_key=lambda _: _user_info(),
         )
         client = OAuthClientInformationFull(
             client_id="client-1",
@@ -152,7 +156,7 @@ def test_api_key_oauth_rejects_mismatched_resource():
     asyncio.run(run())
 
 
-def test_api_key_oauth_submit_redirects_with_found_status():
+def test_api_key_oauth_submit_returns_completion_page():
     async def run():
         api_key = "bp_secret_test_key"
         provider = APIKeyOAuthProvider(
@@ -160,7 +164,7 @@ def test_api_key_oauth_submit_redirects_with_found_status():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda key: key == api_key,
+            validate_api_key=lambda key: _user_info() if key == api_key else None,
         )
         txn_id = provider._issue_container_token(
             container_use="auth-txn",
@@ -205,9 +209,142 @@ def test_api_key_oauth_submit_redirects_with_found_status():
 
         response = await provider._handle_submit(request)
 
-        assert response.status_code == 302
-        assert response.headers["location"].startswith("https://claude.ai/api/mcp/auth_callback?code=")
-        assert "state=state-1" in response.headers["location"]
+        body = bytes(response.body).decode()
+        assert response.status_code == 200
+        assert "Return to Claude" in body
+        assert "Your Bauplan API key was validated." in body
+        assert "test-user" in body
+        assert "Test User" in body
+        assert "https://claude.ai/api/mcp/auth_callback?code=" in body
+        assert "state=state-1" in body
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_submit_issues_code_with_human_click_ttl(monkeypatch):
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda key: _user_info() if key == api_key else None,
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Claude",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        monkeypatch.setattr("mcp_bauplan.auth.api_key_oauth.time.time", lambda: 1_000)
+
+        body = f"txn_id={txn_id}&api_key={api_key}".encode()
+        from collections.abc import MutableMapping
+        from typing import Any
+
+        from starlette.requests import Request
+
+        async def receive() -> MutableMapping[str, Any]:
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+
+        request: Request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/bauplan-api-key",
+                "headers": [
+                    (b"content-type", b"application/x-www-form-urlencoded"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            },
+            receive=receive,
+        )
+
+        response = await provider._handle_submit(request)
+        callback_url = urlparse(bytes(response.body).decode().split('href="', 1)[1].split('"', 1)[0])
+        code = parse_qs(callback_url.query)["code"][0]
+        payload = _decode_jwt_payload(code)
+
+        assert payload["exp"] - payload["iat"] == 5 * 60
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_submit_escapes_user_info():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: BauplanUserInfo(
+                username='<script>alert("x")</script>',
+                full_name="Alice & Bob <img src=x onerror=alert(1)>",
+            ),
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Claude",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        body = f"txn_id={txn_id}&api_key={api_key}".encode()
+        from collections.abc import MutableMapping
+        from typing import Any
+
+        from starlette.requests import Request
+
+        async def receive() -> MutableMapping[str, Any]:
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+
+        request: Request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/bauplan-api-key",
+                "headers": [
+                    (b"content-type", b"application/x-www-form-urlencoded"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            },
+            receive=receive,
+        )
+
+        response = await provider._handle_submit(request)
+        response_body = bytes(response.body).decode()
+
+        assert "<script>" not in response_body
+        assert "<img" not in response_body
+        assert "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;" in response_body
+        assert "Alice &amp; Bob &lt;img src=x onerror=alert(1)&gt;" in response_body
 
     asyncio.run(run())
 
@@ -217,10 +354,10 @@ def test_api_key_oauth_loads_access_token_without_revalidating_key():
         api_key = "bp_secret_test_key"
         validation_calls = 0
 
-        def validate(_: str) -> bool:
+        def validate(_: str) -> BauplanUserInfo | None:
             nonlocal validation_calls
             validation_calls += 1
-            return False
+            return None
 
         provider = APIKeyOAuthProvider(
             config=OAuthConfig(
@@ -251,7 +388,7 @@ def test_api_key_oauth_rejects_non_access_token_on_access_load():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda _: True,
+            validate_api_key=lambda _: _user_info(),
         )
         code = provider._issue_container_token(
             container_use="auth-code",
@@ -274,7 +411,7 @@ def test_api_key_oauth_returns_none_for_non_ascii_encrypted_claim():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda _: True,
+            validate_api_key=lambda _: _user_info(),
         )
         payload = {
             "iss": "https://mcp.example.com",
@@ -304,7 +441,7 @@ def test_api_key_oauth_refresh_token_is_stateless_container():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda _: True,
+            validate_api_key=lambda _: _user_info(),
         )
         token = await provider._issue_tokens(
             encrypted_api_key=provider._encrypt_api_key(api_key),
@@ -337,7 +474,7 @@ def test_api_key_oauth_refresh_exchange_wraps_invalid_token_as_token_error():
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
-            validate_api_key=lambda _: True,
+            validate_api_key=lambda _: _user_info(),
         )
         client = OAuthClientInformationFull(
             client_id="client-1", redirect_uris=[_url("http://localhost/callback")]
