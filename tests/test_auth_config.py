@@ -34,3 +34,12 @@ def test_oauth_config_normalizes_base_url(monkeypatch, tmp_path):
     assert config.base_url == "https://mcp.example.com"
     assert config.secret == "x" * 32
     assert config.client_registration_ttl_seconds == 86400
+
+
+def test_oauth_config_removes_default_https_port(monkeypatch):
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com:443")
+    monkeypatch.setenv("MCP_OAUTH_SECRET", "x" * 32)
+
+    config = load_oauth_config()
+
+    assert config.base_url == "https://mcp.example.com"

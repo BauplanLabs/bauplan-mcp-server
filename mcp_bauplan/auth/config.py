@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 
 AuthMode = Literal["none", "api-key-oauth"]
 
@@ -30,7 +31,7 @@ def get_auth_mode() -> AuthMode:
 
 
 def load_oauth_config() -> OAuthConfig:
-    base_url = _required_env("MCP_PUBLIC_BASE_URL").rstrip("/")
+    base_url = _normalize_base_url(_required_env("MCP_PUBLIC_BASE_URL"))
     secret = _required_env("MCP_OAUTH_SECRET")
     if len(secret) < MIN_SECRET_LENGTH:
         raise ValueError(f"MCP_OAUTH_SECRET must be at least {MIN_SECRET_LENGTH} characters")
@@ -55,6 +56,14 @@ def _required_env(name: str) -> str:
     if value is None or not value.strip():
         raise ValueError(f"{name} is required when MCP_AUTH_MODE=api-key-oauth")
     return value.strip()
+
+
+def _normalize_base_url(value: str) -> str:
+    parts = urlsplit(value.strip().rstrip("/"))
+    netloc = parts.netloc
+    if (parts.scheme, parts.port) in (("https", 443), ("http", 80)):
+        netloc = parts.hostname or netloc
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
 
 
 def _positive_int_env(name: str, default: int) -> int:
