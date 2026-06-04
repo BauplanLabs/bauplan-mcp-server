@@ -204,7 +204,7 @@ class APIKeyOAuthProvider(OAuthProvider):
         location = construct_redirect_uri(
             str(txn["redirect_uri"]), code=code, state=str(txn.get("state") or "")
         )
-        return RedirectResponse(location, status_code=303, headers=_NO_STORE_HEADERS)
+        return RedirectResponse(location, status_code=302, headers=_NO_STORE_HEADERS)
 
     async def _call_validate_api_key(self, api_key: str) -> bool:
         result = self._validate_api_key(api_key)
