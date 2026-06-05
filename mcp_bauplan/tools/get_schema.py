@@ -7,6 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
+from ._schema import field_to_dict
 from .create_client import get_bauplan_client
 
 
@@ -60,15 +61,12 @@ def register_get_schema_tool(mcp: FastMCP) -> None:
                     bauplan_client.get_table,
                     table=f"{namespace}.{t['name']}",
                     ref=ref,
-                    include_raw=True,
                 )
 
-                if table_info.raw is None:
-                    raise ToolError(
-                        f"No raw schema information available for table '{namespace}.{t['name']}' at ref '{ref}'."
-                    )
-
-                table_schema = TableSchema(name=t["name"], fields=table_info.raw["schemas"][0]["fields"])
+                table_schema = TableSchema(
+                    name=t["name"],
+                    fields=[field_to_dict(field) for field in table_info.fields],
+                )
                 schema_list.append(TableWrapper(table=table_schema))
 
             return SchemasOut(tables=schema_list)
