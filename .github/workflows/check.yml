@@ -5,47 +5,87 @@ on:
   push:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  PYTHON_VERSION: "3.13"
+  UV_PYTHON: "3.13"
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: jdx/mise-action@v3
-      - run: uv sync --group dev
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - run: uv sync --locked --python "$PYTHON_VERSION" --group dev
       - run: mise run check
 
-  docker-changes:
+  docker-build:
+    needs: [check]
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: read
-    outputs:
-      docker: ${{ steps.filter.outputs.docker }}
+      contents: read
+      packages: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
-        id: filter
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          filters: |
-            docker:
-              - "mcp_bauplan/**"
-              - "main.py"
-              - "Dockerfile"
-              - "entrypoint.sh"
-              - "pyproject.toml"
-              - "uv.lock"
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
-  docker-build:
-    needs: [check, docker-changes]
-    if: needs.docker-changes.outputs.docker == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+      - name: Set image metadata
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          image="${{ env.REGISTRY }}/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          source_sha="$GITHUB_SHA"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            source_sha="$PR_HEAD_SHA"
+            source_ref="pr-${PR_NUMBER}"
+          else
+            source_ref="$REF_NAME"
+          fi
+          short_sha="${source_sha:0:7}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            tag="pr-${PR_NUMBER}-${short_sha}"
+          else
+            tag="sha-${short_sha}"
+          fi
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
+          echo "source_ref=${source_ref}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
-        run: docker build -t mcp-bauplan .
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+          SOURCE_REF: ${{ steps.meta.outputs.source_ref }}
+          SOURCE_SHA: ${{ steps.meta.outputs.source_sha }}
+        run: |
+          docker build \
+            --build-arg "CI_BUILD_VERSION=$PYTHON_VERSION" \
+            --build-arg "CI_DOCKER_SHA=$SOURCE_SHA" \
+            --build-arg "CI_DOCKER_REF=$SOURCE_REF" \
+            --build-arg "CI_DOCKER_IMAGE_TAG=$IMAGE_TAG" \
+            --build-arg "CI_DOCKER_BUILD_DATETIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t "$IMAGE:$IMAGE_TAG" \
+            .
 
       - name: Start container
-        run: docker run -d --name mcp -p 8000:8000 mcp-bauplan
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+        run: docker run -d --name mcp -p 8000:8000 "$IMAGE:$IMAGE_TAG"
 
       - name: Smoke test
         run: |
@@ -65,3 +105,24 @@ jobs:
       - name: Stop container
         if: always()
         run: docker stop mcp || true
+
+      - name: Log in to GHCR
+        if: github.actor != 'dependabot[bot]' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.actor != 'dependabot[bot]' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          IMAGE: ${{ steps.meta.outputs.image }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          docker push "$IMAGE:$IMAGE_TAG"
+          if [ "$EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            docker tag "$IMAGE:$IMAGE_TAG" "$IMAGE:latest"
+            docker push "$IMAGE:latest"
+          fi
