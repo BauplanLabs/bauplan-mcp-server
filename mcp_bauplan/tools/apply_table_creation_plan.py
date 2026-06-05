@@ -3,6 +3,7 @@ Apply a table creation plan to resolve schema conflicts.
 """
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -18,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class TablePlanApplied(BaseModel):
-    job_id: str
+    job_id: str | None = None
+    job_status: str | None = None
+    error: str | None = None
     success: bool
     message: str
 
@@ -26,7 +29,7 @@ class TablePlanApplied(BaseModel):
 def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="apply_table_creation_plan")
     async def apply_table_creation_plan(
-        plan: dict[str, Any],
+        plan: str | dict[str, Any],
         debug: bool | None = None,
         args: dict[str, str] | None = None,
         priority: int | None = None,
@@ -44,11 +47,11 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
         Note: This is done automatically during table plan creation if no schema conflicts exist.
 
         Args:
-            plan: The plan dictionary or TableCreatePlanState to apply.
-            debug: Whether to enable or disable debug mode (optional).
+            plan: The plan string or dictionary to apply.
+            debug: Deprecated compatibility option; ignored by the current Bauplan SDK.
             args: Additional arguments for plan application (optional).
             priority: Job priority, 1-10 where 10 is highest priority (optional).
-            verbose: Whether to enable or disable verbose mode (optional).
+            verbose: Deprecated compatibility option; ignored by the current Bauplan SDK.
             client_timeout: Timeout in seconds (defaults to 120).
 
         Returns:
@@ -59,26 +62,35 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
                 await ctx.info("Applying table creation plan")
 
             # Call apply_table_creation_plan function
-            result = await asyncio.to_thread(
-                bauplan_client.apply_table_creation_plan,
-                plan=plan,
-                debug=debug,
-                args=args,
-                priority=priority,
-                verbose=verbose,
-                client_timeout=client_timeout,
-            )
+            plan_payload = json.dumps(plan) if isinstance(plan, dict) else plan
+            try:
+                result = await asyncio.to_thread(
+                    bauplan_client.apply_table_creation_plan,
+                    plan=plan_payload,
+                    args=args,
+                    priority=priority,
+                    client_timeout=client_timeout,
+                )
+            except bauplan.exceptions.TableCreatePlanApplyStatusError as e:
+                result = e.state
 
             # Extract job_id from TableCreatePlanApplyState object
             job_id = result.job_id
+            success = result.error is None
 
             # Log successful plan application with job_id
             logger.info(f"Successfully applied table creation plan with job_id: {job_id}")
 
             return TablePlanApplied(
                 job_id=job_id,
-                success=True,
-                message=f"Table creation plan applied successfully with job_id: {job_id}",
+                job_status=result.job_status,
+                error=result.error,
+                success=success,
+                message=(
+                    f"Table creation plan applied successfully with job_id: {job_id}"
+                    if success
+                    else f"Table creation plan apply failed with job_id: {job_id}: {result.error}"
+                ),
             )
 
         except Exception as e:

@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 
 import bauplan
-from bauplan import JobState
+from bauplan import JobKind
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
@@ -45,14 +45,14 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> JobsList:
         """
-        Retrieve a list of jobs in Bauplan, optionally filter by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, start and end time (UTC, format '%m/%d/%y %H:%M:%S').
+        Retrieve a list of Bauplan run jobs, optionally filtered by job id, status (COMPLETE, FAIL, ABORT, RUNNING), user name, and created time window (UTC, format '%m/%d/%y %H:%M:%S').
 
         Args:
             job_id: Optional filter by job ID
             status: Optional filter by job status, either COMPLETE, FAIL, ABORT or RUNNING
             user_name: Optional filter by user name
-            start_time: Optional filter by job start time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
-            end_time: Optional filter by job finish time, UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
+            start_time: Optional filter for jobs created after this UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
+            end_time: Optional filter for jobs created before this UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
 
         Returns:
             JobsList: Object containing list of jobs with their details
@@ -72,30 +72,27 @@ def register_list_jobs_tool(mcp: FastMCP) -> None:
             start_date_time = datetime.strptime(start_time, "%m/%d/%y %H:%M:%S") if start_time else None
             end_date_time = datetime.strptime(end_time, "%m/%d/%y %H:%M:%S") if end_time else None
 
-            # Call list_jobs function
+            # Call get_jobs function
             jobs_result = await asyncio.to_thread(
-                bauplan_client.list_jobs,
-                filter_by_id=job_id if job_id else None,
-                filter_by_status=JobState[status.upper()] if status else None,
-                filter_by_finish_time=(start_date_time, end_date_time),
-            )
-            # filter for jobs which have a code snapshot associated to them
-            jobs_result = list(
-                filter(
-                    lambda j: j.kind == "CodeSnapshotRun",
-                    jobs_result,
+                lambda: list(
+                    bauplan_client.get_jobs(
+                        all_users=user_name is not None,
+                        filter_by_ids=job_id if job_id else None,
+                        filter_by_users=user_name if user_name else None,
+                        filter_by_kinds=None if job_id else JobKind.RUN,
+                        filter_by_statuses=status.upper() if status else None,
+                        filter_by_created_after=start_date_time,
+                        filter_by_created_before=end_date_time,
+                    )
                 )
             )
-            # if user_name, filter for jobs by user_name
-            if user_name:
-                jobs_result = list(filter(lambda j: j.user == user_name, jobs_result))
 
             # Convert Job objects to JobInfo BaseModel instances
             job_info_list = []
             for job in jobs_result:
                 job_info = JobInfo(
                     id=job.id,
-                    kind=job.kind,
+                    kind=str(job.kind),
                     user=job.user,
                     human_readable_status=job.human_readable_status,
                     created_at=job.created_at.isoformat() if job.created_at else None,

@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 class DataImported(BaseModel):
     table_name: str
-    job_id: str
+    job_id: str | None = None
+    job_status: str | None = None
+    error: str | None = None
     success: bool
     message: str
 
@@ -63,13 +65,21 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             )
 
             # Log successful import with job_id from TableDataImportState object
-            logger.info(f"Successfully started data import for table '{table}' with job_id: {result.job_id}")
+            job_id = result.job_id
+            logger.info(f"Successfully started data import for table '{table}' with job_id: {job_id}")
+            success = result.error is None
 
             return DataImported(
                 table_name=table,
-                job_id=result.job_id,
-                success=True,
-                message=f"Data import started successfully for table '{table}' with job_id: {result.job_id}",
+                job_id=job_id,
+                job_status=result.job_status,
+                error=result.error,
+                success=success,
+                message=(
+                    f"Data import completed for table '{table}' with job_id: {job_id}"
+                    if success
+                    else f"Data import failed for table '{table}' with job_id: {job_id}: {result.error}"
+                ),
             )
 
         except Exception as e:
