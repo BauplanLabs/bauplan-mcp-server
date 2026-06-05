@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 def _extract_token(raw: str | None) -> str | None:
     """Normalize bearer-style headers to a plain token string."""
+
     if not raw:
         return None
 
@@ -29,6 +30,7 @@ def get_bauplan_client() -> bauplan.Client:
     Extracts the API key from the HTTP request header (if present) and creates a Bauplan client.
     Falls back to default credentials outside OAuth-protected HTTP transports.
     """
+
     try:
         http_headers = get_http_request().headers
     except Exception:

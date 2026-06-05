@@ -24,6 +24,7 @@ class JobInfo(BaseModel):
     created_at: str | None
     finished_at: str | None
     status: str
+    error_message: str | None = None
 
 
 def register_cancel_job_tool(mcp: FastMCP) -> None:
@@ -42,20 +43,18 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
         Returns:
             JobInfo: Object containing updated job details after cancellation
         """
+
         try:
             if ctx:
                 await ctx.info(f"Cancelling job with ID: {job_id}")
 
-            # Call cancel_job function
             await asyncio.to_thread(
-                bauplan_client.cancel_job,
-                job_id=job_id,
+                lambda: bauplan_client.cancel_job(job_id),
             )
 
             # Get the updated job details after cancellation
             job = await asyncio.to_thread(
-                bauplan_client.get_job,
-                job_id=job_id,
+                lambda: bauplan_client.get_job(job_id),
             )
 
             # Convert Job object to JobInfo BaseModel instance
@@ -67,6 +66,7 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
                 created_at=job.created_at.isoformat() if job.created_at else None,
                 finished_at=job.finished_at.isoformat() if job.finished_at else None,
                 status=str(job.status),
+                error_message=job.error_message or None,
             )
 
             # Log successful cancellation
@@ -83,7 +83,7 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
                 or "job" in error_msg.lower()
             ):
                 logger.error(f"Job not found or error cancelling job {job_id}: {error_msg}")
-                raise ToolError(f"Job {job_id} not found or could not be cancelled") from e
+                raise ToolError(f"Error executing cancel_job '{job_id}': job not found or could not be cancelled") from e
             else:
                 logger.error(f"Unexpected error cancelling job {job_id}: {error_msg}")
-                raise ToolError(f"Failed to cancel job {job_id}: {error_msg}") from e
+                raise ToolError(f"Error executing cancel_job '{job_id}': {error_msg}") from e

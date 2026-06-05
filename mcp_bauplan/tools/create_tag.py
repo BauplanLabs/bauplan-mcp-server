@@ -4,16 +4,9 @@ import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
 
 from .create_client import get_bauplan_client
-
-
-class TagCreated(BaseModel):
-    created: bool
-    tag: str
-    from_ref: str
-    message: str | None = None
+from .get_tag import TagInfo, TagOut
 
 
 def register_create_tag_tool(mcp: FastMCP) -> None:
@@ -23,7 +16,7 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
         from_ref: str,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
-    ) -> TagCreated:
+    ) -> TagOut:
         """
         Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.
         Create a new tag in a specific branch of the user's Bauplan catalog.
@@ -33,25 +26,21 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
             from_ref: Reference (branch or commit) from which to create the tag.
 
         Returns:
-            TagCreated: Object indicating success/failure with tag details
+            TagOut: Object containing the created tag name and target commit hash.
         """
+
         try:
             if ctx:
-                await ctx.info(f"Creating tag '{tag}' from reference '{from_ref}")
+                await ctx.info(f"Creating tag '{tag}' from reference '{from_ref}'")
 
-            # Create the tag
-            assert await asyncio.to_thread(
-                bauplan_client.create_tag,
-                tag=tag,
-                from_ref=from_ref,
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.create_tag(
+                    tag=tag,
+                    from_ref=from_ref,
+                )
             )
 
-            return TagCreated(
-                created=True,
-                tag=tag,
-                from_ref=from_ref,
-                message=f"Successfully created tag '{tag}' from reference '{from_ref}'",
-            )
+            return TagOut(tag=TagInfo(name=result.name, hash=result.hash))
 
         except Exception as e:
-            raise ToolError(f"Error executing create_tag: {e}") from e
+            raise ToolError(f"Error executing create_tag '{tag}': {e}") from e

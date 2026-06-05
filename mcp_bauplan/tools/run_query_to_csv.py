@@ -54,18 +54,19 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
         Returns:
             QueryToCSVResult: Object indicating success/failure with execution details
         """
+
         try:
             if ctx:
                 await ctx.info(f"Executing query to CSV file: {path}")
 
-            # Call query_to_csv_file function
             await asyncio.to_thread(
-                bauplan_client.query_to_csv_file,
-                path=path,
-                query=query,
-                ref=ref,
-                namespace=namespace,
-                client_timeout=client_timeout,
+                lambda: bauplan_client.query_to_csv_file(
+                    path=path,
+                    query=query,
+                    ref=ref or None,
+                    namespace=namespace or None,
+                    client_timeout=client_timeout,
+                )
             )
 
             # Log successful execution
@@ -92,4 +93,4 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
                 ) from e
             else:
                 logger.error(f"Error executing query to CSV {path}: {error_msg}")
-                raise ToolError(f"Failed to execute query to CSV {path}: {error_msg}") from e
+                raise ToolError(f"Error executing run_query_to_csv '{path}': {error_msg}") from e

@@ -4,16 +4,10 @@ import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
 
+from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
-
-
-class NamespaceCreated(BaseModel):
-    created: bool
-    namespace: str
-    branch: str
-    message: str | None = None
+from .get_namespace import NamespaceInfo, NamespaceOut
 
 
 def register_create_namespace_tool(mcp: FastMCP) -> None:
@@ -23,7 +17,7 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
         branch: str,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
-    ) -> NamespaceCreated:
+    ) -> NamespaceOut:
         """
         Create a new namespace in a specified branch of the user's Bauplan data catalog using a namespace name.
 
@@ -32,25 +26,23 @@ def register_create_namespace_tool(mcp: FastMCP) -> None:
             branch: Branch name where the namespace will be created. Must follow the format <username.branch_name>.
 
         Returns:
-            NamespaceCreated: Object indicating success/failure with namespace details
+            NamespaceOut: Object containing the created namespace name.
         """
+
         try:
+            branch = require_writable_branch(branch, "create_namespace")
+
             if ctx:
-                await ctx.info(f"Creating namespace '{namespace}' in branch '{branch}")
+                await ctx.info(f"Creating namespace '{namespace}' in branch '{branch}'")
 
-            # Create the namespace
-            assert await asyncio.to_thread(
-                bauplan_client.create_namespace,
-                namespace=namespace,
-                branch=branch,
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.create_namespace(
+                    namespace=namespace,
+                    branch=branch,
+                )
             )
 
-            return NamespaceCreated(
-                created=True,
-                namespace=namespace,
-                branch=branch,
-                message=f"Successfully created namespace '{namespace}' in branch '{branch}'",
-            )
+            return NamespaceOut(namespace=NamespaceInfo(name=result.name))
 
         except Exception as e:
-            raise ToolError(f"Error executing create_namespace: {e}") from e
+            raise ToolError(f"Error executing create_namespace '{namespace}' in branch '{branch}': {e}") from e

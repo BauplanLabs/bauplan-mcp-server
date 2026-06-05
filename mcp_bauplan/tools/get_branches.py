@@ -16,7 +16,6 @@ class BranchInfo(BaseModel):
 
 class BranchesOut(BaseModel):
     branches: list[BranchInfo]
-    total_count: int
 
 
 def register_get_branches_tool(mcp: FastMCP) -> None:
@@ -24,7 +23,7 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
     async def get_branches(
         name: str | None = None,
         user: str | None = None,
-        limit: int | None = 10,
+        limit: int = 10,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchesOut:
@@ -41,10 +40,8 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
         Returns:
             BranchesOut: Object containing list of branches with their names and hashes
         """
-        try:
-            limit = limit or 10
 
-            # Get branches with filters
+        try:
             branches_list = []
 
             all_branches = await asyncio.to_thread(
@@ -52,7 +49,7 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
                     bauplan_client.get_branches(
                         name=name or None,
                         user=user or None,
-                        limit=limit,
+                        limit=limit or 10,
                     )
                 )
             )
@@ -63,11 +60,7 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
                 branch_info = BranchInfo(name=branch.name, hash=branch.hash)
                 branches_list.append(branch_info)
 
-                # If we have a limit and reached it, break
-                if limit and len(branches_list) >= limit:
-                    break
-
-            return BranchesOut(branches=branches_list, total_count=len(branches_list))
+            return BranchesOut(branches=branches_list)
 
         except Exception as e:
             raise ToolError(f"Error executing get_branches: {e}") from e
