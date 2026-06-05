@@ -4,6 +4,8 @@ import logging
 import bauplan
 from pydantic import BaseModel
 
+from ._guards import require_writable_branch
+
 
 class RunState(BaseModel):
     success: bool
@@ -13,39 +15,46 @@ class RunState(BaseModel):
 async def run_project(
     project_dir: str,
     ref: str,
+    namespace: str | None,
+    parameters: dict[str, str | int | float | bool | None] | None,
+    dry_run: bool,
+    client_timeout: int,
+    detach: bool,
+    strict: bool,
     logger: logging.Logger,
     bauplan_client: bauplan.Client,
-    namespace: str | None = None,
-    parameters: dict[str, str | int | float | bool | None] | None = None,
-    dry_run: bool | None = False,
-    client_timeout: int | None = 120,
 ) -> RunState:
     # Ensure parameters are of correct type
     if parameters:
         for key, value in parameters.items():
-            assert isinstance(value, (str, int, float, bool)), (
-                f"Parameter {key} has unsupported type {type(value)}"
-            )
+            if value is not None and not isinstance(value, (str, int, float, bool)):
+                raise ValueError(f"Parameter {key} has unsupported type {type(value)}")
 
-    # We dry-run everywhere, but no non-dry-run can be done with ref = 'main'
-    assert dry_run or ref != "main", "Runs not allowed with ref='main', unless dry_run=True"
+    # Non-dry-run execution must target an explicit non-main ref.
+    if not dry_run:
+        ref = require_writable_branch(ref, "run_project")
 
     # Call run function
     run_state = await asyncio.to_thread(
-        bauplan_client.run,
-        project_dir=project_dir,
-        ref=ref,
-        namespace=namespace,
-        parameters=parameters,
-        dry_run=dry_run,
-        client_timeout=client_timeout,
+        lambda: bauplan_client.run(
+            project_dir=project_dir,
+            ref=ref,
+            namespace=namespace,
+            parameters=parameters,
+            dry_run=dry_run,
+            client_timeout=client_timeout,
+            detach=detach,
+            strict="on" if strict else "off",
+        )
     )
 
     # Log run
-    logger.info(f"Run job, with ID: {run_state.job_id}, status {run_state.job_status}")
+    job_id = run_state.job_id
+    job_status = getattr(run_state, "job_status", None)
+    logger.info(f"Run job, with ID: {job_id}, status {job_status}")
 
-    is_success = run_state.job_status.lower() == "success" if run_state.job_status else False
-    if is_success:
-        assert run_state.job_id is not None
+    is_success = job_status.lower() == "success" if job_status else job_id is not None
+    if is_success and job_id is None:
+        raise ValueError("Run succeeded without a job ID.")
 
-    return RunState(success=is_success, job_id=run_state.job_id)
+    return RunState(success=is_success, job_id=job_id)

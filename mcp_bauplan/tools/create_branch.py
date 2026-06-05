@@ -4,16 +4,10 @@ import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
 
+from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
-
-
-class BranchCreated(BaseModel):
-    created: bool
-    name: str | None = None
-    hash: str | None = None
-    message: str | None = None
+from .get_branch import BranchInfo, BranchOut
 
 
 def register_create_branch_tool(mcp: FastMCP) -> None:
@@ -23,7 +17,7 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
         from_ref: str,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
-    ) -> BranchCreated:
+    ) -> BranchOut:
         """
         Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation.
 
@@ -33,24 +27,22 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
             has 64 additional characters.
 
         Returns:
-            BranchCreated: Object indicating success/failure with branch details
+            BranchOut: Object containing the created branch name and head commit hash.
         """
+
         try:
+            branch = require_writable_branch(branch, "create_branch")
+
             if ctx:
                 await ctx.info(f"Creating branch '{branch}' from ref '{from_ref}'")
 
-            # Create the branch
             result = await asyncio.to_thread(
-                bauplan_client.create_branch,
-                branch=branch,
-                from_ref=from_ref,
+                lambda: bauplan_client.create_branch(
+                    branch=branch,
+                    from_ref=from_ref,
+                )
             )
-            return BranchCreated(
-                created=True,
-                name=result.name,
-                hash=result.hash,
-                message=f"Successfully created branch: {result.name}. Commit: {result.hash}'",
-            )
+            return BranchOut(branch=BranchInfo(name=result.name, hash=result.hash))
 
         except Exception as e:
-            raise ToolError(f"Error creating branch: {e}") from e
+            raise ToolError(f"Error executing create_branch '{branch}': {e}") from e

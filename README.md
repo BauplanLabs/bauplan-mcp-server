@@ -121,33 +121,32 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 
 #### Data Operations
 
-* **`list_tables`**: List all tables in a branch/namespace
-* **`get_schema`**: Get schema for all tables in a branch/namespace
+* **`get_tables`**: List all tables in a branch/namespace
 * **`get_table`**: Get schema for a specific table (more efficient for single table)
 * **`run_query`**: Execute SELECT queries on tables
-* **`run_query_to_csv`**: Execute SELECT queries and save results directly to CSV file (scalar data types only)
+* **`run_query_to_csv`**: Execute SELECT queries and save results directly to CSV file (local/non-OAuth servers only, scalar data types only)
 
 #### Branch Management
 
 * **`get_branches`**: List branches with optional filters
+* **`get_branch`**: Get a branch by name
 * **`get_commits`**: Get commit history from branches
 * **`create_branch`**: Create new branches from references
-* **`has_branch`**: Check if a specific branch exists
 * **`merge_branch`**: Merge branches with custom commit messages
 * **`delete_branch`**: Delete branches (with safety checks)
 
 #### Namespace Management
 
 * **`get_namespaces`**: List available namespaces in a branch
+* **`get_namespace`**: Get a namespace by name
 * **`create_namespace`**: Create new namespaces in branches
-* **`has_namespace`**: Check if a specific namespace exists in a branch
 * **`delete_namespace`**: Delete namespaces from branches
 
 #### Tag Management
 
 * **`get_tags`**: Get tags with optional filters
+* **`get_tag`**: Get a tag by name
 * **`create_tag`**: Create a new tag from a reference
-* **`has_tag`**: Check if a tag exists
 * **`delete_tag`**: Delete a tag
 
 #### Table Management
@@ -155,19 +154,18 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 * **`create_table`**: Create a table from S3 location using schema detection (creates ICEBERG table structure but doesn't populate data)
 * **`plan_table_creation`**: Create a table import plan from S3 location (generates YAML schema plan with job tracking)
 * **`apply_table_creation_plan`**: Apply a table creation plan to resolve schema conflicts (returns job_id for tracking)
-* **`has_table`**: Check if a specific table exists in a branch/reference
 * **`delete_table`**: Delete a table from a specific branch
 * **`import_data`**: Import data into an existing table from S3 location (returns job_id for tracking)
 * **`revert_table`**: Revert a table from a source reference to a target branch with optional replacement
 
 #### Project Management
 
-* **`project_run`**: Run a Bauplan project from a specified directory and reference with configurable parameters (dry-run, timeout, detach mode)
+* **`project_run`**: Run a Bauplan project from a specified directory and reference with configurable parameters (local/non-OAuth servers only)
 * **`code_run`**: Run a Bauplan project from code files provided as a dictionary (useful for clients that cannot submit paths), automatically creates temporary directory and validates project structure
 
 #### Job Management
 
-* **`list_jobs`**: List jobs in the Bauplan system with optional filtering for all users
+* **`get_jobs`**: List jobs in the Bauplan system with optional filtering for all users
 * **`get_job`**: Get detailed information about a specific job by its ID
 * **`cancel_job`**: Cancel a running job by its ID and get updated job status
 

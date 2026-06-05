@@ -6,13 +6,12 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
+from ._guards import require_truthy_result, require_writable_branch
 from .create_client import get_bauplan_client
 
 
 class BranchDeleted(BaseModel):
     deleted: bool
-    branch: str
-    message: str | None = None
 
 
 def register_delete_branch_tool(mcp: FastMCP) -> None:
@@ -29,23 +28,23 @@ def register_delete_branch_tool(mcp: FastMCP) -> None:
             branch: Name of the branch to delete. Must follow the format <username.branch_name>.
 
         Returns:
-            BranchDeleted: Object indicating success/failure of the deletion
+            BranchDeleted: Object indicating whether the branch was deleted.
         """
+
         try:
+            branch = require_writable_branch(branch, "delete_branch")
+
             if ctx:
-                await ctx.info(f"Deleting branch '{branch}")
+                await ctx.info(f"Deleting branch '{branch}'")
 
-            # Delete the branch
-            assert await asyncio.to_thread(
-                bauplan_client.delete_branch,
-                branch=branch,
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.delete_branch(
+                    branch=branch,
+                )
             )
+            require_truthy_result(result, "delete_branch")
 
-            return BranchDeleted(
-                deleted=True,
-                branch=branch,
-                message=f"Successfully deleted branch '{branch}'",
-            )
+            return BranchDeleted(deleted=True)
 
         except Exception as e:
-            raise ToolError(f"Error deleting branch: {e}") from e
+            raise ToolError(f"Error executing delete_branch '{branch}': {e}") from e

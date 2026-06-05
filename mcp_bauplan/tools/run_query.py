@@ -1,13 +1,13 @@
 import asyncio
 import datetime
-import re
+from collections import Counter
 from typing import Any
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
@@ -24,48 +24,13 @@ class QueryOut(BaseModel):
     status: str
     data: list[dict[str, Any]]
     metadata: QueryMetadata | None = None
+    warnings: list[str] = Field(default_factory=list)
     error: str | None = None
 
 
-async def execute_query(
-    query: str,
-    bauplan_client,
-    ref: str | None = None,
-    namespace: str | None = None,
-) -> QueryOut:
-    try:
-        # Use provided ref/namespace or fall back to config
-        query_ref = ref if ref is not None else None  # config.branch
-        query_namespace = namespace if namespace is not None else "bauplan"  # config.namespace
-
-        # Execute query and get results as Arrow table
-        result = await asyncio.to_thread(
-            bauplan_client.query,
-            query=query,
-            ref=query_ref,
-            namespace=query_namespace,
-        )
-
-        # Convert pyarrow.Table to list of dictionaries with native Python values
-        data_rows = [
-            dict(zip(result.column_names, [val.as_py() for val in row], strict=True))
-            for row in zip(*[result[col] for col in result.column_names], strict=True)
-        ]
-
-        # Create metadata
-        metadata = QueryMetadata(
-            row_count=len(data_rows),
-            column_names=result.column_names,
-            column_types=[str(field.type) for field in result.schema],
-            query_time=datetime.datetime.now().isoformat(),
-            query=query,
-        )
-
-        # Return successful response
-        return QueryOut(status="success", data=data_rows, metadata=metadata, error=None)
-
-    except Exception as e:
-        raise ToolError(f"Error executing run_query: {e!s}") from e
+def _duplicate_column_names(column_names: list[str]) -> list[str]:
+    counts = Counter(column_names)
+    return list(dict.fromkeys(name for name in column_names if counts[name] > 1))
 
 
 def register_run_query_tool(mcp: FastMCP) -> None:
@@ -74,6 +39,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         query: str,
         ref: str | None = None,
         namespace: str | None = None,
+        max_rows: int = 10,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> QueryOut:
@@ -86,50 +52,47 @@ def register_run_query_tool(mcp: FastMCP) -> None:
             ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
             has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
             namespace: Optional namespace to use.
+            max_rows: Maximum number of rows to return.
 
         Returns:
             QueryOut: Response object with query results or error
         """
+
         try:
-            # Enforce SELECT query for security (prevent other operations)
-            # Remove leading/trailing whitespace and normalize to uppercase
-            normalized_query = query.strip().upper()
+            query_time = datetime.datetime.now().isoformat()
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.query(
+                    query=query,
+                    ref=ref or None,
+                    namespace=namespace or None,
+                    max_rows=max_rows,
+                )
+            )
+            column_names = list(result.column_names)
+            duplicate_columns = _duplicate_column_names(column_names)
+            warnings = []
+            if duplicate_columns:
+                duplicate_label = ", ".join(duplicate_columns[:5])
+                if len(duplicate_columns) > 5:
+                    duplicate_label = f"{duplicate_label}, and {len(duplicate_columns) - 5} more"
+                warnings.append(
+                    f"Duplicate result columns: {duplicate_label}. "
+                    "JSON keeps one value per name; use SQL aliases."
+                )
 
-            # Remove comments (both -- and /* */ style)
-            # Remove single-line comments
-            normalized_query = re.sub(r"--.*$", "", normalized_query, flags=re.MULTILINE)
-            # Remove multi-line comments
-            normalized_query = re.sub(r"/\*.*?\*/", "", normalized_query, flags=re.DOTALL)
-            # Remove leading whitespace again after comment removal
-            normalized_query = normalized_query.strip()
-
-            # Check if it's a SELECT query (also allow WITH for CTEs)
-            if not (normalized_query.startswith("SELECT") or normalized_query.startswith("WITH")):
-                raise ToolError("Only SELECT queries (including CTEs with WITH) are permitted.")
-
-            # Additional security checks for dangerous keywords
-            dangerous_keywords = [
-                "INSERT",
-                "UPDATE",
-                "DELETE",
-                "DROP",
-                "CREATE",
-                "ALTER",
-                "TRUNCATE",
-                "REPLACE",
-                "MERGE",
-                "CALL",
-                "EXEC",
-                "EXECUTE",
-            ]
-
-            # Check for dangerous keywords anywhere in the query
-            for keyword in dangerous_keywords:
-                if keyword in normalized_query:
-                    raise ToolError(f"Query contains forbidden keywords: {keyword}")
-
-            result = await execute_query(query, bauplan_client, ref, namespace)
-            return result
+            return QueryOut(
+                status="success",
+                data=result.to_pylist(),
+                metadata=QueryMetadata(
+                    row_count=result.num_rows,
+                    column_names=column_names,
+                    column_types=[str(field.type) for field in result.schema],
+                    query_time=query_time,
+                    query=query,
+                ),
+                warnings=warnings,
+                error=None,
+            )
 
         except Exception as e:
             raise ToolError(f"Error executing run_query: {e!s}") from e

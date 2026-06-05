@@ -4,16 +4,10 @@ import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
 
+from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
-
-
-class MergeResult(BaseModel):
-    merged: bool
-    source_ref: str
-    target_branch: str
-    message: str | None = None
+from .get_branch import BranchInfo, BranchOut
 
 
 def register_merge_branch_tool(mcp: FastMCP) -> None:
@@ -25,7 +19,7 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
         commit_body: str | None = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
-    ) -> MergeResult:
+    ) -> BranchOut:
         """
         Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.
         Branch names must follow the format <username.branch_name>.
@@ -37,27 +31,25 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
             commit_body: Optional additional commit body/description
 
         Returns:
-            MergeResult: Object indicating success/failure with merge details
+            BranchOut: Object containing the updated target branch name and head commit hash.
         """
+
         try:
+            into_branch = require_writable_branch(into_branch, "merge_branch")
+
             if ctx:
                 await ctx.info(f"Merging '{source_ref}' into '{into_branch}'")
 
-            # Perform the merge
-            assert await asyncio.to_thread(
-                bauplan_client.merge_branch,
-                source_ref=source_ref,
-                into_branch=into_branch,
-                commit_message=commit_message,
-                commit_body=commit_body,
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.merge_branch(
+                    source_ref=source_ref,
+                    into_branch=into_branch,
+                    commit_message=commit_message or None,
+                    commit_body=commit_body or None,
+                )
             )
 
-            return MergeResult(
-                merged=True,
-                source_ref=source_ref,
-                target_branch=into_branch,
-                message=f"Successfully merged '{source_ref}' into '{into_branch}'",
-            )
+            return BranchOut(branch=BranchInfo(name=result.name, hash=result.hash))
 
         except Exception as e:
-            raise ToolError(f"Error merging branch: {e!s}") from e
+            raise ToolError(f"Error executing merge_branch '{source_ref}' into '{into_branch}': {e!s}") from e

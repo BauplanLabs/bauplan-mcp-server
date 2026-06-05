@@ -6,13 +6,12 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel
 
+from ._guards import require_truthy_result
 from .create_client import get_bauplan_client
 
 
 class TagDeleted(BaseModel):
     deleted: bool
-    tag: str
-    message: str | None = None
 
 
 def register_delete_tag_tool(mcp: FastMCP) -> None:
@@ -29,19 +28,21 @@ def register_delete_tag_tool(mcp: FastMCP) -> None:
             tag: Name of the tag to delete.
 
         Returns:
-            TagDeleted: Object indicating success/failure of the deletion
+            TagDeleted: Object indicating whether the tag was deleted.
         """
+
         try:
             if ctx:
-                await ctx.info(f"Deleting tag '{tag}")
+                await ctx.info(f"Deleting tag '{tag}'")
 
-            # Delete the tag
-            assert await asyncio.to_thread(
-                bauplan_client.delete_tag,
-                tag=tag,
+            result = await asyncio.to_thread(
+                lambda: bauplan_client.delete_tag(
+                    tag=tag,
+                )
             )
+            require_truthy_result(result, "delete_tag")
 
-            return TagDeleted(deleted=True, tag=tag, message=f"Successfully deleted tag '{tag}'")
+            return TagDeleted(deleted=True)
 
         except Exception as e:
-            raise ToolError(f"Error executing delete_tag: {e}") from e
+            raise ToolError(f"Error executing delete_tag '{tag}': {e}") from e

@@ -11,18 +11,18 @@ from .create_client import get_bauplan_client
 
 class TagInfo(BaseModel):
     name: str
+    hash: str
 
 
 class TagsOut(BaseModel):
     tags: list[TagInfo]
-    total_count: int
 
 
 def register_get_tags_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_tags")
     async def get_tags(
         filter_by_name: str | None = None,
-        limit: int | None = 10,
+        limit: int = 10,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagsOut:
@@ -35,51 +35,24 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
             limit: Optional maximum number of tags to return
 
         Returns:
-            TagsOut: Object containing list of tags and total count
+            TagsOut: Object containing list of tags with their names and hashes
         """
 
-        limit = limit or 10
-
         try:
-            # Debug logging
             if ctx:
                 await ctx.debug(f"Calling get_tags with filter_by_name='{filter_by_name}', limit={limit}")
 
-            # Get tags with filters
-            tags_list = []
-            tag_count = 0
-
-            try:
-                # Call with direct parameters instead of kwargs
-                all_tags = await asyncio.to_thread(
-                    lambda: list(
-                        bauplan_client.get_tags(
-                            filter_by_name=filter_by_name,
-                            limit=limit,
-                        )
+            all_tags = await asyncio.to_thread(
+                lambda: list(
+                    bauplan_client.get_tags(
+                        filter_by_name=filter_by_name or None,
+                        limit=limit or 10,
                     )
                 )
-                for tag in all_tags:
-                    try:
-                        # Extract tag information
-                        tag_info = TagInfo(name=getattr(tag, "name", str(tag)))
-                        tags_list.append(tag_info)
-                        tag_count += 1
+            )
+            tags_list = [TagInfo(name=tag.name, hash=tag.hash) for tag in all_tags]
 
-                        # If we have a limit and reached it, break
-                        if limit and tag_count >= limit:
-                            break
-
-                    except Exception as e:
-                        if ctx:
-                            await ctx.debug(f"Error processing tag: {e!s}")
-                        continue
-
-            except Exception as e:
-                if ctx:
-                    await ctx.error(f"Error iterating tags: {e!s}")
-
-            return TagsOut(tags=tags_list, total_count=len(tags_list))
+            return TagsOut(tags=tags_list)
 
         except Exception as e:
             raise ToolError(f"Error executing get_tags: {e}") from e

@@ -31,8 +31,7 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
         """
 
         try:
-            # Get user info from the client
-            info = await asyncio.to_thread(bauplan_client.info)
+            info = await asyncio.to_thread(lambda: bauplan_client.info())
             user = info.user
 
             if user is None:
@@ -44,4 +43,4 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            raise ToolError(f"Failed to get user info: {e!s}") from e
+            raise ToolError(f"Error executing get_user_info: {e!s}") from e

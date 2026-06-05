@@ -9,11 +9,11 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
-from authlib.jose import JsonWebToken
-from authlib.jose.errors import JoseError
 from cryptography.fernet import Fernet, InvalidToken
 from fastmcp.server.auth.auth import AccessToken, ClientRegistrationOptions, OAuthProvider
-from fastmcp.server.auth.jwt_issuer import JWTIssuer, derive_jwt_key
+from fastmcp.server.auth.jwt_issuer import derive_jwt_key
+from joserfc import jwk, jwt
+from joserfc.errors import JoseError
 from mcp.server.auth.provider import (
     AuthorizationCode,
     AuthorizationParams,
@@ -25,7 +25,7 @@ from mcp.server.auth.provider import (
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl, TypeAdapter, ValidationError
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Route
 
 from .config import BAUPLAN_API_KEY_CLAIM, OAuthConfig
@@ -93,21 +93,16 @@ class APIKeyOAuthProvider(OAuthProvider):
         self._client_registration_ttl_seconds = config.client_registration_ttl_seconds
         self._base_url = config.base_url
         self._audience = f"{config.base_url.rstrip('/')}/mcp"
-        self._jwt = JsonWebToken(["HS256"])
         self._signing_key = derive_jwt_key(
             low_entropy_material=config.secret,
             salt=_SIGNING_SALT,
         )
+        self._jwk = jwk.import_key(self._signing_key, "oct")
         self._fernet = Fernet(
             derive_jwt_key(
                 low_entropy_material=config.secret,
                 salt=_STORAGE_SALT,
             )
-        )
-        self._issuer = JWTIssuer(
-            issuer=config.base_url,
-            audience=self._audience,
-            signing_key=self._signing_key,
         )
         self._key_entry_url = f"{config.base_url.rstrip('/')}{_KEY_ENTRY_PATH}"
 
@@ -284,7 +279,7 @@ class APIKeyOAuthProvider(OAuthProvider):
         refresh_token: str,
     ) -> RefreshToken | None:
         try:
-            payload = self._issuer.verify_token(refresh_token)
+            payload = self._verify_token(refresh_token)
         except JoseError:
             return None
         if payload.get(_TOKEN_USE_CLAIM) != "refresh" or payload.get("client_id") != client.client_id:
@@ -308,7 +303,7 @@ class APIKeyOAuthProvider(OAuthProvider):
             raise TokenError("invalid_scope", "Requested scopes exceed the original authorization.")
 
         try:
-            old_payload = self._issuer.verify_token(refresh_token.token)
+            old_payload = self._verify_token(refresh_token.token)
         except JoseError as e:
             raise TokenError("invalid_grant", "Refresh token invalid.") from e
         api_key = self._decrypt_api_key(old_payload)
@@ -325,7 +320,7 @@ class APIKeyOAuthProvider(OAuthProvider):
 
     async def load_access_token(self, token: str) -> AccessToken | None:
         try:
-            payload = self._issuer.verify_token(token)
+            payload = self._verify_token(token)
         except JoseError:
             return None
         if payload.get(_TOKEN_USE_CLAIM) != "access":
@@ -348,9 +343,37 @@ class APIKeyOAuthProvider(OAuthProvider):
 
     def get_routes(self, mcp_path: str | None = None) -> list[Route]:
         routes = super().get_routes(mcp_path)
+        routes = [self._public_client_metadata_route(route) for route in routes]
         routes.append(Route(_KEY_ENTRY_PATH, self._render_form, methods=["GET"]))
         routes.append(Route(_KEY_ENTRY_PATH, self._handle_submit, methods=["POST"]))
         return routes
+
+    def _public_client_metadata_route(self, route: Route) -> Route:
+        if route.path != "/.well-known/oauth-authorization-server":
+            return route
+        return Route(
+            route.path,
+            self._authorization_server_metadata,
+            methods=["GET", "OPTIONS"],
+        )
+
+    async def _authorization_server_metadata(self, _: Request) -> Response:
+        base_url = self._base_url.rstrip("/")
+        metadata: dict[str, Any] = {
+            "issuer": base_url,
+            "authorization_endpoint": f"{base_url}/authorize",
+            "token_endpoint": f"{base_url}/token",
+            "registration_endpoint": f"{base_url}/register",
+            "scopes_supported": [],
+            "response_types_supported": ["code"],
+            "grant_types_supported": ["authorization_code", "refresh_token"],
+            "token_endpoint_auth_methods_supported": [_PUBLIC_CLIENT_AUTH_METHOD],
+            "code_challenge_methods_supported": ["S256"],
+        }
+        return JSONResponse(
+            metadata,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
 
     async def _issue_tokens(self, *, encrypted_api_key: str, client_id: str, scopes: list[str]) -> OAuthToken:
         access_token = self._issue_token(
@@ -396,7 +419,18 @@ class APIKeyOAuthProvider(OAuthProvider):
             _TOKEN_USE_CLAIM: token_use,
             _ENCRYPTED_API_KEY_CLAIM: encrypted_api_key,
         }
-        return self._jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, self._signing_key).decode("utf-8")
+        return jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, self._jwk)
+
+    def _verify_token(self, token: str) -> dict[str, Any]:
+        claims = jwt.decode(token, self._jwk, algorithms=["HS256"]).claims
+        exp = claims.get("exp")
+        if not isinstance(exp, int | float) or exp < time.time():
+            raise JoseError("Token has expired")
+        if claims.get("iss") != self._base_url:
+            raise JoseError("Invalid token issuer")
+        if claims.get("aud") != self._audience:
+            raise JoseError("Invalid token audience")
+        return claims
 
     def _encrypt_api_key(self, api_key: str) -> str:
         return self._fernet.encrypt(api_key.encode("utf-8")).decode("ascii")
@@ -421,11 +455,11 @@ class APIKeyOAuthProvider(OAuthProvider):
             "jti": secrets.token_urlsafe(24),
             "container_use": container_use,
         }
-        return self._jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, self._signing_key).decode("utf-8")
+        return jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, self._jwk)
 
     def _load_container_token(self, token: str, *, expected_use: str) -> dict[str, Any] | None:
         try:
-            payload = self._issuer.verify_token(token)
+            payload = self._verify_token(token)
         except JoseError:
             return None
         if payload.get("container_use") != expected_use:

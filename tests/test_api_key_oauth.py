@@ -1,12 +1,16 @@
 import asyncio
 import base64
 import json
+from collections.abc import MutableMapping
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from joserfc import jwt
 from mcp.server.auth.provider import AuthorizationParams, AuthorizeError, RefreshToken, TokenError
 from mcp.shared.auth import OAuthClientInformationFull
 from pydantic import AnyUrl, TypeAdapter
+from starlette.requests import Request
 
 from mcp_bauplan.auth.api_key_oauth import APIKeyOAuthProvider, BauplanUserInfo
 from mcp_bauplan.auth.config import BAUPLAN_API_KEY_CLAIM, OAuthConfig
@@ -26,6 +30,28 @@ def _url(value: str) -> AnyUrl:
 
 def _user_info() -> BauplanUserInfo:
     return BauplanUserInfo(username="test-user", full_name="Test User")
+
+
+def _form_request(body: bytes) -> Request:
+    async def receive() -> MutableMapping[str, Any]:
+        return {
+            "type": "http.request",
+            "body": body,
+            "more_body": False,
+        }
+
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/authorize/key",
+            "headers": [
+                (b"content-type", b"application/x-www-form-urlencoded"),
+                (b"content-length", str(len(body)).encode()),
+            ],
+        },
+        receive=receive,
+    )
 
 
 def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
@@ -182,31 +208,7 @@ def test_api_key_oauth_submit_returns_completion_page():
         )
 
         body = f"txn_id={txn_id}&api_key={api_key}".encode()
-        from collections.abc import MutableMapping
-        from typing import Any
-
-        from starlette.requests import Request
-
-        async def receive() -> MutableMapping[str, Any]:
-            return {
-                "type": "http.request",
-                "body": body,
-                "more_body": False,
-            }
-
-        request: Request = Request(
-            {
-                "type": "http",
-                "method": "POST",
-                "path": "/bauplan-api-key",
-                "headers": [
-                    (b"content-type", b"application/x-www-form-urlencoded"),
-                    (b"content-length", str(len(body)).encode()),
-                ],
-            },
-            receive=receive,
-        )
-
+        request = _form_request(body)
         response = await provider._handle_submit(request)
 
         body = bytes(response.body).decode()
@@ -249,31 +251,7 @@ def test_api_key_oauth_submit_issues_code_with_human_click_ttl(monkeypatch):
         monkeypatch.setattr("mcp_bauplan.auth.api_key_oauth.time.time", lambda: 1_000)
 
         body = f"txn_id={txn_id}&api_key={api_key}".encode()
-        from collections.abc import MutableMapping
-        from typing import Any
-
-        from starlette.requests import Request
-
-        async def receive() -> MutableMapping[str, Any]:
-            return {
-                "type": "http.request",
-                "body": body,
-                "more_body": False,
-            }
-
-        request: Request = Request(
-            {
-                "type": "http",
-                "method": "POST",
-                "path": "/bauplan-api-key",
-                "headers": [
-                    (b"content-type", b"application/x-www-form-urlencoded"),
-                    (b"content-length", str(len(body)).encode()),
-                ],
-            },
-            receive=receive,
-        )
-
+        request = _form_request(body)
         response = await provider._handle_submit(request)
         callback_url = urlparse(bytes(response.body).decode().split('href="', 1)[1].split('"', 1)[0])
         code = parse_qs(callback_url.query)["code"][0]
@@ -313,31 +291,7 @@ def test_api_key_oauth_submit_escapes_user_info():
         )
 
         body = f"txn_id={txn_id}&api_key={api_key}".encode()
-        from collections.abc import MutableMapping
-        from typing import Any
-
-        from starlette.requests import Request
-
-        async def receive() -> MutableMapping[str, Any]:
-            return {
-                "type": "http.request",
-                "body": body,
-                "more_body": False,
-            }
-
-        request: Request = Request(
-            {
-                "type": "http",
-                "method": "POST",
-                "path": "/bauplan-api-key",
-                "headers": [
-                    (b"content-type", b"application/x-www-form-urlencoded"),
-                    (b"content-length", str(len(body)).encode()),
-                ],
-            },
-            receive=receive,
-        )
-
+        request = _form_request(body)
         response = await provider._handle_submit(request)
         response_body = bytes(response.body).decode()
 
@@ -424,11 +378,146 @@ def test_api_key_oauth_returns_none_for_non_ascii_encrypted_claim():
             "token_use": "access",
             "bauplan_api_key_enc": "é",
         }
-        token = provider._jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, provider._signing_key).decode(
-            "utf-8"
+        token = jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, provider._jwk)
+
+        assert await provider.load_access_token(token) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_token_signed_with_different_secret():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        other_provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="y" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        token = other_provider._issue_token(
+            client_id="client-1",
+            scopes=[],
+            encrypted_api_key=other_provider._encrypt_api_key(api_key),
+            token_use="access",
+            expires_in=300,
         )
 
         assert await provider.load_access_token(token) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_unexpected_jwt_algorithm():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        payload = {
+            "iss": "https://mcp.example.com",
+            "aud": "https://mcp.example.com/mcp",
+            "client_id": "client-1",
+            "scope": "",
+            "exp": 9_999_999_999,
+            "iat": 1,
+            "jti": "jti-1",
+            "token_use": "access",
+            "bauplan_api_key_enc": provider._encrypt_api_key(api_key),
+        }
+        token = jwt.encode({"alg": "HS384", "typ": "JWT"}, payload, provider._jwk, algorithms=["HS384"])
+
+        assert await provider.load_access_token(token) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_expired_token():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        token = provider._issue_token(
+            client_id="client-1",
+            scopes=[],
+            encrypted_api_key=provider._encrypt_api_key("bp_secret_test_key"),
+            token_use="access",
+            expires_in=-1,
+        )
+
+        assert await provider.load_access_token(token) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_wrong_issuer_or_audience():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        payload = {
+            "iss": "https://other.example.com",
+            "aud": "https://mcp.example.com/mcp",
+            "client_id": "client-1",
+            "scope": "",
+            "exp": 9_999_999_999,
+            "iat": 1,
+            "jti": "jti-1",
+            "token_use": "access",
+            "bauplan_api_key_enc": provider._encrypt_api_key("bp_secret_test_key"),
+        }
+        wrong_issuer = jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, provider._jwk)
+        payload["iss"] = "https://mcp.example.com"
+        payload["aud"] = "https://other.example.com/mcp"
+        wrong_audience = jwt.encode({"alg": "HS256", "typ": "JWT"}, payload, provider._jwk)
+
+        assert await provider.load_access_token(wrong_issuer) is None
+        assert await provider.load_access_token(wrong_audience) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_advertises_public_client_token_auth():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        metadata_route = next(
+            route
+            for route in provider.get_routes("/mcp")
+            if route.path == "/.well-known/oauth-authorization-server"
+        )
+        request = Request({"type": "http", "method": "GET", "path": metadata_route.path})
+
+        response = await metadata_route.endpoint(request)
+        metadata = json.loads(response.body)
+
+        assert metadata["issuer"] == "https://mcp.example.com"
+        assert metadata["token_endpoint_auth_methods_supported"] == ["none"]
+        assert metadata["registration_endpoint"] == "https://mcp.example.com/register"
 
     asyncio.run(run())
 

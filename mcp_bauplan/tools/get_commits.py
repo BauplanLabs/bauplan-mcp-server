@@ -25,7 +25,6 @@ class CommitInfo(BaseModel):
 
 class CommitsOut(BaseModel):
     commits: list[CommitInfo]
-    total_count: int
 
 
 def register_get_commits_tool(mcp: FastMCP) -> None:
@@ -37,7 +36,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         author_email: str | None = None,
         date_start: str | None = None,
         date_end: str | None = None,
-        limit: int | None = 10,
+        limit: int = 10,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> CommitsOut:
@@ -56,72 +55,27 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
             limit: Maximum number of commits to return (default: 10)
 
         Returns:
-            CommitsOut: Object containing list of commits and total count
+            CommitsOut: Object containing list of commits
         """
-        # Validate required parameters
-        # if not ref:
-        #    if ctx:
-        #        await ctx.error("'ref' parameter is required for get_commits")
-        #    return CommitsOut(
-        #       commits=[],
-        #       total_count=0
-        #    )
-
-        # Check if ref needs username prefix (only if it looks like a branch name)
-        # Skip if it's a commit hash (40 hex chars) or a tag
-        # is_commit_hash = re.match(r'^[a-fA-F0-9]{40}$', ref) is not None
-        #
-        # if not is_commit_hash:
-        #    # Check if ref already contains a username pattern
-        #    if '.' in ref and not ref.startswith('.') and not ref.endswith('.'):
-        #        # ref appears to already have username format or is a tag
-        #        if ctx:
-        #            await ctx.info(f"Ref already includes username prefix or is a tag: '{ref}'")
-        #    else:
-        #        # Add the configured user's prefix (assuming it's a branch)
-        #        ref = config.user + '.' + ref
-        #        if ctx:
-        #            await ctx.info(f"Added username prefix to ref: '{ref}'")
-        # else:
-        #    if ctx:
-        #        await ctx.info(f"Ref is a commit hash: '{ref}'")
-
-        limit = limit or 10
 
         try:
-            # Get commits from Bauplan
-            try:
-                response = await asyncio.to_thread(
-                    lambda: list(
-                        bauplan_client.get_commits(
-                            ref=ref,
-                            filter_by_message=message_filter or None,
-                            filter_by_author_username=author_username or None,
-                            filter_by_author_email=author_email or None,
-                            filter_by_authored_date_start_at=date_start or None,
-                            filter_by_authored_date_end_at=date_end or None,
-                            limit=limit,
-                        )
+            response = await asyncio.to_thread(
+                lambda: list(
+                    bauplan_client.get_commits(
+                        ref=ref,
+                        filter_by_message=message_filter or None,
+                        filter_by_author_username=author_username or None,
+                        filter_by_author_email=author_email or None,
+                        filter_by_authored_date_start_at=date_start or None,
+                        filter_by_authored_date_end_at=date_end or None,
+                        limit=limit or 10,
                     )
                 )
-            except Exception as e:
-                if ctx:
-                    await ctx.error(f"Error calling get_commits API: {e!s}")
-                # Try with just ref parameter if other filters caused issues
-                response = await asyncio.to_thread(
-                    lambda: list(
-                        bauplan_client.get_commits(
-                            ref=ref,
-                            limit=limit,
-                        )
-                    )
-                )
+            )
 
             # Convert response to our model format
             commits_list = []
 
-            # Handle the response - it may be an iterator or a list
-            commit_count = 0
             try:
                 for commit in response:
                     try:
@@ -149,11 +103,6 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                         )
 
                         commits_list.append(commit_info)
-                        commit_count += 1
-
-                        # If we have a limit and reached it, break
-                        if commit_count >= limit:
-                            break
                     except Exception as e:
                         if ctx:
                             await ctx.debug(f"Error processing commit: {e!s}")
@@ -163,7 +112,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                 if ctx:
                     await ctx.error(f"Error iterating commits: {e!s}")
 
-            return CommitsOut(commits=commits_list, total_count=len(commits_list))
+            return CommitsOut(commits=commits_list)
 
         except Exception as e:
             raise ToolError(f"Error executing get_commits: {e}") from e

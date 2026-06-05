@@ -15,7 +15,6 @@ class NamespaceInfo(BaseModel):
 
 class NamespacesOut(BaseModel):
     namespaces: list[NamespaceInfo]
-    total_count: int
 
 
 def register_get_namespaces_tool(mcp: FastMCP) -> None:
@@ -23,7 +22,7 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
     async def get_namespaces(
         ref: str,
         namespace: str | None = None,
-        limit: int | None = 10,
+        limit: int = 10,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> NamespacesOut:
@@ -38,54 +37,27 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
             limit: Optional maximum number of namespaces to return (default: 10)
 
         Returns:
-            NamespacesOut: Object containing list of namespaces and total count
+            NamespacesOut: Object containing namespaces matching the optional filter.
         """
 
-        limit = limit or 10
-
         try:
-            # Debug logging
             if ctx:
                 await ctx.debug(
                     f"Calling get_namespaces with ref='{ref}', filter_by_name='{namespace}', limit={limit}"
                 )
 
-            # Get namespaces with filters
-            namespaces_list = []
-            namespace_count = 0
-
-            try:
-                # Call with direct parameters instead of kwargs
-                all_namespaces = await asyncio.to_thread(
-                    lambda: list(
-                        bauplan_client.get_namespaces(
-                            ref=ref,
-                            filter_by_name=namespace,
-                            limit=limit,
-                        )
+            all_namespaces = await asyncio.to_thread(
+                lambda: list(
+                    bauplan_client.get_namespaces(
+                        ref=ref,
+                        filter_by_name=namespace or None,
+                        limit=limit or 10,
                     )
                 )
-                for ns in all_namespaces:
-                    try:
-                        # Extract namespace information
-                        namespace_info = NamespaceInfo(name=getattr(ns, "name", str(ns)))
-                        namespaces_list.append(namespace_info)
-                        namespace_count += 1
+            )
+            namespaces_list = [NamespaceInfo(name=ns.name) for ns in all_namespaces]
 
-                        # If we have a limit and reached it, break
-                        if limit and namespace_count >= limit:
-                            break
-
-                    except Exception as e:
-                        if ctx:
-                            await ctx.debug(f"Error processing namespace: {e!s}")
-                        continue
-
-            except Exception as e:
-                if ctx:
-                    await ctx.error(f"Error iterating namespaces: {e!s}")
-
-            return NamespacesOut(namespaces=namespaces_list, total_count=len(namespaces_list))
+            return NamespacesOut(namespaces=namespaces_list)
 
         except Exception as e:
             raise ToolError(f"Error executing get_namespaces: {e}") from e

@@ -22,8 +22,10 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         ref: str,
         namespace: str | None = None,
         parameters: dict[str, str | int | float | bool | None] | None = None,
-        dry_run: bool | None = False,
-        client_timeout: int | None = 120,
+        dry_run: bool = False,
+        client_timeout: int = 30,
+        detach: bool = True,
+        strict: bool = True,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> RunState:
@@ -37,11 +39,14 @@ def register_project_run_tool(mcp: FastMCP) -> None:
             namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
             parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool).
             dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
-            client_timeout: Seconds to timeout (defaults to 120).
+            client_timeout: Seconds to timeout (defaults to 30).
+            detach: Whether to return after job submission instead of waiting for completion; use get_job to check status (defaults to True).
+            strict: Whether to enable strict mode for the run (defaults to True).
 
         Returns:
             RunState: Object indicating success/failure with job Id
         """
+
         try:
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")
@@ -53,9 +58,11 @@ def register_project_run_tool(mcp: FastMCP) -> None:
                 parameters=parameters,
                 dry_run=dry_run,
                 client_timeout=client_timeout,
+                detach=detach,
+                strict=strict,
                 logger=logger,
                 bauplan_client=bauplan_client,
             )
         except Exception as e:
             logger.error(f"Error running project from {project_dir}: {e!s}")
-            raise ToolError(f"Failed to run project from {project_dir}: {e!s}") from e
+            raise ToolError(f"Error executing project_run '{project_dir}': {e!s}") from e

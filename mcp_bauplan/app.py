@@ -22,24 +22,20 @@ from .tools.delete_branch import register_delete_branch_tool
 from .tools.delete_namespace import register_delete_namespace_tool
 from .tools.delete_table import register_delete_table_tool
 from .tools.delete_tag import register_delete_tag_tool
+from .tools.get_branch import register_get_branch_tool
 from .tools.get_branches import register_get_branches_tool
 from .tools.get_commits import register_get_commits_tool
 from .tools.get_instructions import register_get_instructions_tool
 from .tools.get_job import register_get_job_tool
+from .tools.get_jobs import register_get_jobs_tool
+from .tools.get_namespace import register_get_namespace_tool
 from .tools.get_namespaces import register_get_namespaces_tool
-from .tools.get_schema import register_get_schema_tool
 from .tools.get_table import register_get_table_tool
+from .tools.get_tables import register_get_tables_tool
+from .tools.get_tag import register_get_tag_tool
 from .tools.get_tags import register_get_tags_tool
 from .tools.get_user_info import register_get_user_info_tool
-from .tools.has_branch import register_has_branch_tool
-from .tools.has_namespace import register_has_namespace_tool
-from .tools.has_table import register_has_table_tool
-from .tools.has_tag import register_has_tag_tool
 from .tools.import_data import register_import_data_tool
-from .tools.list_jobs import register_list_jobs_tool
-
-# Import tool registration functions
-from .tools.list_tables import register_list_tables_tool
 from .tools.merge_branch import register_merge_branch_tool
 from .tools.plan_table_creation import register_plan_table_creation_tool
 from .tools.project_run import register_project_run_tool
@@ -54,6 +50,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.p
 
 # Get the global MCP server name and instructions
 MCP_SERVER_NAME = "mcp-bauplan"
+MCP_PATH = "/mcp"
 INSTRUCTIONS = (
     "This is the MCP server for Bauplan, an AI-first data lakehouse entirely "
     "programmable as code. Bauplan is built on two fundamental abstractions: "
@@ -109,8 +106,10 @@ def main(
     if profile:
         os.environ["BAUPLAN_PROFILE"] = profile
 
+    auth_mode = get_auth_mode()
+
     auth_provider = None
-    if get_auth_mode() == API_KEY_OAUTH_MODE:
+    if auth_mode == API_KEY_OAUTH_MODE:
         from .auth.api_key_oauth import create_api_key_oauth_provider
 
         auth_provider = create_api_key_oauth_provider(load_oauth_config())
@@ -124,36 +123,38 @@ def main(
     )
 
     # Register tools
-    register_list_tables_tool(mcp)
-    register_get_schema_tool(mcp)
+    register_get_tables_tool(mcp)
     register_get_table_tool(mcp)
     register_run_query_tool(mcp)
-    register_run_query_to_csv_tool(mcp)
+    # OAuth remote clients cannot read server-local CSV files.
+    if auth_mode != API_KEY_OAUTH_MODE:
+        register_run_query_to_csv_tool(mcp)
     register_get_branches_tool(mcp)
+    register_get_branch_tool(mcp)
     register_get_commits_tool(mcp)
     register_get_namespaces_tool(mcp)
+    register_get_namespace_tool(mcp)
     register_create_branch_tool(mcp)
-    register_has_branch_tool(mcp)
     register_create_namespace_tool(mcp)
-    register_has_namespace_tool(mcp)
     register_create_table_tool(mcp)
     register_plan_table_creation_tool(mcp)
     register_apply_table_creation_plan_tool(mcp)
-    register_has_table_tool(mcp)
     register_delete_table_tool(mcp)
     register_import_data_tool(mcp)
     register_revert_table_tool(mcp)
-    register_project_run_tool(mcp)
+    # OAuth remote clients cannot use client-local project paths.
+    if auth_mode != API_KEY_OAUTH_MODE:
+        register_project_run_tool(mcp)
     register_code_run_tool(mcp)
-    register_list_jobs_tool(mcp)
+    register_get_jobs_tool(mcp)
     register_get_job_tool(mcp)
     register_cancel_job_tool(mcp)
     register_merge_branch_tool(mcp)
     register_delete_branch_tool(mcp)
     register_delete_namespace_tool(mcp)
     register_get_tags_tool(mcp)
+    register_get_tag_tool(mcp)
     register_create_tag_tool(mcp)
-    register_has_tag_tool(mcp)
     register_delete_tag_tool(mcp)
     register_get_user_info_tool(mcp)
     register_get_instructions_tool(mcp)
@@ -172,7 +173,7 @@ def main(
             app = mcp.http_app(transport="sse")
         else:
             # For HTTP/streamable-http
-            app = mcp.http_app()
+            app = mcp.http_app(path=MCP_PATH)
 
         # Add CORS middleware
         app.add_middleware(
