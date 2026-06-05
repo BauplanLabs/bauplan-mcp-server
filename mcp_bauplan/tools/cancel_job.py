@@ -49,13 +49,13 @@ def register_cancel_job_tool(mcp: FastMCP) -> None:
             # Call cancel_job function
             await asyncio.to_thread(
                 bauplan_client.cancel_job,
-                job_id=job_id,
+                job_id,
             )
 
             # Get the updated job details after cancellation
             job = await asyncio.to_thread(
                 bauplan_client.get_job,
-                job_id=job_id,
+                job_id,
             )
 
             # Convert Job object to JobInfo BaseModel instance

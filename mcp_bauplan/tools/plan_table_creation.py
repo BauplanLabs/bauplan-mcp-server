@@ -17,13 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 class TablePlanCreated(BaseModel):
-    job_id: str
+    job_id: str | None = None
+    job_status: str | None = None
     table_name: str
     search_uri: str
     success: bool
     message: str
     namespace: str | None
     branch: str | None
+    error: str | None = None
+    plan: str | None = None
+    can_auto_apply: bool
+    files_to_be_imported: list[str]
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
@@ -76,15 +81,25 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
 
             # Log successful plan creation with job_id
             logger.info(f"Successfully created table plan for '{table}' with job_id: {job_id}")
+            success = result.error is None
 
             return TablePlanCreated(
                 job_id=job_id,
+                job_status=result.job_status,
                 table_name=table,
                 search_uri=search_uri,
-                success=True,
-                message=f"Table plan created successfully for '{table}' with job_id: {job_id}",
+                success=success,
+                message=(
+                    f"Table plan created successfully for '{table}' with job_id: {job_id}"
+                    if success
+                    else f"Table plan for '{table}' needs attention with job_id: {job_id}: {result.error}"
+                ),
                 namespace=namespace,
                 branch=branch,
+                error=result.error,
+                plan=result.plan,
+                can_auto_apply=result.can_auto_apply,
+                files_to_be_imported=result.files_to_be_imported,
             )
 
         except Exception as e:

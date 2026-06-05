@@ -3,28 +3,29 @@ name = "mcp-bauplan"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 dependencies = [
-  "fastmcp~=2.14.5",
+  "fastmcp~=2.14.7",
   "uvicorn[standard]",
-  "bauplan>=0.0.3a431",
-  "pydantic~=2.12.5",
-  "authlib>=1.6.0",
-  "cryptography>=46.0.0",
+  "bauplan>=0.1.11,<0.2.0",
+  "pydantic~=2.13.4",
+  "authlib~=1.7.2",
+  "joserfc~=1.7.0",
+  "cryptography~=46.0.7",
 ]
 
 [project.optional-dependencies]
 otel = [
-  "opentelemetry-distro==0.60b1",
-  "opentelemetry-exporter-otlp==1.39.1",
-  "opentelemetry-instrumentation-fastapi==0.60b1",
-  "opentelemetry-instrumentation-starlette==0.60b1",
-  "opentelemetry-instrumentation-logging==0.60b1",
-  "opentelemetry-instrumentation-asyncio==0.60b1",
-  "opentelemetry-instrumentation-requests==0.60b1",
-  "opentelemetry-instrumentation-urllib3==0.60b1",
-  "opentelemetry-instrumentation-grpc==0.60b1",
-  "opentelemetry-instrumentation-mcp>=0.52.5",
+  "opentelemetry-distro==0.63b1",
+  "opentelemetry-exporter-otlp==1.42.1",
+  "opentelemetry-instrumentation-fastapi==0.63b1",
+  "opentelemetry-instrumentation-starlette==0.63b1",
+  "opentelemetry-instrumentation-logging==0.63b1",
+  "opentelemetry-instrumentation-asyncio==0.63b1",
+  "opentelemetry-instrumentation-requests==0.63b1",
+  "opentelemetry-instrumentation-urllib3==0.63b1",
+  "opentelemetry-instrumentation-grpc==0.63b1",
+  "opentelemetry-instrumentation-mcp~=0.61.0",
 ]
 
 [project.scripts]
@@ -36,7 +37,7 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
-  "pytest>=9.0.0",
+  "pytest~=9.0.3",
   "watchdog[watchmedo]~=6.0.0",
 ]
 
