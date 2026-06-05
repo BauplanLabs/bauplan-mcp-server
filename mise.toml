@@ -1,5 +1,5 @@
 [tools]
-uv = "0.10.5"
+uv = "0.11.16"
 ruff = "0.15.2"
 ty = "0.0.18"
 pre-commit = "latest"
@@ -7,6 +7,9 @@ pre-commit = "latest"
 
 [settings]
 experimental = true
+
+[env]
+UV_PYTHON = "3.13"
 
 [tasks.lint]
 description = "Run ruff linter"
@@ -22,11 +25,20 @@ run = "ruff format --check ."
 
 [tasks.typecheck]
 description = "Run ty type checker"
-run = "ty check ."
+run = "uv run ty check ."
+
+[tasks.test]
+description = "Run pytest"
+run = "uv run pytest -q"
 
 [tasks.check]
-description = "Run all checks (lint, format, typecheck)"
-depends = ["lint", "format:check", "typecheck"]
+description = "Run all checks (lint, format, typecheck, test)"
+run = """
+ruff check .
+ruff format --check .
+uv run ty check .
+uv run pytest -q
+"""
 
 [tasks.dev]
 description = "Start MCP HTTP server with auto-reload on code changes"
