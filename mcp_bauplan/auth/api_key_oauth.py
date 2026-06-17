@@ -8,6 +8,7 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, cast
+from urllib.parse import SplitResult, urlsplit
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastmcp.server.auth.auth import AccessToken, ClientRegistrationOptions, OAuthProvider
@@ -19,6 +20,7 @@ from mcp.server.auth.provider import (
     AuthorizationParams,
     AuthorizeError,
     RefreshToken,
+    RegistrationError,
     TokenError,
     construct_redirect_uri,
 )
@@ -91,6 +93,7 @@ class APIKeyOAuthProvider(OAuthProvider):
         self._access_token_ttl_seconds = config.access_token_ttl_seconds
         self._refresh_token_ttl_seconds = config.refresh_token_ttl_seconds
         self._client_registration_ttl_seconds = config.client_registration_ttl_seconds
+        self._trusted_redirects = config.trusted_redirects
         self._base_url = config.base_url
         self._audience = f"{config.base_url.rstrip('/')}/mcp"
         self._signing_key = derive_jwt_key(
@@ -110,9 +113,15 @@ class APIKeyOAuthProvider(OAuthProvider):
         rec = self._load_container_token(client_id, expected_use=_CLIENT_REGISTRATION_USE)
         if rec is None:
             return None
-        return _client_from_claims(client_id, rec)
+        client = _client_from_claims(client_id, rec)
+        if client is None or not _redirect_uris_valid(client.redirect_uris or []):
+            return None
+        return client
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
+        if not _redirect_uris_valid(client_info.redirect_uris or []):
+            raise RegistrationError("invalid_redirect_uri", "redirect_uri is not allowed")
+
         issued_at = int(time.time())
         client_info.token_endpoint_auth_method = _PUBLIC_CLIENT_AUTH_METHOD
         client_info.client_secret = None
@@ -129,6 +138,10 @@ class APIKeyOAuthProvider(OAuthProvider):
             raise AuthorizeError("invalid_request", "client_id is required")
         if params.resource and params.resource.rstrip("/") != self._audience:
             raise AuthorizeError("invalid_request", "resource must match the MCP protected resource")
+        if not _redirect_uri_registered(str(params.redirect_uri), client.redirect_uris or []):
+            raise AuthorizeError("invalid_request", "redirect_uri is not registered")
+        if not _redirect_uri_valid(str(params.redirect_uri)):
+            raise AuthorizeError("invalid_request", "redirect_uri is not allowed")
 
         txn_token = self._issue_container_token(
             container_use="auth-txn",
@@ -137,6 +150,9 @@ class APIKeyOAuthProvider(OAuthProvider):
                 "client_id": client.client_id,
                 "client_name": client.client_name or "MCP client",
                 "redirect_uri": str(params.redirect_uri),
+                "redirect_uri_trusted": _redirect_uri_trusted(
+                    str(params.redirect_uri), self._trusted_redirects
+                ),
                 "redirect_uri_provided_explicitly": params.redirect_uri_provided_explicitly,
                 "state": params.state or "",
                 "code_challenge": params.code_challenge,
@@ -155,6 +171,14 @@ class APIKeyOAuthProvider(OAuthProvider):
             )
 
         client_name = html.escape(str(txn.get("client_name") or "MCP client"))
+        redirect_uri = str(txn.get("redirect_uri") or "")
+        redirect_host = html.escape(_redirect_host(redirect_uri) or "unknown destination")
+        untrusted_note = ""
+        if not txn.get("redirect_uri_trusted"):
+            untrusted_note = (
+                "  <p>This client destination is not verified by Bauplan. "
+                "Continue only if you trust it.</p>\n"
+            )
         escaped_txn_id = html.escape(txn_id)
         page = f"""<!doctype html>
 <html lang="en">
@@ -166,6 +190,8 @@ class APIKeyOAuthProvider(OAuthProvider):
 <body>
   <h1>Authorize Bauplan MCP</h1>
   <p><strong>{client_name}</strong> wants to connect to your Bauplan account.</p>
+  <p>Callback destination: <strong>{redirect_host}</strong></p>
+{untrusted_note}\
   <form method="post" action="{_KEY_ENTRY_PATH}">
     <input type="hidden" name="txn_id" value="{escaped_txn_id}">
     <label for="api_key">Bauplan API key</label>
@@ -209,6 +235,18 @@ class APIKeyOAuthProvider(OAuthProvider):
             str(txn["redirect_uri"]), code=code, state=str(txn.get("state") or "")
         )
         escaped_location = html.escape(location, quote=True)
+        redirect_uri = str(txn["redirect_uri"])
+        redirect_host = html.escape(_redirect_host(redirect_uri) or "unknown destination")
+        client_name = html.escape(str(txn.get("client_name") or "MCP client"))
+        if txn.get("redirect_uri_trusted"):
+            continue_copy = f"Continue to complete the {client_name} connection."
+            button_copy = f"Return to {client_name}"
+        else:
+            continue_copy = (
+                f"This client destination is not verified by Bauplan. "
+                f"Only continue if you trust {redirect_host}."
+            )
+            button_copy = f"Continue to {redirect_host}"
         escaped_username = html.escape(user_info.username) if user_info.username else None
         escaped_full_name = html.escape(user_info.full_name) if user_info.full_name else None
         user_lines = ""
@@ -226,8 +264,9 @@ class APIKeyOAuthProvider(OAuthProvider):
 <body>
   <h1>Authorization complete</h1>
   <p>Your Bauplan API key was validated.</p>
-{user_lines}  <p>Continue to complete the Claude connection.</p>
-  <p><a href="{escaped_location}" role="button">Return to Claude</a></p>
+{user_lines}  <p>Callback destination: <strong>{redirect_host}</strong></p>
+  <p>{continue_copy}</p>
+  <p><a href="{escaped_location}" role="button">{button_copy}</a></p>
 </body>
 </html>"""
         return HTMLResponse(page, headers=_HTML_SECURITY_HEADERS)
@@ -517,3 +556,83 @@ def _client_from_claims(client_id: str, claims: dict[str, Any]) -> OAuthClientIn
         )
     except (KeyError, TypeError, ValueError, ValidationError):
         return None
+
+
+def _redirect_uris_valid(redirect_uris: list[AnyUrl]) -> bool:
+    return bool(redirect_uris) and all(_redirect_uri_valid(str(uri)) for uri in redirect_uris)
+
+
+def _redirect_uri_valid(redirect_uri: str) -> bool:
+    try:
+        target = urlsplit(redirect_uri)
+        _normalized_port(target)
+    except ValueError:
+        return False
+    if not target.scheme or not target.hostname or target.fragment or target.username or target.password:
+        return False
+
+    if target.scheme == "https":
+        return True
+    return target.scheme == "http" and target.hostname in ("localhost", "127.0.0.1", "::1")
+
+
+def _redirect_uri_registered(redirect_uri: str, registered_redirect_uris: list[AnyUrl]) -> bool:
+    return any(redirect_uri == str(registered_uri) for registered_uri in registered_redirect_uris)
+
+
+def _redirect_uri_trusted(redirect_uri: str, trusted_redirects: tuple[str, ...]) -> bool:
+    try:
+        target = urlsplit(redirect_uri)
+        _normalized_port(target)
+    except ValueError:
+        return False
+    if not _redirect_uri_valid(redirect_uri):
+        return False
+
+    return any(_redirect_rule_matches(target, rule) for rule in trusted_redirects)
+
+
+def _redirect_rule_matches(target: SplitResult, rule: str) -> bool:
+    is_prefix = rule.endswith("*")
+    rule_value = rule[:-1] if is_prefix else rule
+    try:
+        allowed = urlsplit(rule_value)
+        target_port = _normalized_port(target)
+        allowed_port = _normalized_port(allowed)
+    except ValueError:
+        return False
+
+    if not allowed.scheme or not allowed.hostname or allowed.fragment or allowed.username or allowed.password:
+        return False
+    if not target.hostname:
+        return False
+    if target.scheme != allowed.scheme:
+        return False
+    if target.hostname.lower() != allowed.hostname.lower():
+        return False
+    if target_port != allowed_port:
+        return False
+    if is_prefix:
+        return (
+            not target.query and target.path.startswith(allowed.path) and len(target.path) > len(allowed.path)
+        )
+    return target.path == allowed.path and target.query == allowed.query
+
+
+def _normalized_port(parts: SplitResult) -> int | None:
+    port = parts.port
+    if (parts.scheme, port) in (("https", 443), ("http", 80)):
+        return None
+    return port
+
+
+def _redirect_host(redirect_uri: str) -> str | None:
+    try:
+        parts = urlsplit(redirect_uri)
+        host = parts.hostname
+        port = _normalized_port(parts)
+    except ValueError:
+        return None
+    if host is None:
+        return None
+    return host if port is None else f"{host}:{port}"

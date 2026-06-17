@@ -10,6 +10,11 @@ AuthMode = Literal["none", "api-key-oauth"]
 MIN_SECRET_LENGTH = 32
 API_KEY_OAUTH_MODE: AuthMode = "api-key-oauth"
 BAUPLAN_API_KEY_CLAIM = "bauplan_api_key"
+DEFAULT_TRUSTED_REDIRECTS = (
+    "https://claude.ai/api/mcp/auth_callback",
+    "https://chatgpt.com/connector/oauth/*",
+    "https://chatgpt.com/connector_platform_oauth_redirect",
+)
 
 
 @dataclass(frozen=True)
@@ -19,11 +24,14 @@ class OAuthConfig:
     access_token_ttl_seconds: int = 15 * 60
     refresh_token_ttl_seconds: int = 60 * 60 * 24 * 7
     client_registration_ttl_seconds: int = 60 * 60 * 24 * 30
+    trusted_redirects: tuple[str, ...] = DEFAULT_TRUSTED_REDIRECTS
 
 
 def get_auth_mode() -> AuthMode:
     mode = os.getenv("MCP_AUTH_MODE", "none").strip().lower()
     if mode in ("", "none"):
+        if os.getenv("MCP_PUBLIC_BASE_URL", "").strip():
+            raise ValueError("MCP_AUTH_MODE must be 'api-key-oauth' when MCP_PUBLIC_BASE_URL is set")
         return "none"
     if mode == API_KEY_OAUTH_MODE:
         return API_KEY_OAUTH_MODE
@@ -48,6 +56,7 @@ def load_oauth_config() -> OAuthConfig:
             "MCP_OAUTH_CLIENT_REGISTRATION_TTL_SECONDS",
             60 * 60 * 24 * 30,
         ),
+        trusted_redirects=_csv_env("MCP_OAUTH_TRUSTED_REDIRECTS", DEFAULT_TRUSTED_REDIRECTS),
     )
 
 
@@ -77,3 +86,10 @@ def _positive_int_env(name: str, default: int) -> int:
     if parsed <= 0:
         raise ValueError(f"{name} must be a positive integer")
     return parsed
+
+
+def _csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return tuple(item.strip() for item in value.split(",") if item.strip())

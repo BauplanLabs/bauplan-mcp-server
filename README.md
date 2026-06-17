@@ -89,6 +89,13 @@ Useful environment variables:
 | `MCP_WORKERS`    | `4`               | Gunicorn worker count for HTTP transports        |
 | `MCP_KEEP_ALIVE` | `65`              | Gunicorn keep-alive timeout in seconds           |
 | `PORT`           | `8000`            | Container listen port for HTTP transports        |
+| `MCP_AUTH_MODE`  | `none`            | Use `api-key-oauth` for remote OAuth clients     |
+| `MCP_PUBLIC_BASE_URL` | required for OAuth | Public MCP server base URL. Requires `MCP_AUTH_MODE=api-key-oauth` |
+| `MCP_LOG_TOOL_ARGS` | `false`         | Log full tool arguments for debugging. Emits a warning when `MCP_PUBLIC_BASE_URL` is set |
+| `MCP_OAUTH_SECRET` | required for OAuth | Stable secret used to sign tokens and encrypt API keys |
+| `MCP_OAUTH_TRUSTED_REDIRECTS` | Claude and ChatGPT callbacks | Comma-separated trusted redirect list. Supports a trailing `*` for trusted path prefixes |
+
+OAuth clients with valid HTTPS redirect URIs can still register dynamically. Redirects outside `MCP_OAUTH_TRUSTED_REDIRECTS` are shown to users as unverified before they continue.
 
 ### Claude Desktop
 

@@ -7,7 +7,13 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from joserfc import jwt
-from mcp.server.auth.provider import AuthorizationParams, AuthorizeError, RefreshToken, TokenError
+from mcp.server.auth.provider import (
+    AuthorizationParams,
+    AuthorizeError,
+    RefreshToken,
+    RegistrationError,
+    TokenError,
+)
 from mcp.shared.auth import OAuthClientInformationFull
 from pydantic import AnyUrl, TypeAdapter
 from starlette.requests import Request
@@ -32,6 +38,14 @@ def _user_info() -> BauplanUserInfo:
     return BauplanUserInfo(username="test-user", full_name="Test User")
 
 
+def _localhost_config() -> OAuthConfig:
+    return OAuthConfig(
+        base_url="https://mcp.example.com",
+        secret="x" * 32,
+        trusted_redirects=("http://localhost/callback",),
+    )
+
+
 def _form_request(body: bytes) -> Request:
     async def receive() -> MutableMapping[str, Any]:
         return {
@@ -54,6 +68,18 @@ def _form_request(body: bytes) -> Request:
     )
 
 
+def _get_request(path: str, query_string: str) -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "query_string": query_string.encode(),
+            "headers": [],
+        }
+    )
+
+
 def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
     async def run():
         api_key = "bp_secret_test_key"
@@ -64,10 +90,7 @@ def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
             return _user_info() if key == api_key else None
 
         provider = APIKeyOAuthProvider(
-            config=OAuthConfig(
-                base_url="https://mcp.example.com",
-                secret="x" * 32,
-            ),
+            config=_localhost_config(),
             validate_api_key=validate,
         )
         client = OAuthClientInformationFull(
@@ -118,10 +141,7 @@ def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
 
 def test_api_key_oauth_registration_is_stateless_across_provider_instances():
     async def run():
-        config = OAuthConfig(
-            base_url="https://mcp.example.com",
-            secret="x" * 32,
-        )
+        config = _localhost_config()
         provider = APIKeyOAuthProvider(config=config, validate_api_key=lambda _: _user_info())
         client = OAuthClientInformationFull(
             client_id="original-client-id",
@@ -151,13 +171,153 @@ def test_api_key_oauth_registration_is_stateless_across_provider_instances():
     asyncio.run(run())
 
 
-def test_api_key_oauth_rejects_mismatched_resource():
+def test_api_key_oauth_marks_known_redirects_as_trusted_by_default():
     async def run():
         provider = APIKeyOAuthProvider(
             config=OAuthConfig(
                 base_url="https://mcp.example.com",
                 secret="x" * 32,
             ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        clients = [
+            OAuthClientInformationFull(
+                client_id="claude-client",
+                redirect_uris=[_url("https://claude.ai/api/mcp/auth_callback")],
+            ),
+            OAuthClientInformationFull(
+                client_id="chatgpt-client",
+                redirect_uris=[_url("https://chatgpt.com/connector/oauth/callback-123")],
+            ),
+        ]
+
+        for client in clients:
+            await provider.register_client(client)
+            assert client.redirect_uris is not None
+            auth_url = await provider.authorize(
+                client,
+                AuthorizationParams(
+                    state="state-1",
+                    scopes=[],
+                    code_challenge="challenge-1",
+                    redirect_uri=client.redirect_uris[0],
+                    redirect_uri_provided_explicitly=True,
+                ),
+            )
+            txn_id = parse_qs(urlparse(auth_url).query)["txn_id"][0]
+            txn = provider._load_container_token(txn_id, expected_use="auth-txn")
+            assert txn is not None
+            assert txn["redirect_uri_trusted"] is True
+
+        assert all(client.client_id for client in clients)
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_allows_unknown_https_redirect_registration():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        client = OAuthClientInformationFull(
+            client_id="client-1",
+            client_name="Hermes",
+            redirect_uris=[_url("https://hermes.example.com/oauth/callback")],
+        )
+
+        await provider.register_client(client)
+
+        assert client.client_id is not None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_invalid_registration_redirect():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        client = OAuthClientInformationFull(
+            client_id="client-1",
+            client_name="Bad Client",
+            redirect_uris=[_url("https://client.example.com/callback#fragment")],
+        )
+
+        with pytest.raises(RegistrationError, match="redirect_uri"):
+            await provider.register_client(client)
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_unregistered_authorize_redirect():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        client = OAuthClientInformationFull(
+            client_id="client-1",
+            client_name="Claude",
+            redirect_uris=[_url("https://claude.ai/api/mcp/auth_callback")],
+        )
+
+        with pytest.raises(AuthorizeError, match="registered"):
+            await provider.authorize(
+                client,
+                AuthorizationParams(
+                    state="state-1",
+                    scopes=[],
+                    code_challenge="challenge-1",
+                    redirect_uri=_url("https://chatgpt.com/other/callback"),
+                    redirect_uri_provided_explicitly=True,
+                ),
+            )
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_stale_client_with_invalid_redirect():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        client_id = provider._issue_container_token(
+            container_use="client-registration",
+            expires_in=300,
+            claims={
+                "client_id_issued_at": 1,
+                "redirect_uris": ["https://attacker.example/callback#code"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "scope": "",
+                "client_name": "Claude",
+            },
+        )
+
+        assert await provider.get_client(client_id) is None
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_rejects_mismatched_resource():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=_localhost_config(),
             validate_api_key=lambda _: _user_info(),
         )
         client = OAuthClientInformationFull(
@@ -199,6 +359,7 @@ def test_api_key_oauth_submit_returns_completion_page():
                 "client_id": "client-1",
                 "client_name": "Claude",
                 "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_trusted": True,
                 "redirect_uri_provided_explicitly": True,
                 "state": "state-1",
                 "code_challenge": "challenge-1",
@@ -223,6 +384,81 @@ def test_api_key_oauth_submit_returns_completion_page():
     asyncio.run(run())
 
 
+def test_api_key_oauth_form_warns_for_unknown_redirect_before_key_entry():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Hermes",
+                "redirect_uri": "https://hermes.example.com/oauth/callback",
+                "redirect_uri_trusted": False,
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        response = await provider._render_form(_get_request("/authorize/key", f"txn_id={txn_id}"))
+        body = bytes(response.body).decode()
+
+        assert response.status_code == 200
+        assert "Callback destination: <strong>hermes.example.com</strong>" in body
+        assert "not verified by Bauplan" in body
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_submit_warns_for_unknown_redirect():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda key: _user_info() if key == api_key else None,
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Hermes",
+                "redirect_uri": "https://hermes.example.com/oauth/callback",
+                "redirect_uri_trusted": False,
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        body = f"txn_id={txn_id}&api_key={api_key}".encode()
+        request = _form_request(body)
+        response = await provider._handle_submit(request)
+
+        body = bytes(response.body).decode()
+        assert response.status_code == 200
+        assert "Callback destination: <strong>hermes.example.com</strong>" in body
+        assert "not verified by Bauplan" in body
+        assert "Continue to hermes.example.com" in body
+        assert "https://hermes.example.com/oauth/callback?code=" in body
+
+    asyncio.run(run())
+
+
 def test_api_key_oauth_submit_issues_code_with_human_click_ttl(monkeypatch):
     async def run():
         api_key = "bp_secret_test_key"
@@ -240,6 +476,7 @@ def test_api_key_oauth_submit_issues_code_with_human_click_ttl(monkeypatch):
                 "client_id": "client-1",
                 "client_name": "Claude",
                 "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_trusted": True,
                 "redirect_uri_provided_explicitly": True,
                 "state": "state-1",
                 "code_challenge": "challenge-1",
@@ -282,6 +519,7 @@ def test_api_key_oauth_submit_escapes_user_info():
                 "client_id": "client-1",
                 "client_name": "Claude",
                 "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_trusted": True,
                 "redirect_uri_provided_explicitly": True,
                 "state": "state-1",
                 "code_challenge": "challenge-1",
