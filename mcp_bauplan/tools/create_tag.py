@@ -1,9 +1,11 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from .create_client import get_bauplan_client
 from .get_tag import TagInfo, TagOut
@@ -12,21 +14,24 @@ from .get_tag import TagInfo, TagOut
 def register_create_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_tag")
     async def create_tag(
-        tag: str,
-        from_ref: str,
+        tag: Annotated[
+            str,
+            Field(
+                description="Name of the tag to create.",
+            ),
+        ],
+        from_ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref the new tag will point to.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagOut:
         """
-        Create a new tag in a specified branch of the user's Bauplan data catalog using a tag name.
-        Create a new tag in a specific branch of the user's Bauplan catalog.
-
-        Args:
-            tag: Name of the tag to create.
-            from_ref: Reference (branch or commit) from which to create the tag.
-
-        Returns:
-            TagOut: Object containing the created tag name and target commit hash.
+        Create a stable catalog tag pointing to a branch, tag, or commit ref.
+        Use this to mark a known catalog snapshot for later inspection or reuse.
         """
 
         try:

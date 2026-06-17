@@ -4,11 +4,13 @@ Create a table from an S3 location.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -20,31 +22,51 @@ logger = logging.getLogger(__name__)
 def register_create_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_table")
     async def create_table(
-        table: str,
-        search_uri: str,
-        branch: str,
-        namespace: str | None = None,
-        partitioned_by: str | None = None,
-        replace: bool | None = None,
+        table: Annotated[
+            str,
+            Field(
+                description="Name of the table to create.",
+            ),
+        ],
+        search_uri: Annotated[
+            str,
+            Field(
+                description="S3 URI pattern used to discover source files and infer the table schema.",
+            ),
+        ],
+        branch: Annotated[
+            str,
+            Field(
+                description="Writable branch where the table will be created.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Namespace for a bare table name. Leave null when the table name is fully "
+                    "qualified or should resolve through the default namespace."
+                ),
+            ),
+        ] = None,
+        partitioned_by: Annotated[
+            str | None,
+            Field(
+                description="Optional table partitioning expression.",
+            ),
+        ] = None,
+        replace: Annotated[
+            bool | None,
+            Field(
+                description="Whether to replace an existing table with the same name.",
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableOut:
         """
-        Create an empty table from an S3 URI identifying parquet, csv or JSONL files in S3.
-        The table schema is automatically inferred from the files at the given search uri.
-
-        Args:
-            table: Name of the table to create.
-            search_uri: S3 URI to search for parquet files.
-            branch: branch name.
-            namespace: Optional namespace. If omitted, resolution uses the default namespace.
-            partitioned_by: Optional partitioning column.
-            replace: Optional flag to replace existing table.
-
-        Returns:
-            TableOut: Created table metadata and schema fields.
-
-        NOTE: This tool creates a ICEBERG table with the schema of the file(s) in the URI but it does not populate the table.
+        Create an Iceberg table from files matched by an S3 URI.
+        Use this when the user wants Bauplan to infer a schema and create the table before importing data.
         """
 
         try:

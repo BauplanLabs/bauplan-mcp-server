@@ -4,11 +4,13 @@ Delete a table.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -20,23 +22,33 @@ logger = logging.getLogger(__name__)
 def register_delete_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_table")
     async def delete_table(
-        table: str,
-        branch: str,
-        namespace: str | None = None,
+        table: Annotated[
+            str,
+            Field(
+                description="Table to delete. Use namespace.table for non-default namespaces.",
+            ),
+        ],
+        branch: Annotated[
+            str,
+            Field(
+                description="Writable branch containing the table to delete.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Namespace for a bare table name. Leave null when the table name is fully "
+                    "qualified or should resolve through the default namespace."
+                ),
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchOut:
         """
-        Delete a specified table from the user's Bauplan data catalog using a table name.
-        Delete a table from the user's Bauplan data lake.
-
-        Args:
-            table: Name of the table to delete.
-            branch: Branch name where the table will be deleted. Must follow the format <username.branch_name>.
-            namespace: Optional namespace. If omitted, resolution uses the default namespace.
-
-        Returns:
-            BranchOut: Object containing the updated branch name and head commit hash.
+        Delete a table from a writable Bauplan branch.
+        Use this when the user wants to remove a table from an isolated branch before review or merge.
         """
 
         try:

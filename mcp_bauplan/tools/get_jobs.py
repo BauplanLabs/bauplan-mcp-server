@@ -5,60 +5,140 @@ List jobs in the Bauplan system.
 import asyncio
 import logging
 from datetime import datetime
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ._schema import (
+    JobKindFilter,
+    JobKindOut,
+    JobStatusFilter,
+    JobStatusOut,
+    job_kind_out,
+    job_status_out,
+)
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
 
 class JobInfo(BaseModel):
-    id: str
-    kind: str
-    user: str
-    human_readable_status: str
-    created_at: str | None
-    finished_at: str | None
-    status: str
-    error_message: str | None = None
+    id: Annotated[
+        str,
+        Field(
+            description="Unique Bauplan job ID.",
+        ),
+    ]
+    kind: Annotated[
+        JobKindOut,
+        Field(
+            description="Bauplan job kind.",
+        ),
+    ]
+    user: Annotated[
+        str,
+        Field(
+            description="User who submitted the job.",
+        ),
+    ]
+    human_readable_status: Annotated[
+        str,
+        Field(
+            description="User-facing job status string.",
+        ),
+    ]
+    created_at: Annotated[
+        str | None,
+        Field(
+            description="ISO creation timestamp, or null when unavailable.",
+        ),
+    ]
+    finished_at: Annotated[
+        str | None,
+        Field(
+            description="ISO finish timestamp, or null when the job has not finished.",
+        ),
+    ]
+    status: Annotated[
+        JobStatusOut,
+        Field(
+            description="Bauplan job state.",
+        ),
+    ]
+    error_message: Annotated[
+        str | None,
+        Field(
+            description="Error message for failed jobs, when available.",
+        ),
+    ] = None
 
 
 class JobsList(BaseModel):
-    jobs: list[JobInfo]
+    jobs: Annotated[
+        list[JobInfo],
+        Field(
+            description="Jobs matching the requested filters.",
+        ),
+    ]
 
 
 def register_get_jobs_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_jobs")
     async def get_jobs(
-        job_ids: list[str] | None = None,
-        job_kinds: list[str] | None = None,
-        statuses: list[str] | None = None,
-        user_names: list[str] | None = None,
-        start_time: str | None = None,
-        end_time: str | None = None,
-        limit: int = 25,
+        job_ids: Annotated[
+            list[str] | None,
+            Field(
+                description="Optional list of job IDs.",
+            ),
+        ] = None,
+        job_kinds: Annotated[
+            list[JobKindFilter] | None,
+            Field(
+                description="Optional list of job kinds.",
+            ),
+        ] = None,
+        statuses: Annotated[
+            list[JobStatusFilter] | None,
+            Field(
+                description="Optional list of Bauplan job states.",
+            ),
+        ] = None,
+        user_names: Annotated[
+            list[str] | None,
+            Field(
+                description="Optional list of job users.",
+            ),
+        ] = None,
+        start_time: Annotated[
+            str | None,
+            Field(
+                description="Optional UTC creation lower bound, formatted as MM/DD/YY HH:MM:SS.",
+            ),
+        ] = None,
+        end_time: Annotated[
+            str | None,
+            Field(
+                description="Optional UTC creation upper bound, formatted as MM/DD/YY HH:MM:SS.",
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                description="Maximum number of jobs to return.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> JobsList:
         """
-        Retrieve a list of Bauplan jobs, optionally filtered by one or more job IDs, kinds, statuses, users, and created time window (UTC, format '%m/%d/%y %H:%M:%S').
-
-        Args:
-            job_ids: Optional list of job IDs
-            job_kinds: Optional list of job kinds
-            statuses: Optional list of Bauplan job states
-            user_names: Optional list of user names
-            start_time: Optional filter for jobs created after this UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
-            end_time: Optional filter for jobs created before this UTC time, '%m/%d/%y %H:%M:%S', e.g. '09/19/22 13:55:26'
-            limit: Maximum number of jobs to return
-
-        Returns:
-            JobsList: Object containing list of jobs with their details
+        List Bauplan jobs with optional filters for IDs, users, kinds, statuses, and creation time.
+        Use this to find recent executions or identify the job ID to inspect with get_job.
         """
 
         try:
@@ -72,9 +152,9 @@ def register_get_jobs_tool(mcp: FastMCP) -> None:
                     bauplan_client.get_jobs(
                         filter_by_ids=job_ids or None,
                         filter_by_users=user_names or None,
-                        filter_by_kinds=job_kinds or None,
-                        filter_by_statuses=statuses or None,
-                        limit=limit or 25,
+                        filter_by_kinds=[str(kind) for kind in job_kinds] if job_kinds else None,
+                        filter_by_statuses=[str(status) for status in statuses] if statuses else None,
+                        limit=limit,
                         filter_by_created_after=datetime.strptime(start_time, "%m/%d/%y %H:%M:%S")
                         if start_time
                         else None,
@@ -90,12 +170,12 @@ def register_get_jobs_tool(mcp: FastMCP) -> None:
             for job in jobs_result:
                 job_info = JobInfo(
                     id=job.id,
-                    kind=str(job.kind),
+                    kind=job_kind_out(job.kind),
                     user=job.user,
                     human_readable_status=job.human_readable_status,
                     created_at=job.created_at.isoformat() if job.created_at else None,
                     finished_at=job.finished_at.isoformat() if job.finished_at else None,
-                    status=str(job.status),
+                    status=job_status_out(job.status),
                     error_message=job.error_message or None,
                 )
                 job_info_list.append(job_info)

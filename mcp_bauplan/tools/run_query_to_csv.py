@@ -4,12 +4,13 @@ Execute queries and save results to CSV files.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
@@ -17,42 +18,83 @@ logger = logging.getLogger(__name__)
 
 
 class QueryToCSVResult(BaseModel):
-    path: str
-    query: str
-    ref: str | None
-    namespace: str | None
-    success: bool
-    message: str
+    path: Annotated[
+        str,
+        Field(
+            description="CSV file path written by the Bauplan SDK.",
+        ),
+    ]
+    query: Annotated[
+        str,
+        Field(
+            description="SQL query exported to CSV.",
+        ),
+    ]
+    ref: Annotated[
+        str | None,
+        Field(
+            description="Branch, tag, or commit ref used for the query, or null for the default ref.",
+        ),
+    ]
+    namespace: Annotated[
+        str | None,
+        Field(
+            description="Namespace used for the query, or null for the default namespace.",
+        ),
+    ]
+    success: Annotated[
+        bool,
+        Field(
+            description="Whether the CSV export completed successfully.",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="Human-readable summary of the export result.",
+        ),
+    ]
 
 
 def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="run_query_to_csv")
     async def run_query_to_csv(
-        path: str,
-        query: str,
-        ref: str | None = None,
-        namespace: str | None = None,
-        client_timeout: int = 120,
+        path: Annotated[
+            str,
+            Field(
+                description="Server-side CSV output path.",
+            ),
+        ],
+        query: Annotated[
+            str,
+            Field(
+                description="SQL query to export.",
+            ),
+        ],
+        ref: Annotated[
+            str | None,
+            Field(
+                description="Branch, tag, or commit ref to query, or null for the default ref.",
+            ),
+        ] = None,
+        namespace: Annotated[
+            str | None,
+            Field(
+                description="Namespace to query in, or null for the default namespace.",
+            ),
+        ] = None,
+        client_timeout: Annotated[
+            int,
+            Field(
+                description="Client timeout in seconds.",
+            ),
+        ] = 120,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> QueryToCSVResult:
         """
-        Execute SQL SELECT queries on a specified table in the user's Bauplan data catalog, saving results to a CSV file, using a query  and table name, returning a file path.
-        Execute SELECT queries and save results directly to CSV file.
-
-        Note: CSV format only supports scalar data types (strings, numbers, booleans).
-        Queries returning complex types (arrays, lists, nested objects) will fail.
-        For complex data, use run_query tool instead or modify SQL to flatten/convert data.
-
-        Args:
-            path: Output CSV file path where results will be saved.
-            query: SQL query to execute (DuckDB SQL syntax).
-            ref: Branch/reference to query against (optional).
-            namespace: Namespace to use (optional).
-            client_timeout: Timeout in seconds (defaults to 120).
-
-        Returns:
-            QueryToCSVResult: Object indicating success/failure with execution details
+        Execute a SQL query and write scalar results to a server-local CSV file.
+        Use this only when the caller can access the output path; prefer run_query for remote MCP clients.
         """
 
         try:
@@ -85,12 +127,10 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
             error_msg = str(e)
             # Handle complex data type errors specifically
             if "Unsupported Type" in error_msg and ("list" in error_msg or "array" in error_msg):
-                logger.error(f"CSV export failed due to complex data types: {error_msg}")
                 raise ToolError(
                     f"Cannot export to CSV: Query contains complex data types (arrays/lists) that are not supported in CSV format. "
                     f"Consider: 1) Using run_query tool instead for complex data, 2) Flattening arrays in SQL with functions like unnest(), "
                     f"3) Converting arrays to strings with array_to_string() or similar functions. Original error: {error_msg}"
                 ) from e
             else:
-                logger.error(f"Error executing query to CSV {path}: {error_msg}")
                 raise ToolError(f"Error executing run_query_to_csv '{path}': {error_msg}") from e

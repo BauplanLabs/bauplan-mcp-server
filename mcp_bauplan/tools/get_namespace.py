@@ -3,41 +3,56 @@ Get a namespace by name.
 """
 
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class NamespaceInfo(BaseModel):
-    name: str
+    name: Annotated[
+        str,
+        Field(
+            description="Namespace name.",
+        ),
+    ]
 
 
 class NamespaceOut(BaseModel):
-    namespace: NamespaceInfo
+    namespace: Annotated[
+        NamespaceInfo,
+        Field(
+            description="Requested namespace.",
+        ),
+    ]
 
 
 def register_get_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_namespace")
     async def get_namespace(
-        namespace: str,
-        ref: str,
+        namespace: Annotated[
+            str,
+            Field(
+                description="Namespace name to retrieve.",
+            ),
+        ],
+        ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref to inspect.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> NamespaceOut:
         """
         Retrieve a single Bauplan namespace by name at a ref.
-
-        Args:
-            namespace: Name of the namespace to retrieve.
-            ref: Branch, tag, or commit ref to read from.
-
-        Returns:
-            NamespaceOut: Object containing the namespace name.
+        Use this when the namespace name is known and the model needs to verify it exists on a ref.
         """
 
         try:

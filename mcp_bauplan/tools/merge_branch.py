@@ -1,9 +1,11 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -13,25 +15,36 @@ from .get_branch import BranchInfo, BranchOut
 def register_merge_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="merge_branch")
     async def merge_branch(
-        source_ref: str,
-        into_branch: str,
-        commit_message: str | None = None,
-        commit_body: str | None = None,
+        source_ref: Annotated[
+            str,
+            Field(
+                description="Source branch, tag, or commit ref to merge.",
+            ),
+        ],
+        into_branch: Annotated[
+            str,
+            Field(
+                description="Target branch that will receive the merge.",
+            ),
+        ],
+        commit_message: Annotated[
+            str | None,
+            Field(
+                description="Optional merge commit message.",
+            ),
+        ] = None,
+        commit_body: Annotated[
+            str | None,
+            Field(
+                description="Optional merge commit body.",
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchOut:
         """
-        Merge a source branch into a target branch in the user's Bauplan data catalog using source and target branch names.
-        Branch names must follow the format <username.branch_name>.
-
-        Args:
-            source_ref: The branch to merge from. The name must follow the format <username.branch_name>.
-            into_branch: The target branch to merge into. The name must follow the format <username.branch_name>.
-            commit_message: Optional custom commit message for the merge
-            commit_body: Optional additional commit body/description
-
-        Returns:
-            BranchOut: Object containing the updated target branch name and head commit hash.
+        Merge a source ref into a target Bauplan branch.
+        Use this only after validating the source ref and confirming the target branch is the intended writable destination.
         """
 
         try:

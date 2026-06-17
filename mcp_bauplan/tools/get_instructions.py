@@ -1,36 +1,35 @@
+from typing import Annotated
+
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 
 class Prompt(BaseModel):
-    prompt: str
+    prompt: Annotated[
+        str,
+        Field(
+            description="Instruction text for the requested Bauplan use case.",
+        ),
+    ]
 
 
 def register_get_instructions_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_instructions")
     async def get_instructions(
-        use_case: str,
+        use_case: Annotated[
+            str,
+            Field(
+                description="Instruction set to retrieve, such as pipeline, data, repair, wap, test, or sdk.",
+            ),
+        ],
         ctx: Context | None = None,
     ) -> Prompt:
         """
-        Get detailed instructions for specific Bauplan use cases to be used to solve the task,
-        possibly suggesting further tool usage.
-
-        Args:
-            use_case: The use case to get instructions for. Must be one of:
-                - 'pipeline': Instructions for creating and managing data pipelines
-                - 'data': Instructions for reading data and metadata, including data lineage information
-                - 'repair': Instructions for repairing failed pipelines
-                - 'wap': Instructions for data ingestion using the Write-Audit-Publish (WAP) pattern
-                - 'test': Instructions for creating and managing data expectations and quality tests
-                - 'sdk': Instructions for explaining Bauplan SDK methods and verifying their syntax and usage
-
-        Returns:
-            Prompt: Object containing the detailed instructions for the specified use case, to be used by the
-            caller to further plan which tools to use and how to use them.
+        Get task-oriented Bauplan usage guidance for a specific workflow.
+        Use this when the user asks how to approach a task and the model needs a short playbook before choosing tools.
         """
 
         try:

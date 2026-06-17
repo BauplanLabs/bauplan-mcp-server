@@ -1,42 +1,54 @@
-"""
-Get a branch by name.
-"""
-
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class BranchInfo(BaseModel):
-    name: str
-    hash: str
+    name: Annotated[
+        str,
+        Field(
+            description="Branch name.",
+        ),
+    ]
+    hash: Annotated[
+        str,
+        Field(
+            description="Commit hash currently referenced by the branch.",
+        ),
+    ]
 
 
 class BranchOut(BaseModel):
-    branch: BranchInfo
+    branch: Annotated[
+        BranchInfo,
+        Field(
+            description="Requested branch.",
+        ),
+    ]
 
 
 def register_get_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_branch")
     async def get_branch(
-        branch: str,
+        branch: Annotated[
+            str,
+            Field(
+                description="Branch name to retrieve.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchOut:
         """
-        Retrieve a single Bauplan branch by name.
-
-        Args:
-            branch: Name of the branch to retrieve.
-
-        Returns:
-            BranchOut: Object containing the branch name and head commit hash.
+        Get one catalog branch by name.
+        Use this when the branch name is known and the model needs the current commit hash.
         """
 
         try:

@@ -3,14 +3,17 @@ Run a Bauplan project from a specified directory.
 """
 
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from .create_client import get_bauplan_client
-from .run_bauplan_project import RunState, run_project
+from .get_job import JobOut
+from .run_bauplan_project import run_project
 
 logger = logging.getLogger(__name__)
 
@@ -18,33 +21,62 @@ logger = logging.getLogger(__name__)
 def register_project_run_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="project_run")
     async def project_run(
-        project_dir: str,
-        ref: str,
-        namespace: str | None = None,
-        parameters: dict[str, str | int | float | bool | None] | None = None,
-        dry_run: bool = False,
-        client_timeout: int = 30,
-        detach: bool = True,
-        strict: bool = True,
+        project_dir: Annotated[
+            str,
+            Field(
+                description="Server-local project directory to run.",
+            ),
+        ],
+        ref: Annotated[
+            str,
+            Field(
+                description="Non-main branch to run the project against.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description="Namespace to materialize models into, or null for the default namespace.",
+            ),
+        ] = None,
+        parameters: Annotated[
+            dict[str, str | int | float | bool | None] | None,
+            Field(
+                description="Optional parameters for templating SQL or Python models.",
+            ),
+        ] = None,
+        dry_run: Annotated[
+            bool,
+            Field(
+                description="Whether to run without materializing models. Defaults to false.",
+            ),
+        ] = False,
+        client_timeout: Annotated[
+            int,
+            Field(
+                description="Client timeout in seconds. Defaults to 30.",
+                ge=1,
+                le=30,
+            ),
+        ] = 30,
+        detach: Annotated[
+            bool,
+            Field(
+                description="Whether to return after job submission instead of waiting for completion. Use get_job to check status. Defaults to true.",
+            ),
+        ] = True,
+        strict: Annotated[
+            bool,
+            Field(
+                description="Whether to enable strict mode for the run. Defaults to true.",
+            ),
+        ] = True,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
-    ) -> RunState:
+    ) -> JobOut:
         """
-        Run a pipeline from a specified directory and data ref,
-        returning a job ID and success/failure to the caller.
-
-        Args:
-            project_dir: The directory of the project containing the source code files and bauplan_project.yml.
-            ref: The ref or branch name from which to run the project.
-            namespace: The Namespace to run the job in. If not set, the job will be run in the default namespace.
-            parameters: Parameters for templating DAGs. Keys are parameter names, values must be simple types (str, int, float, bool).
-            dry_run: Whether to enable or disable dry-run mode for the run; models are not materialized (defaults to False).
-            client_timeout: Seconds to timeout (defaults to 30).
-            detach: Whether to return after job submission instead of waiting for completion; use get_job to check status (defaults to True).
-            strict: Whether to enable strict mode for the run (defaults to True).
-
-        Returns:
-            RunState: Object indicating success/failure with job Id
+        Run a Bauplan project already present on the server filesystem.
+        Use this for local or trusted server-side workflows where the project path is accessible to the MCP server.
         """
 
         try:
@@ -64,5 +96,4 @@ def register_project_run_tool(mcp: FastMCP) -> None:
                 bauplan_client=bauplan_client,
             )
         except Exception as e:
-            logger.error(f"Error running project from {project_dir}: {e!s}")
             raise ToolError(f"Error executing project_run '{project_dir}': {e!s}") from e

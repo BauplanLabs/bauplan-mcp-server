@@ -21,6 +21,7 @@ from mcp_bauplan.tools.delete_namespace import register_delete_namespace_tool
 from mcp_bauplan.tools.delete_table import register_delete_table_tool
 from mcp_bauplan.tools.delete_tag import register_delete_tag_tool
 from mcp_bauplan.tools.get_branch import register_get_branch_tool
+from mcp_bauplan.tools.get_commits import register_get_commits_tool
 from mcp_bauplan.tools.get_job import register_get_job_tool
 from mcp_bauplan.tools.get_jobs import register_get_jobs_tool
 from mcp_bauplan.tools.get_namespace import register_get_namespace_tool
@@ -64,6 +65,34 @@ def _sdk_table(**overrides):
     }
     values.update(overrides)
     return SimpleNamespace(**values)
+
+
+def _sdk_job(**overrides):
+    values = {
+        "id": "job-1",
+        "kind": JobKind.RUN,
+        "user": "alice",
+        "human_readable_status": "Complete",
+        "created_at": None,
+        "finished_at": None,
+        "status": "COMPLETE",
+        "error_message": None,
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+class _JobLookupClient:
+    def get_job(self, job_id):
+        return _sdk_job(id=job_id)
+
+    def get_job_context(self, job_id, *, include_snapshot, include_logs):
+        return SimpleNamespace(
+            logs=[],
+            snapshot_dict={},
+            ref=None,
+            tx_ref=None,
+        )
 
 
 def test_writable_branch_guard_rejects_default_main_targets():
@@ -462,7 +491,7 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
                 ]
 
         result = await tool.fn(
-            job_kinds=["RUN"],
+            job_kinds=["run"],
             statuses=["running"],
             user_names=["alice"],
             start_time="06/04/26 11:00:00",
@@ -473,7 +502,7 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
         assert captured == {
             "filter_by_ids": None,
             "filter_by_users": ["alice"],
-            "filter_by_kinds": ["RUN"],
+            "filter_by_kinds": ["run"],
             "filter_by_statuses": ["running"],
             "limit": 25,
             "filter_by_created_after": datetime(2026, 6, 4, 11, 0, 0),
@@ -485,7 +514,7 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
     asyncio.run(run())
 
 
-def test_get_table_delegates_table_name_and_namespace_to_sdk():
+def test_get_table_delegates_table_and_namespace_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_get_table_tool(mcp)
@@ -500,7 +529,7 @@ def test_get_table_delegates_table_name_and_namespace_to_sdk():
 
         result = await tool.fn(
             ref="main",
-            table_name="bauplan.titanic",
+            table="bauplan.titanic",
             namespace="",
             bauplan_client=Client(),
         )
@@ -541,7 +570,7 @@ def test_get_table_returns_clear_error_when_missing():
                 raise RuntimeError(f"table {kwargs['table']} not found")
 
         with pytest.raises(ToolError, match=r"Error executing get_table 'bauplan\.missing' in ref 'main'"):
-            await tool.fn(ref="main", table_name="missing", namespace="bauplan", bauplan_client=Client())
+            await tool.fn(ref="main", table="missing", namespace="bauplan", bauplan_client=Client())
 
     asyncio.run(run())
 
@@ -564,6 +593,34 @@ def test_get_branch_returns_name_with_hash():
         assert captured == {"branch": "main"}
         assert result.branch.name == "main"
         assert result.branch.hash == "abc123"
+
+    asyncio.run(run())
+
+
+def test_get_commits_returns_full_message_and_properties():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_commits_tool(mcp)
+        tool = cast(Any, await mcp.get_tool("get_commits"))
+
+        class Client:
+            def get_commits(self, **kwargs):
+                assert kwargs["ref"] == "main"
+                return [
+                    SimpleNamespace(
+                        hash="commit-hash",
+                        message="Commit subject\nCommit body",
+                        author=SimpleNamespace(name="Alice", email="alice@example.com"),
+                        authored_date=datetime(2026, 6, 20, 12, 30, 0),
+                        parent_hashes=["parent-hash"],
+                        properties={"owner": "analytics"},
+                    )
+                ]
+
+        result = await tool.fn(ref="main", bauplan_client=Client())
+
+        assert result.commits[0].message == "Commit subject\nCommit body"
+        assert result.commits[0].properties == {"owner": "analytics"}
 
     asyncio.run(run())
 
@@ -605,7 +662,7 @@ def test_get_namespaces_returns_names():
         assert captured == {
             "ref": "main",
             "filter_by_name": None,
-            "limit": 10,
+            "limit": 25,
         }
         assert [namespace.name for namespace in result.namespaces] == ["bauplan", "analytics"]
 
@@ -685,7 +742,9 @@ def test_get_tables_returns_names_with_namespaces():
 
         assert captured == {
             "ref": "main",
+            "filter_by_name": None,
             "filter_by_namespace": None,
+            "limit": 25,
         }
         assert [(table.name, table.namespace) for table in result.tables] == [
             ("orders", "staging"),
@@ -713,8 +772,11 @@ def test_get_tables_can_include_schema():
         register_get_tables_tool(mcp)
         tool = cast(Any, await mcp.get_tool("get_tables"))
 
+        captured = {}
+
         class Client:
             def get_tables(self, **kwargs):
+                captured.update(kwargs)
                 return [
                     SimpleNamespace(
                         id="table-id",
@@ -736,8 +798,20 @@ def test_get_tables_can_include_schema():
                     )
                 ]
 
-        result = await tool.fn(ref="main", include_schema=True, bauplan_client=Client())
+        result = await tool.fn(
+            ref="main",
+            table="orders",
+            include_schema=True,
+            limit=7,
+            bauplan_client=Client(),
+        )
 
+        assert captured == {
+            "ref": "main",
+            "filter_by_name": "orders",
+            "filter_by_namespace": None,
+            "limit": 7,
+        }
         assert result.tables[0].partitions is not None
         assert result.tables[0].partitions[0].name == "ds"
         assert result.tables[0].partitions[0].transform == "day"
@@ -767,7 +841,7 @@ def test_get_tags_returns_names_with_hashes():
 
         assert captured == {
             "filter_by_name": None,
-            "limit": 10,
+            "limit": 25,
         }
         assert [(tag.name, tag.hash) for tag in result.tags] == [
             ("v1", "abc123"),
@@ -924,15 +998,15 @@ def test_get_jobs_accepts_multiple_filter_values():
                 return []
 
         await tool.fn(
-            job_kinds=["RUN", "QUERY"],
-            statuses=["not_started", "running"],
+            job_kinds=["run", "query"],
+            statuses=["not-started", "running"],
             user_names=["alice", "bob"],
             bauplan_client=Client(),
         )
 
         assert captured["filter_by_users"] == ["alice", "bob"]
-        assert captured["filter_by_kinds"] == ["RUN", "QUERY"]
-        assert captured["filter_by_statuses"] == ["not_started", "running"]
+        assert captured["filter_by_kinds"] == ["run", "query"]
+        assert captured["filter_by_statuses"] == ["not-started", "running"]
 
     asyncio.run(run())
 
@@ -953,7 +1027,7 @@ def test_run_query_passes_default_and_custom_max_rows_to_sdk():
         await tool.fn(query="select 1", bauplan_client=Client())
         await tool.fn(query="select 1", max_rows=25, bauplan_client=Client())
 
-        assert captured[0]["max_rows"] == 10
+        assert captured[0]["max_rows"] == 25
         assert captured[1]["max_rows"] == 25
 
     asyncio.run(run())
@@ -1013,14 +1087,14 @@ def test_project_run_delegates_omitted_run_defaults_to_sdk():
 
         captured = {}
 
-        class Client:
+        class Client(_JobLookupClient):
             def run(self, **kwargs):
                 captured.update(kwargs)
                 return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
 
         result = await tool.fn(project_dir="/tmp/project", ref="alice.dev", bauplan_client=Client())
 
-        assert result.success is True
+        assert result.job.id == "job-1"
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
@@ -1037,7 +1111,7 @@ def test_project_run_accepts_none_parameter_values():
 
         captured = {}
 
-        class Client:
+        class Client(_JobLookupClient):
             def run(self, **kwargs):
                 captured.update(kwargs)
                 return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
@@ -1049,7 +1123,7 @@ def test_project_run_accepts_none_parameter_values():
             bauplan_client=Client(),
         )
 
-        assert result.success is True
+        assert result.job.id == "job-1"
         assert captured["parameters"] == {"optional_value": None}
 
     asyncio.run(run())
@@ -1063,7 +1137,7 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
 
         captured = {}
 
-        class Client:
+        class Client(_JobLookupClient):
             def run(self, **kwargs):
                 captured.update(kwargs)
                 return SimpleNamespace(job_id="job-1", job_status=None)
@@ -1077,7 +1151,7 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
             bauplan_client=Client(),
         )
 
-        assert result.success is True
+        assert result.job.id == "job-1"
         assert captured["namespace"] is None
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
@@ -1087,7 +1161,7 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
     asyncio.run(run())
 
 
-def test_code_run_passes_optional_run_arguments_to_sdk():
+def test_code_run_passes_strict_argument_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
@@ -1095,7 +1169,7 @@ def test_code_run_passes_optional_run_arguments_to_sdk():
 
         captured = {}
 
-        class Client:
+        class Client(_JobLookupClient):
             def run(self, **kwargs):
                 captured.update(kwargs)
                 return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
@@ -1114,7 +1188,7 @@ def test_code_run_passes_optional_run_arguments_to_sdk():
             bauplan_client=Client(),
         )
 
-        assert result.success is True
+        assert result.job.id == "job-1"
         assert captured["namespace"] == "alice"
         assert captured["dry_run"] is True
         assert captured["client_timeout"] == 10
@@ -1140,6 +1214,7 @@ def test_code_run_rejects_paths_outside_temp_project():
                     "bauplan_project.yml": "project:\n  id: test\n",
                     "../model.py": "def model(): pass\n",
                 },
+                ref="alice.dev",
                 bauplan_client=Client(),
             )
 
@@ -1162,36 +1237,32 @@ def test_code_run_requires_non_main_ref_for_non_dry_run():
                     "bauplan_project.yml": "project:\n  id: test\n",
                     "models/model.py": "def model(): pass\n",
                 },
+                ref="main",
                 bauplan_client=Client(),
             )
 
     asyncio.run(run())
 
 
-def test_code_run_allows_omitted_ref_for_dry_run():
+def test_code_run_requires_ref_even_for_dry_run():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
         tool = cast(Any, await mcp.get_tool("code_run"))
-        captured = {}
 
         class Client:
             def run(self, **kwargs):
-                captured.update(kwargs)
-                return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
+                raise AssertionError("run should not be called")
 
-        result = await tool.fn(
-            project_files={
-                "bauplan_project.yml": "project:\n  id: test\n",
-                "models/model.py": "def model(): pass\n",
-            },
-            dry_run=True,
-            bauplan_client=Client(),
-        )
-
-        assert captured["ref"] is None
-        assert captured["dry_run"] is True
-        assert result.success is True
+        with pytest.raises(TypeError, match=r"missing .*ref"):
+            await tool.fn(
+                project_files={
+                    "bauplan_project.yml": "project:\n  id: test\n",
+                    "models/model.py": "def model(): pass\n",
+                },
+                dry_run=True,
+                bauplan_client=Client(),
+            )
 
     asyncio.run(run())
 
@@ -1209,9 +1280,9 @@ def test_get_jobs_uses_requested_sdk_job_status():
                 captured.update(kwargs)
                 return []
 
-        await tool.fn(statuses=["not_started"], bauplan_client=Client())
+        await tool.fn(statuses=["not-started"], bauplan_client=Client())
 
-        assert captured["filter_by_statuses"] == ["not_started"]
+        assert captured["filter_by_statuses"] == ["not-started"]
 
     asyncio.run(run())
 
@@ -1315,6 +1386,41 @@ def test_apply_table_creation_plan_reports_sdk_error_without_job_id():
         assert result.success is False
         assert result.job_status == "FAILED"
         assert result.error == "bad plan"
+
+    asyncio.run(run())
+
+
+def test_code_run_passes_optional_run_arguments_to_sdk():
+    async def run():
+        mcp = FastMCP("test")
+        register_code_run_tool(mcp)
+        tool = cast(Any, await mcp.get_tool("code_run"))
+        captured = {}
+
+        class Client(_JobLookupClient):
+            def run(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
+
+        result = await tool.fn(
+            project_files={
+                "bauplan_project.yaml": "project:\n  id: test\n",
+                "models/model.py": "def model(): pass\n",
+            },
+            ref="alice.dev",
+            namespace="alice",
+            dry_run=True,
+            strict=False,
+            bauplan_client=Client(),
+        )
+
+        assert captured["ref"] == "alice.dev"
+        assert captured["namespace"] == "alice"
+        assert captured["dry_run"] is True
+        assert captured["strict"] == "off"
+        assert captured["client_timeout"] == 30
+        assert captured["detach"] is True
+        assert result.job.id == "job-1"
 
     asyncio.run(run())
 

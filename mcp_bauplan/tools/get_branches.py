@@ -1,44 +1,72 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION
 from .create_client import get_bauplan_client
 
 
 class BranchInfo(BaseModel):
-    name: str
-    hash: str
+    name: Annotated[
+        str,
+        Field(
+            description="Branch name.",
+        ),
+    ]
+    hash: Annotated[
+        str,
+        Field(
+            description="Commit hash currently referenced by the branch.",
+        ),
+    ]
 
 
 class BranchesOut(BaseModel):
-    branches: list[BranchInfo]
+    branches: Annotated[
+        list[BranchInfo],
+        Field(
+            description="Branches matching the requested filters.",
+        ),
+    ]
 
 
 def register_get_branches_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_branches")
     async def get_branches(
-        name: str | None = None,
-        user: str | None = None,
-        limit: int = 10,
+        name: Annotated[
+            str | None,
+            Field(
+                description=f"Optional branch name filter. {EXACT_OR_REGEX_FILTER_DESCRIPTION}",
+            ),
+        ] = None,
+        user: Annotated[
+            str | None,
+            Field(
+                description=(
+                    f"Optional branch owner filter. {EXACT_OR_REGEX_FILTER_DESCRIPTION} "
+                    "Use ~ for the current user."
+                ),
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                description="Maximum number of branches to return. Defaults to 25.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchesOut:
         """
-        Retrieve branches from the user's Bauplan data catalog as a list, with optional user and limit (integer) filters to reduce response size.
-        Get branches from the Bauplan catalog with optional filtering.
-        NOTE: This can return a large response. Always use limit parameter.
-
-        Args:
-            name: Optional filter to get branches by name (substring match)
-            user: Optional filter to get branches by user
-            limit: Maximum number of branches to return (needs to be an integer, default 10)
-
-        Returns:
-            BranchesOut: Object containing list of branches with their names and hashes
+        List catalog branches, optionally filtered by name or user.
+        Use this to find development branches or validate available branch names before branch operations.
         """
 
         try:
@@ -49,7 +77,7 @@ def register_get_branches_tool(mcp: FastMCP) -> None:
                     bauplan_client.get_branches(
                         name=name or None,
                         user=user or None,
-                        limit=limit or 10,
+                        limit=limit,
                     )
                 )
             )

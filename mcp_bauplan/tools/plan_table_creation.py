@@ -4,12 +4,13 @@ Create a table import plan from an S3 location.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -18,49 +19,129 @@ logger = logging.getLogger(__name__)
 
 
 class TablePlanCreated(BaseModel):
-    job_id: str | None = None
-    job_status: str | None = None
-    table_name: str
-    search_uri: str
-    success: bool
-    message: str
-    namespace: str | None
-    branch: str
-    error: str | None = None
-    plan: str | None = None
-    can_auto_apply: bool
-    files_to_be_imported: list[str]
+    job_id: Annotated[
+        str | None,
+        Field(
+            description="Bauplan job ID assigned to the planning job.",
+        ),
+    ] = None
+    job_status: Annotated[
+        str | None,
+        Field(
+            description="Final status string for the planning job.",
+        ),
+    ] = None
+    table_name: Annotated[
+        str,
+        Field(
+            description="Table name the plan was created for.",
+        ),
+    ]
+    search_uri: Annotated[
+        str,
+        Field(
+            description="S3 URI pattern used to discover source files.",
+        ),
+    ]
+    success: Annotated[
+        bool,
+        Field(
+            description="Whether the table plan was created without requiring manual attention. "
+            "False can also mean the plan was created with schema conflicts to resolve.",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="Human-readable summary of the planning result.",
+        ),
+    ]
+    namespace: Annotated[
+        str | None,
+        Field(
+            description="Namespace argument passed to the tool, or null if omitted.",
+        ),
+    ] = None
+    branch: Annotated[
+        str,
+        Field(
+            description="Writable non-main branch argument passed to the tool.",
+        ),
+    ]
+    error: Annotated[
+        str | None,
+        Field(
+            description="Planning error message when the job failed or needs attention.",
+        ),
+    ] = None
+    plan: Annotated[
+        str | None,
+        Field(
+            description="Generated YAML table creation plan. Edit this before applying when conflicts require manual resolution.",
+        ),
+    ] = None
+    can_auto_apply: Annotated[
+        bool,
+        Field(
+            description="Whether the plan has no schema conflicts. If false, resolve conflicts before applying it.",
+        ),
+    ]
+    files_to_be_imported: Annotated[
+        list[str],
+        Field(
+            description="Source files matched by the plan.",
+        ),
+    ]
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="plan_table_creation")
     async def plan_table_creation(
-        table: str,
-        search_uri: str,
-        branch: str,
-        namespace: str | None = None,
-        partitioned_by: str | None = None,
-        replace: bool | None = None,
+        table: Annotated[
+            str,
+            Field(
+                description="Name of the table to plan creation for.",
+            ),
+        ],
+        search_uri: Annotated[
+            str,
+            Field(
+                description="S3 URI pattern used to discover source files.",
+            ),
+        ],
+        branch: Annotated[
+            str,
+            Field(
+                description="Writable non-main branch where the table will be created.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Namespace for a bare table name. Leave null when the table name is fully "
+                    "qualified or should resolve through the default namespace."
+                ),
+            ),
+        ] = None,
+        partitioned_by: Annotated[
+            str | None,
+            Field(
+                description="Optional table partitioning expression.",
+            ),
+        ] = None,
+        replace: Annotated[
+            bool | None,
+            Field(
+                description="Whether to replace an existing table with the same name.",
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TablePlanCreated:
         """
-        Generate a YAML schema plan for importing a table from an S3 URI in the user's Bauplan data catalog returning a job ID for tracking).
-        Create a table import plan from an S3 location.
-
-        This operation will attempt to create a table based of schemas of N parquet files found by a given search uri.
-        A YAML file containing the schema and plan is returned and if there are no conflicts, it is automatically applied.
-
-        Args:
-            table: Name of the table to plan creation for.
-            search_uri: S3 URI to search for parquet files.
-            namespace: Optional namespace. If omitted, resolution uses the default namespace.
-            branch: Writable non-main branch name.
-            partitioned_by: Optional partitioning column.
-            replace: Optional flag to replace existing table.
-
-        Returns:
-            TablePlanCreated: Object indicating success/failure with job tracking details
+        Generate a YAML table creation plan from files matched by an S3 URI.
+        Use this when the user needs to inspect or edit inferred schema, partitioning, or conflicts before apply_table_creation_plan.
         """
 
         try:
@@ -107,5 +188,4 @@ def register_plan_table_creation_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error creating table plan for {table}: {e!s}")
             raise ToolError(f"Error executing plan_table_creation '{table}': {e!s}") from e

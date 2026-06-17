@@ -4,86 +4,124 @@ Cancel a job by ID.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
+from bauplan import exceptions as bauplan_exceptions
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ._schema import JobKindOut, JobStatusOut, job_kind_out, job_status_out
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
 
 
 class JobInfo(BaseModel):
-    id: str
-    kind: str
-    user: str
-    human_readable_status: str
-    created_at: str | None
-    finished_at: str | None
-    status: str
-    error_message: str | None = None
+    id: Annotated[
+        str,
+        Field(
+            description="Unique Bauplan job ID.",
+        ),
+    ]
+    kind: Annotated[
+        JobKindOut,
+        Field(
+            description="Bauplan job kind.",
+        ),
+    ]
+    user: Annotated[
+        str,
+        Field(
+            description="User who submitted the job.",
+        ),
+    ]
+    human_readable_status: Annotated[
+        str,
+        Field(
+            description="User-facing job status string after cancellation.",
+        ),
+    ]
+    created_at: Annotated[
+        str | None,
+        Field(
+            description="ISO creation timestamp, or null when unavailable.",
+        ),
+    ]
+    finished_at: Annotated[
+        str | None,
+        Field(
+            description="ISO finish timestamp, or null when the job has not finished.",
+        ),
+    ]
+    status: Annotated[
+        JobStatusOut,
+        Field(
+            description="Bauplan job state after cancellation.",
+        ),
+    ]
+    error_message: Annotated[
+        str | None,
+        Field(
+            description="Error message for failed jobs, when available.",
+        ),
+    ] = None
 
 
 def register_cancel_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="cancel_job")
     async def cancel_job(
-        job_id: str,
+        job_id: Annotated[
+            str,
+            Field(
+                description="Bauplan job ID to cancel.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> JobInfo:
         """
-        Cancel a running job in the Bauplan system by its job_id and return the updated job status.
-
-        Args:
-            job_id: The ID of the job to cancel.
-
-        Returns:
-            JobInfo: Object containing updated job details after cancellation
+        Cancel a Bauplan job by ID.
+        Use this only when the user explicitly wants to stop a running execution or long operation.
         """
 
         try:
             if ctx:
                 await ctx.info(f"Cancelling job with ID: {job_id}")
 
-            await asyncio.to_thread(
-                lambda: bauplan_client.cancel_job(job_id),
-            )
+            try:
+                await asyncio.to_thread(
+                    lambda: bauplan_client.cancel_job(job_id),
+                )
+            except bauplan_exceptions.BauplanError as e:
+                raise ToolError(f"Failed to cancel job {job_id}: {e}") from e
+            except Exception as e:
+                raise ToolError(f"Unexpected error cancelling job {job_id}: {e}") from e
 
-            # Get the updated job details after cancellation
-            job = await asyncio.to_thread(
-                lambda: bauplan_client.get_job(job_id),
-            )
+            logger.info("Successfully cancelled job with ID: %s", job_id)
 
-            # Convert Job object to JobInfo BaseModel instance
-            job_info = JobInfo(
+            try:
+                job = await asyncio.to_thread(
+                    lambda: bauplan_client.get_job(job_id),
+                )
+            except bauplan_exceptions.BauplanError as e:
+                raise ToolError(f"Cancelled job {job_id}, but failed to retrieve updated status: {e}") from e
+            except Exception as e:
+                raise ToolError(f"Cancelled job {job_id}, but failed to retrieve updated status: {e}") from e
+
+            return JobInfo(
                 id=job.id,
-                kind=str(job.kind),
+                kind=job_kind_out(job.kind),
                 user=job.user,
                 human_readable_status=job.human_readable_status,
                 created_at=job.created_at.isoformat() if job.created_at else None,
                 finished_at=job.finished_at.isoformat() if job.finished_at else None,
-                status=str(job.status),
+                status=job_status_out(job.status),
                 error_message=job.error_message or None,
             )
-
-            # Log successful cancellation
-            logger.info(f"Successfully cancelled job with ID: {job_id}")
-
-            return job_info
-
+        except ToolError:
+            raise
         except Exception as e:
-            # Handle job-related errors more gracefully
-            error_msg = str(e)
-            if (
-                "JobGetError" in error_msg
-                or "Failed to cancel job" in error_msg
-                or "job" in error_msg.lower()
-            ):
-                logger.error(f"Job not found or error cancelling job {job_id}: {error_msg}")
-                raise ToolError(f"Error executing cancel_job '{job_id}': job not found or could not be cancelled") from e
-            else:
-                logger.error(f"Unexpected error cancelling job {job_id}: {error_msg}")
-                raise ToolError(f"Error executing cancel_job '{job_id}': {error_msg}") from e
+            raise ToolError(f"Error executing cancel_job '{job_id}': {e}") from e

@@ -4,12 +4,13 @@ Imports data into an existing table.
 
 import asyncio
 import logging
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -18,35 +19,80 @@ logger = logging.getLogger(__name__)
 
 
 class DataImported(BaseModel):
-    table_name: str
-    job_id: str | None = None
-    job_status: str | None = None
-    error: str | None = None
-    success: bool
-    message: str
+    table_name: Annotated[
+        str,
+        Field(
+            description="Destination table for the import.",
+        ),
+    ]
+    job_id: Annotated[
+        str | None,
+        Field(
+            description="Bauplan job ID assigned to the import job.",
+        ),
+    ] = None
+    job_status: Annotated[
+        str | None,
+        Field(
+            description="Final status string for the import job.",
+        ),
+    ] = None
+    error: Annotated[
+        str | None,
+        Field(
+            description="Import error message when the job failed.",
+        ),
+    ] = None
+    success: Annotated[
+        bool,
+        Field(
+            description="Whether the import job completed without an error.",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="Human-readable summary of the import result.",
+        ),
+    ]
 
 
 def register_import_data_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="import_data")
     async def import_data(
-        table: str,
-        search_uri: str,
-        branch: str,
-        namespace: str | None = None,
+        table: Annotated[
+            str,
+            Field(
+                description="Destination table to import data into.",
+            ),
+        ],
+        search_uri: Annotated[
+            str,
+            Field(
+                description="S3 URI pattern used to locate source files.",
+            ),
+        ],
+        branch: Annotated[
+            str,
+            Field(
+                description="Branch where data will be imported.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Namespace for a bare table name. Leave null when the table name is fully "
+                    "qualified or should resolve through the default namespace."
+                ),
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> DataImported:
         """
-        Import data into a specified existing table using a table name and data source.
-
-        Args:
-            table: Name of the table to import data into, it needs to exist beforehand.
-            search_uri: URI to search for data files to import.
-            branch:  branch name.
-            namespace: Optional namespace. If omitted, resolution uses the default namespace.
-
-        Returns:
-            DataImported: Object indicating success/failure with job details
+        Import files matched by an S3 URI into an existing table on a writable branch.
+        Use this when the table already exists and the user wants to load additional source data.
         """
 
         try:
@@ -85,5 +131,4 @@ def register_import_data_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error importing data into table {table}: {e!s}")
             raise ToolError(f"Error executing import_data '{table}' in branch '{branch}': {e!s}") from e

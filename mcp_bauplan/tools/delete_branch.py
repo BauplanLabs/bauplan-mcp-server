@@ -1,34 +1,40 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ._guards import require_truthy_result, require_writable_branch
 from .create_client import get_bauplan_client
 
 
 class BranchDeleted(BaseModel):
-    deleted: bool
+    deleted: Annotated[
+        bool,
+        Field(
+            description="Whether the branch was deleted.",
+        ),
+    ]
 
 
 def register_delete_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="delete_branch")
     async def delete_branch(
-        branch: str,
+        branch: Annotated[
+            str,
+            Field(
+                description="Writable branch name to delete.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchDeleted:
         """
-        Delete a specified branch from the user's Bauplan data catalog using a branch name.
-
-        Args:
-            branch: Name of the branch to delete. Must follow the format <username.branch_name>.
-
-        Returns:
-            BranchDeleted: Object indicating whether the branch was deleted.
+        Delete a writable Bauplan branch.
+        Use this only after confirming the branch is no longer needed.
         """
 
         try:
