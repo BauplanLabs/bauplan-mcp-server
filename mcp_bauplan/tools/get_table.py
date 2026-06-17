@@ -1,41 +1,131 @@
 import asyncio
-from typing import Any
+from typing import Annotated, Any
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ._schema import field_to_dict
 from .create_client import get_bauplan_client
 
 
 class PartitionInfo(BaseModel):
-    name: str
-    transform: str
+    name: Annotated[
+        str,
+        Field(
+            description="Partition field name.",
+        ),
+    ]
+    transform: Annotated[
+        str,
+        Field(
+            description="Partition transform applied to the field.",
+        ),
+    ]
 
 
 class TableInfo(BaseModel):
-    id: str
-    name: str
-    namespace: str
-    kind: str
-    is_external: bool
-    current_schema_id: int | None = None
-    current_snapshot_id: int | None = None
-    last_updated_at: str
-    metadata_location: str
-    partitions: list[PartitionInfo]
-    properties: dict[str, str]
-    records: int | None = None
-    size: int | None = None
-    snapshots: int | None = None
-    fields: list[dict[str, Any]]
+    id: Annotated[
+        str,
+        Field(
+            description="Table ID.",
+        ),
+    ]
+    name: Annotated[
+        str,
+        Field(
+            description="Table name.",
+        ),
+    ]
+    namespace: Annotated[
+        str,
+        Field(
+            description="Namespace containing the table.",
+        ),
+    ]
+    kind: Annotated[
+        str,
+        Field(
+            description="Table kind.",
+        ),
+    ]
+    is_external: Annotated[
+        bool,
+        Field(
+            description="Whether the table is external.",
+        ),
+    ]
+    current_schema_id: Annotated[
+        int | None,
+        Field(
+            description="Current Iceberg schema ID, or null when unavailable.",
+        ),
+    ] = None
+    current_snapshot_id: Annotated[
+        int | None,
+        Field(
+            description="Current Iceberg snapshot ID, or null when unavailable.",
+        ),
+    ] = None
+    last_updated_at: Annotated[
+        str,
+        Field(
+            description="ISO timestamp for the last table update.",
+        ),
+    ]
+    metadata_location: Annotated[
+        str,
+        Field(
+            description="Iceberg metadata file URI.",
+        ),
+    ]
+    partitions: Annotated[
+        list[PartitionInfo],
+        Field(
+            description="Partition fields for the table.",
+        ),
+    ]
+    properties: Annotated[
+        dict[str, str],
+        Field(
+            description="Table properties.",
+        ),
+    ]
+    records: Annotated[
+        int | None,
+        Field(
+            description="Number of records in the table, or null when unavailable.",
+        ),
+    ] = None
+    size: Annotated[
+        int | None,
+        Field(
+            description="Table size, or null when unavailable.",
+        ),
+    ] = None
+    snapshots: Annotated[
+        int | None,
+        Field(
+            description="Number of snapshots, or null when unavailable.",
+        ),
+    ] = None
+    fields: Annotated[
+        list[dict[str, Any]],
+        Field(
+            description="Schema fields for the table, each with id, name, required flag, and type.",
+        ),
+    ]
 
 
 class TableOut(BaseModel):
-    table: TableInfo
+    table: Annotated[
+        TableInfo,
+        Field(
+            description="Table metadata and schema fields.",
+        ),
+    ]
 
 
 def table_to_out(table_info: Any) -> TableOut:
@@ -69,29 +159,39 @@ def table_to_out(table_info: Any) -> TableOut:
 def register_get_table_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_table")
     async def get_table(
-        ref: str,
-        table_name: str,
-        namespace: str | None = None,
+        ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref to inspect.",
+            ),
+        ],
+        table: Annotated[
+            str,
+            Field(
+                description="Name of the table to retrieve.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Namespace for a bare table name. Leave null when the table name is fully "
+                    "qualified or should resolve through the default namespace."
+                ),
+            ),
+        ] = None,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableOut:
         """
-        Retrieve the schema of a specified data table in the user's Bauplan data catalog using a table name, returning a schema object.
-
-        Args:
-            ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
-            has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-            table_name: Name of the specific table to get schema for.
-            namespace: Optional namespace to use.
-
-        Returns:
-            TableOut: Table metadata and schema fields for the specified table
+        Get metadata and schema fields for one table on a branch, tag, or commit ref.
+        Use this when the table name is known and the model needs table details, partitions, column names, types, required flags, and field IDs.
         """
 
         try:
             table_info = await asyncio.to_thread(
                 lambda: bauplan_client.get_table(
-                    table=table_name,
+                    table=table,
                     ref=ref,
                     namespace=namespace or None,
                 )
@@ -99,5 +199,5 @@ def register_get_table_tool(mcp: FastMCP) -> None:
             return table_to_out(table_info)
 
         except Exception as e:
-            table_ref = f"{namespace}.{table_name}" if namespace else table_name
+            table_ref = f"{namespace}.{table}" if namespace else table
             raise ToolError(f"Error executing get_table '{table_ref}' in ref '{ref}': {e}") from e

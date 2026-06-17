@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from collections import Counter
-from typing import Any
+from typing import Annotated, Any
 
 import bauplan
 from fastmcp import Context, FastMCP
@@ -13,19 +13,69 @@ from .create_client import get_bauplan_client
 
 
 class QueryMetadata(BaseModel):
-    row_count: int
-    column_names: list[str]
-    column_types: list[str]
-    query_time: str
-    query: str
+    row_count: Annotated[
+        int,
+        Field(
+            description="Number of rows returned by the query.",
+        ),
+    ]
+    column_names: Annotated[
+        list[str],
+        Field(
+            description="Column names returned by the query result.",
+        ),
+    ]
+    column_types: Annotated[
+        list[str],
+        Field(
+            description="Arrow data types for the returned columns.",
+        ),
+    ]
+    query_time: Annotated[
+        str,
+        Field(
+            description="ISO timestamp recorded by the MCP server after the query completed.",
+        ),
+    ]
+    query: Annotated[
+        str,
+        Field(
+            description="SQL query that was executed.",
+        ),
+    ]
 
 
 class QueryOut(BaseModel):
-    status: str
-    data: list[dict[str, Any]]
-    metadata: QueryMetadata | None = None
-    warnings: list[str] = Field(default_factory=list)
-    error: str | None = None
+    status: Annotated[
+        str,
+        Field(
+            description="Query result status. The tool returns success when the query completes.",
+        ),
+    ]
+    data: Annotated[
+        list[dict[str, Any]],
+        Field(
+            description="Query rows converted from the Arrow result to JSON objects.",
+        ),
+    ]
+    metadata: Annotated[
+        QueryMetadata | None,
+        Field(
+            description="Column and row metadata for successful query results.",
+        ),
+    ] = None
+    warnings: Annotated[
+        list[str],
+        Field(
+            description="Warnings about lossy JSON conversion or other non-fatal result issues.",
+        ),
+    ] = Field(default_factory=list)
+    error: Annotated[
+        str | None,
+        Field(
+            description="Query error message when available, otherwise null.",
+        ),
+    ] = None
 
 
 def _duplicate_column_names(column_names: list[str]) -> list[str]:
@@ -36,26 +86,38 @@ def _duplicate_column_names(column_names: list[str]) -> list[str]:
 def register_run_query_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="run_query")
     async def run_query(
-        query: str,
-        ref: str | None = None,
-        namespace: str | None = None,
-        max_rows: int = 10,
+        query: Annotated[
+            str,
+            Field(
+                description="SQL SELECT query to execute.",
+            ),
+        ],
+        ref: Annotated[
+            str | None,
+            Field(
+                description="Branch, tag, or commit ref to query, or null for the default ref.",
+            ),
+        ] = None,
+        namespace: Annotated[
+            str | None,
+            Field(
+                description="Namespace to query in, or null for the default namespace.",
+            ),
+        ] = None,
+        max_rows: Annotated[
+            int,
+            Field(
+                description="Maximum number of rows to return. Defaults to 25.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> QueryOut:
         """
-        Execute a SQL SELECT query on the user's Bauplan data catalog, returning results as a QueryOut object using a query, optional ref, and optional namespace.
-        Executes a SQL query against the user's Bauplan data lake.
-
-        Args:
-            query: SQL query to execute
-            ref: a reference to a commit that is a state of the user data lake: can be either a hash that starts with "@" and
-            has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-            namespace: Optional namespace to use.
-            max_rows: Maximum number of rows to return.
-
-        Returns:
-            QueryOut: Response object with query results or error
+        Execute a read-only SQL query and return a bounded JSON result set.
+        Use this for inspection, validation, and small previews rather than exporting or materializing data.
         """
 
         try:

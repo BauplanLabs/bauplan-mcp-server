@@ -1,61 +1,137 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class AuthorInfo(BaseModel):
-    username: str | None = None
-    name: str | None = None
-    email: str | None = None
+    username: Annotated[
+        str | None,
+        Field(
+            description="Author username when available.",
+        ),
+    ] = None
+    name: Annotated[
+        str | None,
+        Field(
+            description="Author display name when available.",
+        ),
+    ] = None
+    email: Annotated[
+        str | None,
+        Field(
+            description="Author email address when available.",
+        ),
+    ] = None
 
 
 class CommitInfo(BaseModel):
-    hash: str
-    message: str
-    author: AuthorInfo
-    authored_date: str
-    parent_hashes: list[str]
+    hash: Annotated[
+        str,
+        Field(
+            description="Commit hash.",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="Commit message.",
+        ),
+    ]
+    author: Annotated[
+        AuthorInfo,
+        Field(
+            description="First author of this commit, when available.",
+        ),
+    ]
+    authored_date: Annotated[
+        str,
+        Field(
+            description="Authored date as returned by the SDK.",
+        ),
+    ]
+    parent_hashes: Annotated[
+        list[str],
+        Field(
+            description="Parent commit hashes.",
+        ),
+    ]
+    properties: Annotated[
+        dict[str, str],
+        Field(
+            description="Custom properties attached to the commit.",
+        ),
+    ]
 
 
 class CommitsOut(BaseModel):
-    commits: list[CommitInfo]
+    commits: Annotated[
+        list[CommitInfo],
+        Field(
+            description="Commits returned for the requested ref and filters.",
+        ),
+    ]
 
 
 def register_get_commits_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_commits")
     async def get_commits(
-        ref: str,
-        message_filter: str | None = None,
-        author_username: str | None = None,
-        author_email: str | None = None,
-        date_start: str | None = None,
-        date_end: str | None = None,
-        limit: int = 10,
+        ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref to read commits from.",
+            ),
+        ],
+        message_filter: Annotated[
+            str | None,
+            Field(
+                description="Optional commit message filter.",
+            ),
+        ] = None,
+        author_username: Annotated[
+            str | None,
+            Field(
+                description="Optional author username filter.",
+            ),
+        ] = None,
+        author_email: Annotated[
+            str | None,
+            Field(
+                description="Optional author email filter.",
+            ),
+        ] = None,
+        date_start: Annotated[
+            str | None,
+            Field(
+                description="Optional authored date lower bound in YYYY-MM-DD format.",
+            ),
+        ] = None,
+        date_end: Annotated[
+            str | None,
+            Field(
+                description="Optional authored date upper bound in YYYY-MM-DD format.",
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                description="Maximum number of commits to return. Defaults to 25.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> CommitsOut:
         """
-        Retrieve commit history for a specified branch in the user's Bauplan data catalog as a list, with optional filters including date range (ISO format: YYYY-MM-DD) and limit (integer).
-        Retrieve commit history from a Bauplan branch.
-
-        Args:
-            ref: branch or commit hash to get commits from. Can be either a hash that starts with "@" and
-                has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-            message_filter: Optional filter for commit messages (substring match)
-            author_username: Optional filter by author's username
-            author_email: Optional filter by author's email
-            date_start: Optional start date for filtering (ISO format: YYYY-MM-DD)
-            date_end: Optional end date for filtering (ISO format: YYYY-MM-DD)
-            limit: Maximum number of commits to return (default: 10)
-
-        Returns:
-            CommitsOut: Object containing list of commits
+        List commits for a branch, tag, or commit ref.
+        Use this to inspect catalog history, find a commit hash, or choose a stable ref for comparison or rollback.
         """
 
         try:
@@ -68,7 +144,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
                         filter_by_author_email=author_email or None,
                         filter_by_authored_date_start_at=date_start or None,
                         filter_by_authored_date_end_at=date_end or None,
-                        limit=limit or 10,
+                        limit=limit,
                     )
                 )
             )
@@ -76,41 +152,23 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
             # Convert response to our model format
             commits_list = []
 
-            try:
-                for commit in response:
-                    try:
-                        # Extract author information safely
-                        author = AuthorInfo(
-                            username=getattr(commit.author, "username", None)
-                            if hasattr(commit, "author")
-                            else None,
-                            name=getattr(commit.author, "name", None) if hasattr(commit, "author") else None,
-                            email=getattr(commit.author, "email", None)
-                            if hasattr(commit, "author")
-                            else None,
-                        )
-
-                        # Create commit info
-                        # Handle both ref and hash attributes for commit ID
-                        commit_hash = getattr(commit, "hash", getattr(commit, "ref", str(commit)))
-
-                        commit_info = CommitInfo(
-                            hash=str(commit_hash),  # Ensure it's a string
-                            message=getattr(commit, "message", ""),
-                            author=author,
-                            authored_date=str(getattr(commit, "authored_date", "")),
-                            parent_hashes=getattr(commit, "parent_hashes", []),
-                        )
-
-                        commits_list.append(commit_info)
-                    except Exception as e:
-                        if ctx:
-                            await ctx.debug(f"Error processing commit: {e!s}")
-                        continue
-
-            except Exception as e:
-                if ctx:
-                    await ctx.error(f"Error iterating commits: {e!s}")
+            for commit in response:
+                author_obj = getattr(commit, "author", None)
+                author = AuthorInfo(
+                    username=getattr(author_obj, "username", None),
+                    name=getattr(author_obj, "name", None),
+                    email=getattr(author_obj, "email", None),
+                )
+                commit_hash = getattr(commit, "hash", getattr(commit, "ref", str(commit)))
+                commit_info = CommitInfo(
+                    hash=str(commit_hash),
+                    message=getattr(commit, "message", ""),
+                    author=author,
+                    authored_date=str(getattr(commit, "authored_date", "")),
+                    parent_hashes=getattr(commit, "parent_hashes", []),
+                    properties=dict(getattr(commit, "properties", {}) or {}),
+                )
+                commits_list.append(commit_info)
 
             return CommitsOut(commits=commits_list)
 

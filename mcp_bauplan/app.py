@@ -87,9 +87,9 @@ class LoggingMiddleware(Middleware):
             elapsed = time.perf_counter() - t0
             logger.info(f"Tool '{tool_name}' completed in {elapsed:.2f}s")
             return result
-        except Exception as e:
+        except Exception:
             elapsed = time.perf_counter() - t0
-            logger.error(f"Tool '{tool_name}' failed after {elapsed:.2f}s: {e}")
+            logger.exception(f"Tool '{tool_name}' failed after {elapsed:.2f}s")
             raise
 
 
@@ -159,10 +159,9 @@ def main(
     register_get_user_info_tool(mcp)
     register_get_instructions_tool(mcp)
 
-    if transport != "stdio":
-        ## add middleware to add the Bauplan api_key to all requests
-        mcp.add_middleware(LoggingMiddleware())
+    mcp.add_middleware(LoggingMiddleware())
 
+    if transport != "stdio":
         # Health check endpoint (must be registered before http_app())
         @mcp.custom_route("/healthz", methods=["GET"])
         async def health(_: Request) -> PlainTextResponse:

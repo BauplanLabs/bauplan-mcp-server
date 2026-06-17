@@ -1,9 +1,11 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from ._guards import require_writable_branch
 from .create_client import get_bauplan_client
@@ -13,21 +15,24 @@ from .get_branch import BranchInfo, BranchOut
 def register_create_branch_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="create_branch")
     async def create_branch(
-        branch: str,
-        from_ref: str,
+        branch: Annotated[
+            str,
+            Field(
+                description="Name of the branch to create.",
+            ),
+        ],
+        from_ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref to create the branch from.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> BranchOut:
         """
-        Create a new branch in the user's Bauplan data catalog using a branch name, returning a confirmation.
-
-        Args:
-            branch: Name of the new branch to create. Must follow the format <username.branch_name>.
-            from_ref: Reference (branch/commit) to create the branch from. Can be either a branch name or a hash that starts with "@" and
-            has 64 additional characters.
-
-        Returns:
-            BranchOut: Object containing the created branch name and head commit hash.
+        Create a writable, zero-copy development branch from an existing branch, tag, or commit ref.
+        Use this before catalog changes so writes happen in isolation before review and merge.
         """
 
         try:

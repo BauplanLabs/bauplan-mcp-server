@@ -1,43 +1,62 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class NamespaceInfo(BaseModel):
-    name: str
+    name: Annotated[
+        str,
+        Field(
+            description="Namespace name.",
+        ),
+    ]
 
 
 class NamespacesOut(BaseModel):
-    namespaces: list[NamespaceInfo]
+    namespaces: Annotated[
+        list[NamespaceInfo],
+        Field(
+            description="Namespaces available on the requested ref.",
+        ),
+    ]
 
 
 def register_get_namespaces_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_namespaces")
     async def get_namespaces(
-        ref: str,
-        namespace: str | None = None,
-        limit: int = 10,
+        ref: Annotated[
+            str,
+            Field(
+                description="Branch, tag, or commit ref to inspect.",
+            ),
+        ],
+        namespace: Annotated[
+            str | None,
+            Field(
+                description="Optional namespace name filter.",
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                description="Maximum number of namespaces to return. Defaults to 25.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> NamespacesOut:
         """
-        Retrieve namespaces for a branch from the user's Bauplan data catalog as a list. Use 'limit' (integer) to reduce response size.
-        Get the namespaces of a branch using optional filters.
-
-        Args:
-            ref: branch or commit hash to get namespaces from. Can be either a hash that starts with "@" and
-                has 64 additional characters or a branch name, that is a mnemonic reference to the last commit that follows the "username.name" format.
-            namespace: Optional filter for namespace names (substring match)
-            limit: Optional maximum number of namespaces to return (default: 10)
-
-        Returns:
-            NamespacesOut: Object containing namespaces matching the optional filter.
+        List namespaces on a branch, tag, or commit ref.
+        Use this to discover namespace names before table lookup, import, or namespace cleanup.
         """
 
         try:
@@ -51,7 +70,7 @@ def register_get_namespaces_tool(mcp: FastMCP) -> None:
                     bauplan_client.get_namespaces(
                         ref=ref,
                         filter_by_name=namespace or None,
-                        limit=limit or 10,
+                        limit=limit,
                     )
                 )
             )

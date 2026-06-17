@@ -1,41 +1,63 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION
 from .create_client import get_bauplan_client
 
 
 class TagInfo(BaseModel):
-    name: str
-    hash: str
+    name: Annotated[
+        str,
+        Field(
+            description="Tag name.",
+        ),
+    ]
+    hash: Annotated[
+        str,
+        Field(
+            description="Commit hash referenced by the tag.",
+        ),
+    ]
 
 
 class TagsOut(BaseModel):
-    tags: list[TagInfo]
+    tags: Annotated[
+        list[TagInfo],
+        Field(
+            description="Tags matching the requested filters.",
+        ),
+    ]
 
 
 def register_get_tags_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_tags")
     async def get_tags(
-        filter_by_name: str | None = None,
-        limit: int = 10,
+        filter_by_name: Annotated[
+            str | None,
+            Field(
+                description=f"Optional tag name filter. {EXACT_OR_REGEX_FILTER_DESCRIPTION}",
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                description="Maximum number of tags to return. Defaults to 25.",
+                ge=1,
+                le=250,
+            ),
+        ] = 25,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagsOut:
         """
-        Retrieve tags from the user's Bauplan data catalog as a list, with optional filter_by_name and limit (integer) to reduce response size.
-        Get the tags using optional filters.
-
-        Args:
-            filter_by_name: Optional filter for tag names (substring match)
-            limit: Optional maximum number of tags to return
-
-        Returns:
-            TagsOut: Object containing list of tags with their names and hashes
+        List tags in the catalog, optionally filtered by name.
+        Use this when the user asks for stable refs or wants to inspect named catalog snapshots.
         """
 
         try:
@@ -46,7 +68,7 @@ def register_get_tags_tool(mcp: FastMCP) -> None:
                 lambda: list(
                     bauplan_client.get_tags(
                         filter_by_name=filter_by_name or None,
-                        limit=limit or 10,
+                        limit=limit,
                     )
                 )
             )

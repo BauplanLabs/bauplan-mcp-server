@@ -1,17 +1,28 @@
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class UserInfo(BaseModel):
-    username: str | None
-    full_name: str | None
+    username: Annotated[
+        str | None,
+        Field(
+            description="Authenticated Bauplan username, or null when unavailable.",
+        ),
+    ]
+    full_name: Annotated[
+        str | None,
+        Field(
+            description="Authenticated user's full name, or null when unavailable.",
+        ),
+    ]
 
 
 def register_get_user_info_tool(mcp: FastMCP) -> None:
@@ -21,13 +32,8 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> UserInfo:
         """
-        Retrieve user information about the current authenticated Bauplan user.
-        Get information about the current authenticated user.
-
-        Args:
-
-        Returns:
-            UserInfo: Object containing username and full name of the authenticated user
+        Get the authenticated Bauplan user's username and display name.
+        Use this to confirm which credentials the MCP server is using before user-scoped operations.
         """
 
         try:

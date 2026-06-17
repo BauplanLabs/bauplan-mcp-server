@@ -3,40 +3,56 @@ Get a tag by name.
 """
 
 import asyncio
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
 
 class TagInfo(BaseModel):
-    name: str
-    hash: str
+    name: Annotated[
+        str,
+        Field(
+            description="Tag name.",
+        ),
+    ]
+    hash: Annotated[
+        str,
+        Field(
+            description="Commit hash referenced by the tag.",
+        ),
+    ]
 
 
 class TagOut(BaseModel):
-    tag: TagInfo
+    tag: Annotated[
+        TagInfo,
+        Field(
+            description="Requested tag.",
+        ),
+    ]
 
 
 def register_get_tag_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_tag")
     async def get_tag(
-        tag: str,
+        tag: Annotated[
+            str,
+            Field(
+                description="Tag name to retrieve.",
+            ),
+        ],
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TagOut:
         """
         Retrieve a single Bauplan tag by name.
-
-        Args:
-            tag: Name of the tag to retrieve.
-
-        Returns:
-            TagOut: Object containing the tag name and target commit hash.
+        Use this when the tag name is known and the model needs the referenced commit hash.
         """
 
         try:

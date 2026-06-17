@@ -2,14 +2,9 @@ import asyncio
 import logging
 
 import bauplan
-from pydantic import BaseModel
 
 from ._guards import require_writable_branch
-
-
-class RunState(BaseModel):
-    success: bool
-    job_id: str | None = None
+from .get_job import JobOut, get_job_out
 
 
 async def run_project(
@@ -23,7 +18,7 @@ async def run_project(
     strict: bool,
     logger: logging.Logger,
     bauplan_client: bauplan.Client,
-) -> RunState:
+) -> JobOut:
     # Ensure parameters are of correct type
     if parameters:
         for key, value in parameters.items():
@@ -53,8 +48,13 @@ async def run_project(
     job_status = getattr(run_state, "job_status", None)
     logger.info(f"Run job, with ID: {job_id}, status {job_status}")
 
-    is_success = job_status.lower() == "success" if job_status else job_id is not None
-    if is_success and job_id is None:
-        raise ValueError("Run succeeded without a job ID.")
+    if job_id is None:
+        run_error = getattr(run_state, "error", None)
+        raise ValueError(f"Run did not return a job ID (status: {job_status}, error: {run_error}).")
 
-    return RunState(success=is_success, job_id=job_id)
+    try:
+        return await get_job_out(job_id, bauplan_client)
+    except Exception as e:
+        raise RuntimeError(
+            f"Run submitted with job_id '{job_id}', but job details could not be retrieved: {e}"
+        ) from e

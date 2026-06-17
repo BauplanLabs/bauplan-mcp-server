@@ -5,13 +5,13 @@ Apply a table creation plan to resolve schema conflicts.
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 import bauplan
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .create_client import get_bauplan_client
 
@@ -19,39 +19,71 @@ logger = logging.getLogger(__name__)
 
 
 class TablePlanApplied(BaseModel):
-    job_id: str | None = None
-    job_status: str | None = None
-    error: str | None = None
-    success: bool
-    message: str
+    job_id: Annotated[
+        str | None,
+        Field(
+            description="Bauplan job ID assigned to the plan apply job.",
+        ),
+    ] = None
+    job_status: Annotated[
+        str | None,
+        Field(
+            description="Final status string for the plan apply job.",
+        ),
+    ] = None
+    error: Annotated[
+        str | None,
+        Field(
+            description="Apply error message when the job failed.",
+        ),
+    ] = None
+    success: Annotated[
+        bool,
+        Field(
+            description="Whether the plan apply job completed without an error.",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="Human-readable summary of the apply result.",
+        ),
+    ]
 
 
 def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="apply_table_creation_plan")
     async def apply_table_creation_plan(
-        plan: str | dict[str, Any],
-        args: dict[str, str] | None = None,
-        priority: int | None = None,
-        client_timeout: int = 120,
+        plan: Annotated[
+            str | dict[str, Any],
+            Field(
+                description="YAML table creation plan, either as a string or JSON object.",
+            ),
+        ],
+        args: Annotated[
+            dict[str, str] | None,
+            Field(
+                description="Optional backend arguments for the apply job.",
+            ),
+        ] = None,
+        priority: Annotated[
+            int | None,
+            Field(
+                description="Optional job priority.",
+            ),
+        ] = None,
+        client_timeout: Annotated[
+            int,
+            Field(
+                description="Client timeout in seconds.",
+            ),
+        ] = 120,
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TablePlanApplied:
         """
-        Apply a provided table creation plan to resolve schema conflicts and create a new table in the system.
-        Returns a job_id for tracking the asynchronous operation.
-
-        This function is used when schema conflicts exist after plan creation and need manual resolution.
-        Most common schema conflict is two parquet files with the same column name but different datatype.
-        Note: This is done automatically during table plan creation if no schema conflicts exist.
-
-        Args:
-            plan: The plan string or dictionary to apply.
-            args: Additional arguments for plan application (optional).
-            priority: Job priority, 1-10 where 10 is highest priority (optional).
-            client_timeout: Timeout in seconds (defaults to 120).
-
-        Returns:
-            TablePlanApplied: Object indicating success/failure with job tracking details
+        Apply a table creation plan produced by plan_table_creation.
+        Use this after reviewing or editing a plan, especially when schema conflicts require manual resolution.
         """
 
         try:
@@ -91,5 +123,4 @@ def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
             )
 
         except Exception as e:
-            logger.error(f"Error applying table creation plan: {e!s}")
             raise ToolError(f"Error executing apply_table_creation_plan: {e!s}") from e
