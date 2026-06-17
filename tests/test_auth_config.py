@@ -5,8 +5,17 @@ from mcp_bauplan.auth.config import get_auth_mode, load_oauth_config
 
 def test_auth_mode_defaults_to_none(monkeypatch):
     monkeypatch.delenv("MCP_AUTH_MODE", raising=False)
+    monkeypatch.delenv("MCP_PUBLIC_BASE_URL", raising=False)
 
     assert get_auth_mode() == "none"
+
+
+def test_public_base_url_requires_oauth_mode(monkeypatch):
+    monkeypatch.delenv("MCP_AUTH_MODE", raising=False)
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com")
+
+    with pytest.raises(ValueError, match="api-key-oauth"):
+        get_auth_mode()
 
 
 def test_unknown_auth_mode_fails(monkeypatch):
@@ -28,12 +37,20 @@ def test_oauth_config_normalizes_base_url(monkeypatch, tmp_path):
     monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com/")
     monkeypatch.setenv("MCP_OAUTH_SECRET", "x" * 32)
     monkeypatch.setenv("MCP_OAUTH_CLIENT_REGISTRATION_TTL_SECONDS", "86400")
+    monkeypatch.setenv(
+        "MCP_OAUTH_TRUSTED_REDIRECTS",
+        "https://claude.ai/api/mcp/auth_callback, https://chatgpt.com/connector/oauth/*",
+    )
 
     config = load_oauth_config()
 
     assert config.base_url == "https://mcp.example.com"
     assert config.secret == "x" * 32
     assert config.client_registration_ttl_seconds == 86400
+    assert config.trusted_redirects == (
+        "https://claude.ai/api/mcp/auth_callback",
+        "https://chatgpt.com/connector/oauth/*",
+    )
 
 
 def test_oauth_config_removes_default_https_port(monkeypatch):

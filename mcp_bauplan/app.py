@@ -51,6 +51,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.p
 # Get the global MCP server name and instructions
 MCP_SERVER_NAME = "mcp-bauplan"
 MCP_PATH = "/mcp"
+LOG_TOOL_ARGS_ENV = "MCP_LOG_TOOL_ARGS"
 INSTRUCTIONS = (
     "This is the MCP server for Bauplan, an AI-first data lakehouse entirely "
     "programmable as code. Bauplan is built on two fundamental abstractions: "
@@ -75,22 +76,41 @@ logging.basicConfig(
 class LoggingMiddleware(Middleware):
     """FastMCP middleware that logs tool calls with name and duration."""
 
+    def __init__(self) -> None:
+        self._log_tool_args = _log_tool_args_enabled()
+
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         import time
 
         tool_name = context.message.name
-        args = context.message.arguments
-        logger.info(f"Calling tool '{tool_name}' with args: {args}")
+        if self._log_tool_args:
+            logger.info("Calling tool '%s' with args: %s", tool_name, context.message.arguments)
+        else:
+            logger.info("Calling tool '%s'", tool_name)
         t0 = time.perf_counter()
         try:
             result = await call_next(context)
             elapsed = time.perf_counter() - t0
-            logger.info(f"Tool '{tool_name}' completed in {elapsed:.2f}s")
+            logger.info("Tool '%s' completed in %.2fs", tool_name, elapsed)
             return result
         except Exception:
             elapsed = time.perf_counter() - t0
             logger.exception(f"Tool '{tool_name}' failed after {elapsed:.2f}s")
             raise
+
+
+def _log_tool_args_enabled() -> bool:
+    value = os.getenv(LOG_TOOL_ARGS_ENV, "").strip().lower()
+    if value in ("", "0", "false", "no", "off"):
+        return False
+    if value in ("1", "true", "yes", "on"):
+        if os.getenv("MCP_PUBLIC_BASE_URL", "").strip():
+            logger.warning(
+                "%s is enabled on a public MCP server; tool arguments may contain sensitive data",
+                LOG_TOOL_ARGS_ENV,
+            )
+        return True
+    raise ValueError(f"{LOG_TOOL_ARGS_ENV} must be true or false")
 
 
 def _set_profile(profile: str | None) -> None:
