@@ -1,7 +1,7 @@
 import logging
 import os
 import warnings
-from typing import Literal
+from typing import Any, Literal
 
 import uvicorn
 from fastmcp import FastMCP
@@ -93,35 +93,22 @@ class LoggingMiddleware(Middleware):
             raise
 
 
-def main(
-    transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
-    host: str = "0.0.0.0",
-    port: int = 8000,
-    profile: str | None = None,
-) -> None:
-    """
-    Main entry point for the MCP Bauplan server.
-    """
-    # if the profile is set, add it to the envs
+def _set_profile(profile: str | None) -> None:
     if profile:
         os.environ["BAUPLAN_PROFILE"] = profile
 
-    auth_mode = get_auth_mode()
 
-    auth_provider = None
-    if auth_mode == API_KEY_OAUTH_MODE:
-        from .auth.api_key_oauth import create_api_key_oauth_provider
+def _auth_provider(auth_mode: str) -> Any | None:
+    if auth_mode != API_KEY_OAUTH_MODE:
+        return None
 
-        auth_provider = create_api_key_oauth_provider(load_oauth_config())
-        logger.info("Enabled API-key-backed OAuth authentication")
+    from .auth.api_key_oauth import create_api_key_oauth_provider
 
-    mcp = FastMCP(
-        MCP_SERVER_NAME,
-        instructions=INSTRUCTIONS,
-        auth=auth_provider,
-    )
+    logger.info("Enabled API-key-backed OAuth authentication")
+    return create_api_key_oauth_provider(load_oauth_config())
 
-    # Register tools
+
+def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_get_tables_tool(mcp)
     register_get_table_tool(mcp)
     register_run_query_tool(mcp)
@@ -158,33 +145,62 @@ def main(
     register_get_user_info_tool(mcp)
     register_get_instructions_tool(mcp)
 
+
+def create_mcp(profile: str | None = None) -> FastMCP:
+    _set_profile(profile)
+    auth_mode = get_auth_mode()
+    mcp = FastMCP(
+        MCP_SERVER_NAME,
+        instructions=INSTRUCTIONS,
+        auth=_auth_provider(auth_mode),
+    )
+    _register_tools(mcp, auth_mode)
     mcp.add_middleware(LoggingMiddleware())
+    return mcp
 
-    if transport != "stdio":
-        # Health check endpoint (must be registered before http_app())
-        @mcp.custom_route("/healthz", methods=["GET"])
-        async def health(_: Request) -> PlainTextResponse:
-            return PlainTextResponse("ok")
 
-        # Create the app based on transport type
-        if transport == "sse":
-            app = mcp.http_app(transport="sse")
-        else:
-            # For HTTP/streamable-http
-            app = mcp.http_app(path=MCP_PATH, stateless_http=True)
+def create_http_app(
+    transport: Literal["sse", "streamable-http"] | None = None,
+    profile: str | None = None,
+) -> Any:
+    resolved_transport = transport or os.getenv("MCP_TRANSPORT", "streamable-http")
+    if resolved_transport not in ("sse", "streamable-http"):
+        raise ValueError("HTTP app transport must be 'sse' or 'streamable-http'.")
 
-        # Add CORS middleware
-        app.add_middleware(
-            CORSMiddleware,  # type: ignore[arg-type]
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    mcp = create_mcp(profile=profile)
 
-        # Run server
-        uvicorn.run(app, host=host, port=port)
+    # Health check endpoint (must be registered before http_app()).
+    @mcp.custom_route("/healthz", methods=["GET"])
+    async def health(_: Request) -> PlainTextResponse:
+        return PlainTextResponse("ok")
+
+    if resolved_transport == "sse":
+        app = mcp.http_app(transport="sse")
     else:
-        mcp.run(transport=transport)
+        app = mcp.http_app(path=MCP_PATH, stateless_http=True)
 
-    return
+    app.add_middleware(
+        CORSMiddleware,  # type: ignore[arg-type]
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return app
+
+
+def main(
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    profile: str | None = None,
+) -> None:
+    """
+    Main entry point for the MCP Bauplan server.
+    """
+    if transport == "stdio":
+        create_mcp(profile=profile).run(transport=transport)
+        return
+
+    app = create_http_app(transport=transport, profile=profile)
+    uvicorn.run(app, host=host, port=port)

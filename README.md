@@ -77,6 +77,19 @@ The server supports the following CLI options, mostly useful for specifying alte
 
 **Note:** The `--host` and `--port` options are ignored when using `stdio` transport since it communicates through stdin/stdout.
 
+### Container Runtime
+
+The Docker image starts HTTP transports with Gunicorn and Uvicorn workers. This is meant for remote deployments where several requests can be handled concurrently. Local MCP usage should continue to use `python main.py`, especially for `stdio`.
+
+Useful environment variables:
+
+| Variable         | Default           | Description                                      |
+|------------------|-------------------|--------------------------------------------------|
+| `MCP_TRANSPORT`  | `streamable-http` | HTTP transport for the container, or `stdio`     |
+| `MCP_WORKERS`    | `4`               | Gunicorn worker count for HTTP transports        |
+| `MCP_KEEP_ALIVE` | `65`              | Gunicorn keep-alive timeout in seconds           |
+| `PORT`           | `8000`            | Container listen port for HTTP transports        |
+
 ### Claude Desktop
 
 To add the Bauplan MCP server to Claude Desktop, follow the [guide](https://modelcontextprotocol.io/quickstart/user) to get to your `claude_desktop_config.json` file.
