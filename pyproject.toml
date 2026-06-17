@@ -10,7 +10,7 @@ dependencies = [
   "bauplan>=0.0.3a431",
   "pydantic~=2.12.5",
   "authlib>=1.6.0",
-  "cryptography>=46.0.0",
+  "cryptography>=48.0.1",
 ]
 
 [project.optional-dependencies]
