@@ -95,6 +95,17 @@ class _JobLookupClient:
         )
 
 
+async def _get_tool(mcp: FastMCP, name: str) -> Any:
+    mcp_any = cast(Any, mcp)
+    get_tool = getattr(mcp_any, "get_tool", None)
+    if get_tool is not None:
+        tool = await get_tool(name)
+    else:
+        tool = (await mcp_any.get_tools()).get(name)
+    assert tool is not None
+    return cast(Any, tool)
+
+
 def test_writable_branch_guard_rejects_default_main_targets():
     assert require_writable_branch("alice.dev", "test") == "alice.dev"
     assert require_writable_branch(" alice.dev ", "test") == "alice.dev"
@@ -108,7 +119,7 @@ def test_create_table_rejects_main_branch_without_calling_sdk():
     async def run():
         mcp = FastMCP("test")
         register_create_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("create_table"))
+        tool = await _get_tool(mcp, "create_table")
 
         class Client:
             def create_table(self, **kwargs):
@@ -129,7 +140,7 @@ def test_create_branch_returns_created_branch():
     async def run():
         mcp = FastMCP("test")
         register_create_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("create_branch"))
+        tool = await _get_tool(mcp, "create_branch")
 
         captured = {}
 
@@ -151,7 +162,7 @@ def test_create_namespace_returns_created_namespace():
     async def run():
         mcp = FastMCP("test")
         register_create_namespace_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("create_namespace"))
+        tool = await _get_tool(mcp, "create_namespace")
 
         captured = {}
 
@@ -172,7 +183,7 @@ def test_delete_namespace_returns_updated_branch():
     async def run():
         mcp = FastMCP("test")
         register_delete_namespace_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("delete_namespace"))
+        tool = await _get_tool(mcp, "delete_namespace")
 
         captured = {}
 
@@ -194,7 +205,7 @@ def test_delete_branch_returns_deleted_bool():
     async def run():
         mcp = FastMCP("test")
         register_delete_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("delete_branch"))
+        tool = await _get_tool(mcp, "delete_branch")
 
         captured = {}
 
@@ -215,7 +226,7 @@ def test_delete_table_returns_updated_branch():
     async def run():
         mcp = FastMCP("test")
         register_delete_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("delete_table"))
+        tool = await _get_tool(mcp, "delete_table")
 
         captured = {}
 
@@ -237,7 +248,7 @@ def test_merge_branch_returns_updated_target_branch_and_omits_blank_commit_text(
     async def run():
         mcp = FastMCP("test")
         register_merge_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("merge_branch"))
+        tool = await _get_tool(mcp, "merge_branch")
 
         captured = {}
 
@@ -270,7 +281,7 @@ def test_merge_branch_rejects_main_target_without_calling_sdk():
     async def run():
         mcp = FastMCP("test")
         register_merge_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("merge_branch"))
+        tool = await _get_tool(mcp, "merge_branch")
 
         class Client:
             def merge_branch(self, **kwargs):
@@ -286,7 +297,7 @@ def test_revert_table_returns_updated_target_branch_and_omits_blank_optional_val
     async def run():
         mcp = FastMCP("test")
         register_revert_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("revert_table"))
+        tool = await _get_tool(mcp, "revert_table")
 
         captured = {}
 
@@ -322,7 +333,7 @@ def test_revert_table_rejects_main_target_without_calling_sdk():
     async def run():
         mcp = FastMCP("test")
         register_revert_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("revert_table"))
+        tool = await _get_tool(mcp, "revert_table")
 
         class Client:
             def revert_table(self, **kwargs):
@@ -340,7 +351,7 @@ def test_delete_tag_returns_deleted_bool():
     async def run():
         mcp = FastMCP("test")
         register_delete_tag_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("delete_tag"))
+        tool = await _get_tool(mcp, "delete_tag")
 
         captured = {}
 
@@ -361,7 +372,7 @@ def test_create_tag_returns_created_tag():
     async def run():
         mcp = FastMCP("test")
         register_create_tag_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("create_tag"))
+        tool = await _get_tool(mcp, "create_tag")
 
         captured = {}
 
@@ -383,7 +394,7 @@ def test_create_table_returns_created_table_and_omits_blank_optional_values():
     async def run():
         mcp = FastMCP("test")
         register_create_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("create_table"))
+        tool = await _get_tool(mcp, "create_table")
 
         captured = {}
 
@@ -420,7 +431,7 @@ def test_project_run_rejects_default_main_ref_without_calling_sdk():
     async def run():
         mcp = FastMCP("test")
         register_project_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("project_run"))
+        tool = await _get_tool(mcp, "project_run")
 
         class Client:
             def run(self, **kwargs):
@@ -437,7 +448,7 @@ def test_plan_table_creation_rejects_default_main_branch_without_calling_sdk():
     async def run():
         mcp = FastMCP("test")
         register_plan_table_creation_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("plan_table_creation"))
+        tool = await _get_tool(mcp, "plan_table_creation")
 
         class Client:
             def plan_table_creation(self, **kwargs):
@@ -470,7 +481,7 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -518,7 +529,7 @@ def test_get_table_delegates_table_and_namespace_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_get_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_table"))
+        tool = await _get_tool(mcp, "get_table")
 
         captured = {}
 
@@ -563,7 +574,7 @@ def test_get_table_returns_clear_error_when_missing():
     async def run():
         mcp = FastMCP("test")
         register_get_table_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_table"))
+        tool = await _get_tool(mcp, "get_table")
 
         class Client:
             def get_table(self, **kwargs):
@@ -579,7 +590,7 @@ def test_get_branch_returns_name_with_hash():
     async def run():
         mcp = FastMCP("test")
         register_get_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_branch"))
+        tool = await _get_tool(mcp, "get_branch")
 
         captured = {}
 
@@ -629,7 +640,7 @@ def test_get_branch_returns_clear_error_when_missing():
     async def run():
         mcp = FastMCP("test")
         register_get_branch_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_branch"))
+        tool = await _get_tool(mcp, "get_branch")
 
         class Client:
             def get_branch(self, **kwargs):
@@ -645,7 +656,7 @@ def test_get_namespaces_returns_names():
     async def run():
         mcp = FastMCP("test")
         register_get_namespaces_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_namespaces"))
+        tool = await _get_tool(mcp, "get_namespaces")
 
         captured = {}
 
@@ -673,7 +684,7 @@ def test_get_namespace_returns_name():
     async def run():
         mcp = FastMCP("test")
         register_get_namespace_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_namespace"))
+        tool = await _get_tool(mcp, "get_namespace")
 
         captured = {}
 
@@ -694,7 +705,7 @@ def test_get_namespace_returns_clear_error_when_missing():
     async def run():
         mcp = FastMCP("test")
         register_get_namespace_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_namespace"))
+        tool = await _get_tool(mcp, "get_namespace")
 
         class Client:
             def get_namespace(self, **kwargs):
@@ -710,7 +721,7 @@ def test_get_tables_returns_names_with_namespaces():
     async def run():
         mcp = FastMCP("test")
         register_get_tables_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_tables"))
+        tool = await _get_tool(mcp, "get_tables")
 
         captured = {}
 
@@ -770,7 +781,7 @@ def test_get_tables_can_include_schema():
     async def run():
         mcp = FastMCP("test")
         register_get_tables_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_tables"))
+        tool = await _get_tool(mcp, "get_tables")
 
         captured = {}
 
@@ -825,7 +836,7 @@ def test_get_tags_returns_names_with_hashes():
     async def run():
         mcp = FastMCP("test")
         register_get_tags_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_tags"))
+        tool = await _get_tool(mcp, "get_tags")
 
         captured = {}
 
@@ -855,7 +866,7 @@ def test_get_tag_returns_name_with_hash():
     async def run():
         mcp = FastMCP("test")
         register_get_tag_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_tag"))
+        tool = await _get_tool(mcp, "get_tag")
 
         captured = {}
 
@@ -877,7 +888,7 @@ def test_get_tag_returns_clear_error_when_missing():
     async def run():
         mcp = FastMCP("test")
         register_get_tag_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_tag"))
+        tool = await _get_tool(mcp, "get_tag")
 
         class Client:
             def get_tag(self, **kwargs):
@@ -893,7 +904,7 @@ def test_get_jobs_does_not_filter_by_kind_unless_requested():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -914,7 +925,7 @@ def test_get_jobs_accepts_custom_limit():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -934,7 +945,7 @@ def test_get_jobs_does_not_force_run_kind_when_filtering_by_job_id():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -968,7 +979,7 @@ def test_get_jobs_accepts_multiple_job_ids():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -988,7 +999,7 @@ def test_get_jobs_accepts_multiple_filter_values():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -1015,7 +1026,7 @@ def test_run_query_passes_default_and_custom_max_rows_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_run_query_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("run_query"))
+        tool = await _get_tool(mcp, "run_query")
 
         captured = []
 
@@ -1083,7 +1094,7 @@ def test_project_run_delegates_omitted_run_defaults_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_project_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("project_run"))
+        tool = await _get_tool(mcp, "project_run")
 
         captured = {}
 
@@ -1107,7 +1118,7 @@ def test_project_run_accepts_none_parameter_values():
     async def run():
         mcp = FastMCP("test")
         register_project_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("project_run"))
+        tool = await _get_tool(mcp, "project_run")
 
         captured = {}
 
@@ -1133,7 +1144,7 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
 
         captured = {}
 
@@ -1165,7 +1176,7 @@ def test_code_run_passes_strict_argument_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
 
         captured = {}
 
@@ -1202,7 +1213,7 @@ def test_code_run_rejects_paths_outside_temp_project():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
 
         class Client:
             def run(self, **kwargs):
@@ -1225,7 +1236,7 @@ def test_code_run_requires_non_main_ref_for_non_dry_run():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
 
         class Client:
             def run(self, **kwargs):
@@ -1248,7 +1259,7 @@ def test_code_run_requires_ref_even_for_dry_run():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
 
         class Client:
             def run(self, **kwargs):
@@ -1271,7 +1282,7 @@ def test_get_jobs_uses_requested_sdk_job_status():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_jobs"))
+        tool = await _get_tool(mcp, "get_jobs")
 
         captured = {}
 
@@ -1291,7 +1302,7 @@ def test_apply_table_creation_plan_accepts_sdk_plan_string():
     async def run():
         mcp = FastMCP("test")
         register_apply_table_creation_plan_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("apply_table_creation_plan"))
+        tool = await _get_tool(mcp, "apply_table_creation_plan")
 
         captured = {}
 
@@ -1315,7 +1326,7 @@ def test_apply_table_creation_plan_preserves_sdk_status_error(monkeypatch: pytes
     async def run():
         mcp = FastMCP("test")
         register_apply_table_creation_plan_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("apply_table_creation_plan"))
+        tool = await _get_tool(mcp, "apply_table_creation_plan")
 
         class ApplyError(Exception):
             def __init__(self):
@@ -1347,7 +1358,7 @@ def test_apply_table_creation_plan_accepts_dict_plan_for_mcp_clients():
     async def run():
         mcp = FastMCP("test")
         register_apply_table_creation_plan_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("apply_table_creation_plan"))
+        tool = await _get_tool(mcp, "apply_table_creation_plan")
 
         captured = {}
 
@@ -1371,7 +1382,7 @@ def test_apply_table_creation_plan_reports_sdk_error_without_job_id():
     async def run():
         mcp = FastMCP("test")
         register_apply_table_creation_plan_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("apply_table_creation_plan"))
+        tool = await _get_tool(mcp, "apply_table_creation_plan")
 
         class Client:
             def apply_table_creation_plan(self, **kwargs):
@@ -1394,7 +1405,7 @@ def test_code_run_passes_optional_run_arguments_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("code_run"))
+        tool = await _get_tool(mcp, "code_run")
         captured = {}
 
         class Client(_JobLookupClient):
@@ -1429,7 +1440,7 @@ def test_get_job_uses_snapshot_dict_and_preserves_project_file_paths():
     async def run():
         mcp = FastMCP("test")
         register_get_job_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_job"))
+        tool = await _get_tool(mcp, "get_job")
 
         class Client:
             def get_job(self, job_id):
@@ -1475,7 +1486,7 @@ def test_get_job_supports_yaml_project_config():
     async def run():
         mcp = FastMCP("test")
         register_get_job_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_job"))
+        tool = await _get_tool(mcp, "get_job")
 
         class Client:
             def get_job(self, job_id):
@@ -1513,7 +1524,7 @@ def test_get_job_returns_metadata_when_context_is_unavailable():
     async def run():
         mcp = FastMCP("test")
         register_get_job_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("get_job"))
+        tool = await _get_tool(mcp, "get_job")
 
         class Client:
             def get_job(self, job_id):
@@ -1547,7 +1558,7 @@ def test_import_data_reports_sdk_error_state():
     async def run():
         mcp = FastMCP("test")
         register_import_data_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("import_data"))
+        tool = await _get_tool(mcp, "import_data")
 
         class Client:
             def import_data(self, **kwargs):
@@ -1571,7 +1582,7 @@ def test_plan_table_creation_exposes_conflict_plan():
     async def run():
         mcp = FastMCP("test")
         register_plan_table_creation_tool(mcp)
-        tool = cast(Any, await mcp.get_tool("plan_table_creation"))
+        tool = await _get_tool(mcp, "plan_table_creation")
 
         class Client:
             def plan_table_creation(self, **kwargs):
