@@ -119,7 +119,6 @@ def main(
         MCP_SERVER_NAME,
         instructions=INSTRUCTIONS,
         auth=auth_provider,
-        stateless_http=True,
     )
 
     # Register tools
@@ -172,7 +171,7 @@ def main(
             app = mcp.http_app(transport="sse")
         else:
             # For HTTP/streamable-http
-            app = mcp.http_app(path=MCP_PATH)
+            app = mcp.http_app(path=MCP_PATH, stateless_http=True)
 
         # Add CORS middleware
         app.add_middleware(
