@@ -8,6 +8,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
 from ._guards import require_truthy_result, require_writable_branch
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 
 
@@ -21,7 +22,7 @@ class BranchDeleted(BaseModel):
 
 
 def register_delete_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="delete_branch")
+    @mcp.tool(name="delete_branch", annotations=mutating_tool_annotations("Delete branch", destructive=True))
     async def delete_branch(
         branch: Annotated[
             str,

@@ -13,6 +13,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,10 @@ class TablePlanApplied(BaseModel):
 
 
 def register_apply_table_creation_plan_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="apply_table_creation_plan")
+    @mcp.tool(
+        name="apply_table_creation_plan",
+        annotations=mutating_tool_annotations("Apply table creation plan", destructive=True),
+    )
     async def apply_table_creation_plan(
         plan: Annotated[
             str | dict[str, Any],

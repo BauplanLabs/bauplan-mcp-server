@@ -4,6 +4,10 @@ Execute queries and save results to CSV files.
 
 import asyncio
 import logging
+import shutil
+import tempfile
+from contextlib import suppress
+from pathlib import Path
 from typing import Annotated
 
 import bauplan
@@ -12,9 +16,23 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
+
+
+def _publish_without_overwrite(source: Path, destination: Path) -> None:
+    created_destination = False
+    try:
+        with source.open("rb") as source_file, destination.open("xb") as destination_file:
+            created_destination = True
+            shutil.copyfileobj(source_file, destination_file)
+    except Exception:
+        if created_destination:
+            with suppress(FileNotFoundError):
+                destination.unlink()
+        raise
 
 
 class QueryToCSVResult(BaseModel):
@@ -57,12 +75,12 @@ class QueryToCSVResult(BaseModel):
 
 
 def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="run_query_to_csv")
+    @mcp.tool(name="run_query_to_csv", annotations=mutating_tool_annotations("Run query to CSV"))
     async def run_query_to_csv(
         path: Annotated[
             str,
             Field(
-                description="Server-side CSV output path.",
+                description="Server-side CSV output path. The file must not already exist.",
             ),
         ],
         query: Annotated[
@@ -94,22 +112,38 @@ def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
     ) -> QueryToCSVResult:
         """
         Execute a SQL query and write scalar results to a server-local CSV file.
+        The output path must not exist because this tool never overwrites files.
         Use this only when the caller can access the output path; prefer run_query for remote MCP clients.
         """
 
         try:
+            destination = Path(path)
+            if destination.exists():
+                raise ToolError(f"Output path already exists and will not be overwritten: {path}")
+            if not destination.parent.is_dir():
+                raise ToolError(f"Output directory does not exist: {destination.parent}")
+
             if ctx:
                 await ctx.info(f"Executing query to CSV file: {path}")
 
-            await asyncio.to_thread(
-                lambda: bauplan_client.query_to_csv_file(
-                    path=path,
-                    query=query,
-                    ref=ref or None,
-                    namespace=namespace or None,
-                    client_timeout=client_timeout,
+            with tempfile.NamedTemporaryFile(
+                prefix="bauplan_query_",
+                suffix=".csv",
+                delete=True,
+                delete_on_close=False,
+            ) as temporary_file:
+                temporary_path = Path(temporary_file.name)
+                temporary_file.close()
+                await asyncio.to_thread(
+                    lambda: bauplan_client.query_to_csv_file(
+                        path=temporary_path,
+                        query=query,
+                        ref=ref or None,
+                        namespace=namespace or None,
+                        client_timeout=client_timeout,
+                    )
                 )
-            )
+                _publish_without_overwrite(temporary_path, destination)
 
             # Log successful execution
             logger.info(f"Successfully executed query and saved results to CSV: {path}")

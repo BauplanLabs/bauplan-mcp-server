@@ -7,6 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from ._schema import read_only_tool_annotations
 from .create_client import get_bauplan_client
 
 
@@ -29,7 +30,7 @@ class NamespacesOut(BaseModel):
 
 
 def register_get_namespaces_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_namespaces")
+    @mcp.tool(name="get_namespaces", annotations=read_only_tool_annotations("Get namespaces"))
     async def get_namespaces(
         ref: Annotated[
             str,

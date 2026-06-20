@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION
+from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION, read_only_tool_annotations
 from .create_client import get_bauplan_client
 
 
@@ -36,7 +36,7 @@ class TagsOut(BaseModel):
 
 
 def register_get_tags_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_tags")
+    @mcp.tool(name="get_tags", annotations=read_only_tool_annotations("Get tags"))
     async def get_tags(
         filter_by_name: Annotated[
             str | None,

@@ -20,6 +20,7 @@ from ._schema import (
     JobStatusOut,
     job_kind_out,
     job_status_out,
+    read_only_tool_annotations,
 )
 from .create_client import get_bauplan_client
 
@@ -87,7 +88,7 @@ class JobsList(BaseModel):
 
 
 def register_get_jobs_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_jobs")
+    @mcp.tool(name="get_jobs", annotations=read_only_tool_annotations("Get jobs"))
     async def get_jobs(
         job_ids: Annotated[
             list[str] | None,
