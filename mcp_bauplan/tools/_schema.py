@@ -1,8 +1,36 @@
 from typing import Any, Literal, cast
 
+from mcp.types import ToolAnnotations
+
 EXACT_OR_REGEX_FILTER_DESCRIPTION = (
     "Use plain text for a normal name search, or a regex that starts with ^ and ends with $."
 )
+
+
+def read_only_tool_annotations(title: str, *, open_world: bool = True) -> ToolAnnotations:
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=open_world,
+    )
+
+
+def mutating_tool_annotations(
+    title: str,
+    *,
+    destructive: bool = False,
+    open_world: bool = True,
+) -> ToolAnnotations:
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=False,
+        destructiveHint=destructive,
+        idempotentHint=False,
+        openWorldHint=open_world,
+    )
+
 
 # TODO: Replace these Literals with SDK enum-like types when they support Pydantic schemas:
 # https://github.com/BauplanLabs/bauplan/issues/333

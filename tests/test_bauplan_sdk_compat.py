@@ -36,6 +36,7 @@ from mcp_bauplan.tools.plan_table_creation import register_plan_table_creation_t
 from mcp_bauplan.tools.project_run import register_project_run_tool
 from mcp_bauplan.tools.revert_table import register_revert_table_tool
 from mcp_bauplan.tools.run_query import register_run_query_tool
+from mcp_bauplan.tools.run_query_to_csv import register_run_query_to_csv_tool
 
 
 def _sdk_table(**overrides):
@@ -132,6 +133,90 @@ def test_create_table_rejects_main_branch_without_calling_sdk():
                 branch="main",
                 bauplan_client=Client(),
             )
+
+    asyncio.run(run())
+
+
+def test_run_query_to_csv_rejects_existing_output_path(tmp_path):
+    async def run():
+        mcp = FastMCP("test")
+        register_run_query_to_csv_tool(mcp)
+        tool = await _get_tool(mcp, "run_query_to_csv")
+
+        output_path = tmp_path / "result.csv"
+        output_path.write_text("keep me")
+
+        class Client:
+            def query_to_csv_file(self, **kwargs):
+                raise AssertionError("query_to_csv_file should not be called")
+
+        with pytest.raises(ToolError, match="already exists"):
+            await tool.fn(
+                path=str(output_path),
+                query="SELECT 1",
+                bauplan_client=Client(),
+            )
+
+        assert output_path.read_text() == "keep me"
+
+    asyncio.run(run())
+
+
+def test_run_query_to_csv_writes_new_output_path_without_temp_file(tmp_path):
+    async def run():
+        mcp = FastMCP("test")
+        register_run_query_to_csv_tool(mcp)
+        tool = await _get_tool(mcp, "run_query_to_csv")
+
+        output_path = tmp_path / "result.csv"
+        captured = {}
+
+        class Client:
+            def query_to_csv_file(self, **kwargs):
+                captured.update(kwargs)
+                kwargs["path"].write_text("value\n1\n")
+
+        result = await tool.fn(
+            path=str(output_path),
+            query="SELECT 1",
+            bauplan_client=Client(),
+        )
+
+        assert captured["path"] != output_path
+        assert output_path.read_text() == "value\n1\n"
+        assert not captured["path"].exists()
+        assert list(tmp_path.glob(".result.csv.*")) == []
+        assert result.path == str(output_path)
+        assert result.success is True
+
+    asyncio.run(run())
+
+
+def test_run_query_to_csv_removes_temp_file_when_sdk_fails(tmp_path):
+    async def run():
+        mcp = FastMCP("test")
+        register_run_query_to_csv_tool(mcp)
+        tool = await _get_tool(mcp, "run_query_to_csv")
+
+        output_path = tmp_path / "result.csv"
+        captured = {}
+
+        class Client:
+            def query_to_csv_file(self, **kwargs):
+                captured.update(kwargs)
+                kwargs["path"].write_text("partial")
+                raise RuntimeError("boom")
+
+        with pytest.raises(ToolError, match="boom"):
+            await tool.fn(
+                path=str(output_path),
+                query="SELECT 1",
+                bauplan_client=Client(),
+            )
+
+        assert not output_path.exists()
+        assert not captured["path"].exists()
+        assert list(tmp_path.glob(".result.csv.*")) == []
 
     asyncio.run(run())
 

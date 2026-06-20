@@ -11,6 +11,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 from .get_job import JobOut
 from .run_bauplan_project import run_project
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_project_run_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="project_run")
+    @mcp.tool(name="project_run", annotations=mutating_tool_annotations("Run project", destructive=True))
     async def project_run(
         project_dir: Annotated[
             str,

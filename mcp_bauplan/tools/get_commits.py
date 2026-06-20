@@ -7,6 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from ._schema import read_only_tool_annotations
 from .create_client import get_bauplan_client
 
 
@@ -80,7 +81,7 @@ class CommitsOut(BaseModel):
 
 
 def register_get_commits_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_commits")
+    @mcp.tool(name="get_commits", annotations=read_only_tool_annotations("Get commits"))
     async def get_commits(
         ref: Annotated[
             str,

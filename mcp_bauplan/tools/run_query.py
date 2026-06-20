@@ -9,6 +9,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from ._schema import read_only_tool_annotations
 from .create_client import get_bauplan_client
 
 
@@ -84,7 +85,7 @@ def _duplicate_column_names(column_names: list[str]) -> list[str]:
 
 
 def register_run_query_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="run_query")
+    @mcp.tool(name="run_query", annotations=read_only_tool_annotations("Run query"))
     async def run_query(
         query: Annotated[
             str,

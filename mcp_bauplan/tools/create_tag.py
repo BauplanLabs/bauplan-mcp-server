@@ -7,12 +7,13 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 from .get_tag import TagInfo, TagOut
 
 
 def register_create_tag_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="create_tag")
+    @mcp.tool(name="create_tag", annotations=mutating_tool_annotations("Create tag"))
     async def create_tag(
         tag: Annotated[
             str,

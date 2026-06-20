@@ -13,6 +13,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ._guards import require_writable_branch
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 from .get_branch import BranchInfo, BranchOut
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_revert_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="revert_table")
+    @mcp.tool(name="revert_table", annotations=mutating_tool_annotations("Revert table", destructive=True))
     async def revert_table(
         table: Annotated[
             str,

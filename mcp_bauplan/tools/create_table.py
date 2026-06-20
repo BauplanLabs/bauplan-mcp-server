@@ -13,6 +13,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ._guards import require_writable_branch
+from ._schema import mutating_tool_annotations
 from .create_client import get_bauplan_client
 from .get_table import TableOut, table_to_out
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_create_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="create_table")
+    @mcp.tool(name="create_table", annotations=mutating_tool_annotations("Create table", destructive=True))
     async def create_table(
         table: Annotated[
             str,

@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from mcp.types import ToolAnnotations
 
 from mcp_bauplan.app import _log_tool_args_enabled, create_http_app, create_mcp
 from mcp_bauplan.auth.config import API_KEY_OAUTH_MODE
@@ -29,6 +30,46 @@ def test_create_mcp_hides_local_file_tools_in_oauth_mode(monkeypatch: pytest.Mon
 
         assert "project_run" not in tools
         assert "run_query_to_csv" not in tools
+
+    asyncio.run(run())
+
+
+def test_create_mcp_exposes_tool_annotations(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("MCP_AUTH_MODE", raising=False)
+    monkeypatch.delenv("MCP_PUBLIC_BASE_URL", raising=False)
+
+    async def run():
+        tools = {tool.name: tool for tool in await create_mcp().list_tools()}
+
+        assert all(tool.annotations is not None for tool in tools.values())
+
+        def annotations_for(tool_name: str) -> ToolAnnotations:
+            annotations = tools[tool_name].annotations
+            assert annotations is not None
+            return annotations
+
+        get_table = annotations_for("get_table")
+        assert get_table.title == "Get table"
+        assert get_table.readOnlyHint is True
+        assert get_table.destructiveHint is False
+        assert get_table.idempotentHint is True
+        assert get_table.openWorldHint is True
+
+        get_instructions = annotations_for("get_instructions")
+        assert get_instructions.readOnlyHint is True
+        assert get_instructions.openWorldHint is False
+
+        create_branch = annotations_for("create_branch")
+        assert create_branch.readOnlyHint is False
+        assert create_branch.destructiveHint is False
+
+        delete_table = annotations_for("delete_table")
+        assert delete_table.readOnlyHint is False
+        assert delete_table.destructiveHint is True
+
+        run_query_to_csv = annotations_for("run_query_to_csv")
+        assert run_query_to_csv.readOnlyHint is False
+        assert run_query_to_csv.destructiveHint is False
 
     asyncio.run(run())
 
