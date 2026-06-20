@@ -11,6 +11,7 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
 from .auth.config import API_KEY_OAUTH_MODE, get_auth_mode, load_oauth_config
+from .tools._schema import TOOL_TAG_REMOTE, TOOL_TAGS
 from .tools.apply_table_creation_plan import register_apply_table_creation_plan_tool
 from .tools.cancel_job import register_cancel_job_tool
 from .tools.code_run import register_code_run_tool
@@ -52,6 +53,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.p
 MCP_SERVER_NAME = "mcp-bauplan"
 MCP_PATH = "/mcp"
 LOG_TOOL_ARGS_ENV = "MCP_LOG_TOOL_ARGS"
+VISIBLE_TOOL_TAGS_ENV = "MCP_VISIBLE_TOOL_TAGS"
 INSTRUCTIONS = (
     "This is the MCP server for Bauplan, an AI-first data lakehouse entirely "
     "programmable as code. Bauplan is built on two fundamental abstractions: "
@@ -113,6 +115,24 @@ def _log_tool_args_enabled() -> bool:
     raise ValueError(f"{LOG_TOOL_ARGS_ENV} must be true or false")
 
 
+def _visible_tool_tags(auth_mode: str) -> set[str] | None:
+    value = os.getenv(VISIBLE_TOOL_TAGS_ENV)
+    if value is None:
+        return {TOOL_TAG_REMOTE} if auth_mode == API_KEY_OAUTH_MODE else None
+
+    tags = {tag.strip() for tag in value.split(",") if tag.strip()}
+    if not tags:
+        raise ValueError(f"{VISIBLE_TOOL_TAGS_ENV} must contain at least one tag")
+    unknown_tags = tags - TOOL_TAGS
+    if unknown_tags:
+        allowed_tags = ", ".join(sorted(TOOL_TAGS))
+        raise ValueError(
+            f"{VISIBLE_TOOL_TAGS_ENV} contains unknown tags: {', '.join(sorted(unknown_tags))}. "
+            f"Allowed tags are: {allowed_tags}"
+        )
+    return tags
+
+
 def _set_profile(profile: str | None) -> None:
     if profile:
         os.environ["BAUPLAN_PROFILE"] = profile
@@ -132,9 +152,7 @@ def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_get_tables_tool(mcp)
     register_get_table_tool(mcp)
     register_run_query_tool(mcp)
-    # OAuth remote clients cannot read server-local CSV files.
-    if auth_mode != API_KEY_OAUTH_MODE:
-        register_run_query_to_csv_tool(mcp)
+    register_run_query_to_csv_tool(mcp)
     register_get_branches_tool(mcp)
     register_get_branch_tool(mcp)
     register_get_commits_tool(mcp)
@@ -148,9 +166,7 @@ def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_delete_table_tool(mcp)
     register_import_data_tool(mcp)
     register_revert_table_tool(mcp)
-    # OAuth remote clients cannot use client-local project paths.
-    if auth_mode != API_KEY_OAUTH_MODE:
-        register_project_run_tool(mcp)
+    register_project_run_tool(mcp)
     register_code_run_tool(mcp)
     register_get_jobs_tool(mcp)
     register_get_job_tool(mcp)
@@ -164,6 +180,10 @@ def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_delete_tag_tool(mcp)
     register_get_user_info_tool(mcp)
     register_get_instructions_tool(mcp)
+
+    visible_tool_tags = _visible_tool_tags(auth_mode)
+    if visible_tool_tags:
+        mcp.enable(tags=visible_tool_tags, components={"tool"}, only=True)
 
 
 def create_mcp(profile: str | None = None) -> FastMCP:

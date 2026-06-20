@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION, read_only_tool_annotations
+from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION, read_only_tool_annotations, remote_read_tags
 from .create_client import get_bauplan_client
 
 
@@ -36,7 +36,11 @@ class BranchesOut(BaseModel):
 
 
 def register_get_branches_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_branches", annotations=read_only_tool_annotations("Get branches"))
+    @mcp.tool(
+        name="get_branches",
+        annotations=read_only_tool_annotations("Get branches"),
+        tags=remote_read_tags(),
+    )
     async def get_branches(
         name: Annotated[
             str | None,

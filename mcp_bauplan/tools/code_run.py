@@ -15,7 +15,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 from .get_job import JobOut
 from .run_bauplan_project import run_project
@@ -33,7 +33,11 @@ def _project_file_path(root: Path, filename: str) -> Path:
 
 
 def register_code_run_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="code_run", annotations=mutating_tool_annotations("Run code", destructive=True))
+    @mcp.tool(
+        name="code_run",
+        annotations=mutating_tool_annotations("Run code", destructive=True),
+        tags=remote_write_tags(destructive=True),
+    )
     async def code_run(
         project_files: Annotated[
             dict[str, str],

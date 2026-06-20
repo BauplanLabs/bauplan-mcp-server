@@ -6,6 +6,37 @@ EXACT_OR_REGEX_FILTER_DESCRIPTION = (
     "Use plain text for a normal name search, or a regex that starts with ^ and ends with $."
 )
 
+TOOL_TAG_LOCAL = "local"
+TOOL_TAG_REMOTE = "remote"
+TOOL_TAG_READ = "read"
+TOOL_TAG_WRITE = "write"
+TOOL_TAG_DESTRUCTIVE = "destructive"
+TOOL_TAGS = {
+    TOOL_TAG_LOCAL,
+    TOOL_TAG_REMOTE,
+    TOOL_TAG_READ,
+    TOOL_TAG_WRITE,
+    TOOL_TAG_DESTRUCTIVE,
+}
+
+
+def remote_read_tags() -> set[str]:
+    return {TOOL_TAG_REMOTE, TOOL_TAG_READ}
+
+
+def remote_write_tags(*, destructive: bool = False) -> set[str]:
+    tags = {TOOL_TAG_REMOTE, TOOL_TAG_WRITE}
+    if destructive:
+        tags.add(TOOL_TAG_DESTRUCTIVE)
+    return tags
+
+
+def local_write_tags(*, destructive: bool = False) -> set[str]:
+    tags = {TOOL_TAG_LOCAL, TOOL_TAG_WRITE}
+    if destructive:
+        tags.add(TOOL_TAG_DESTRUCTIVE)
+    return tags
+
 
 def read_only_tool_annotations(title: str, *, open_world: bool = True) -> ToolAnnotations:
     return ToolAnnotations(

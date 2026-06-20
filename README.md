@@ -92,8 +92,24 @@ Useful environment variables:
 | `MCP_AUTH_MODE`  | `none`            | Use `api-key-oauth` for remote OAuth clients     |
 | `MCP_PUBLIC_BASE_URL` | required for OAuth | Public MCP server base URL. Requires `MCP_AUTH_MODE=api-key-oauth` |
 | `MCP_LOG_TOOL_ARGS` | `false`         | Log full tool arguments for debugging. Emits a warning when `MCP_PUBLIC_BASE_URL` is set |
+| `MCP_VISIBLE_TOOL_TAGS` | unset locally, `remote` in OAuth mode | Comma-separated allowlist of FastMCP tool tags to expose |
 | `MCP_OAUTH_SECRET` | required for OAuth | Stable secret used to sign tokens and encrypt API keys |
 | `MCP_OAUTH_TRUSTED_REDIRECTS` | Claude and ChatGPT callbacks | Comma-separated trusted redirect list. Supports a trailing `*` for trusted path prefixes |
+
+Tool visibility is controlled with FastMCP tags. Local runs expose every tool by default. Remote OAuth runs expose only tools tagged `remote` unless `MCP_VISIBLE_TOOL_TAGS` is set explicitly. This keeps local-only tools such as `project_run` and `run_query_to_csv` out of shared server deployments.
+When multiple tags are configured, a tool is visible if it has at least one matching tag.
+
+Useful examples:
+
+```bash
+# Expose only remote-safe tools.
+MCP_VISIBLE_TOOL_TAGS=remote uv run python main.py --transport streamable-http
+
+# Expose only read-only tools for inspection.
+MCP_VISIBLE_TOOL_TAGS=read uv run python main.py --transport streamable-http
+```
+
+Current tags are `remote`, `local`, `read`, `write`, and `destructive`.
 
 OAuth clients with valid HTTPS redirect URIs can still register dynamically. Redirects outside `MCP_OAUTH_TRUSTED_REDIRECTS` are shown to users as unverified before they continue.
 

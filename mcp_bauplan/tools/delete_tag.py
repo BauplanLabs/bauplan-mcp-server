@@ -8,7 +8,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
 from ._guards import require_truthy_result
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 
 
@@ -22,7 +22,11 @@ class TagDeleted(BaseModel):
 
 
 def register_delete_tag_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="delete_tag", annotations=mutating_tool_annotations("Delete tag", destructive=True))
+    @mcp.tool(
+        name="delete_tag",
+        annotations=mutating_tool_annotations("Delete tag", destructive=True),
+        tags=remote_write_tags(destructive=True),
+    )
     async def delete_tag(
         tag: Annotated[
             str,

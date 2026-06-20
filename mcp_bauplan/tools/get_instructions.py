@@ -4,7 +4,7 @@ from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import read_only_tool_annotations
+from ._schema import read_only_tool_annotations, remote_read_tags
 from .use_case_to_prompts import USE_CASE_TO_PROMPT
 
 
@@ -21,6 +21,7 @@ def register_get_instructions_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="get_instructions",
         annotations=read_only_tool_annotations("Get instructions", open_world=False),
+        tags=remote_read_tags(),
     )
     async def get_instructions(
         use_case: Annotated[

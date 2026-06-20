@@ -13,7 +13,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
 from ._guards import require_writable_branch
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,9 @@ class DataImported(BaseModel):
 
 
 def register_import_data_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="import_data", annotations=mutating_tool_annotations("Import data"))
+    @mcp.tool(
+        name="import_data", annotations=mutating_tool_annotations("Import data"), tags=remote_write_tags()
+    )
     async def import_data(
         table: Annotated[
             str,

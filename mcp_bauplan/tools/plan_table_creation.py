@@ -13,7 +13,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
 from ._guards import require_writable_branch
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,11 @@ class TablePlanCreated(BaseModel):
 
 
 def register_plan_table_creation_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="plan_table_creation", annotations=mutating_tool_annotations("Plan table creation"))
+    @mcp.tool(
+        name="plan_table_creation",
+        annotations=mutating_tool_annotations("Plan table creation"),
+        tags=remote_write_tags(),
+    )
     async def plan_table_creation(
         table: Annotated[
             str,

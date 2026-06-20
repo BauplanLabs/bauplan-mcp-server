@@ -16,7 +16,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import mutating_tool_annotations
+from ._schema import local_write_tags, mutating_tool_annotations
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,11 @@ class QueryToCSVResult(BaseModel):
 
 
 def register_run_query_to_csv_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="run_query_to_csv", annotations=mutating_tool_annotations("Run query to CSV"))
+    @mcp.tool(
+        name="run_query_to_csv",
+        annotations=mutating_tool_annotations("Run query to CSV"),
+        tags=local_write_tags(),
+    )
     async def run_query_to_csv(
         path: Annotated[
             str,

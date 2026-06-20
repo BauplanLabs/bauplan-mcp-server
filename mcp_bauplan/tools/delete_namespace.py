@@ -8,7 +8,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ._guards import require_writable_branch
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 from .get_branch import BranchInfo, BranchOut
 
@@ -17,6 +17,7 @@ def register_delete_namespace_tool(mcp: FastMCP) -> None:
     @mcp.tool(
         name="delete_namespace",
         annotations=mutating_tool_annotations("Delete namespace", destructive=True),
+        tags=remote_write_tags(destructive=True),
     )
     async def delete_namespace(
         namespace: Annotated[
