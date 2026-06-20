@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import field_to_dict, read_only_tool_annotations
+from ._schema import field_to_dict, read_only_tool_annotations, remote_read_tags
 from .create_client import get_bauplan_client
 
 
@@ -157,7 +157,7 @@ def table_to_out(table_info: Any) -> TableOut:
 
 
 def register_get_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_table", annotations=read_only_tool_annotations("Get table"))
+    @mcp.tool(name="get_table", annotations=read_only_tool_annotations("Get table"), tags=remote_read_tags())
     async def get_table(
         ref: Annotated[
             str,

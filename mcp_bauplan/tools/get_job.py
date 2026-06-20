@@ -12,7 +12,14 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import JobKindOut, JobStatusOut, job_kind_out, job_status_out, read_only_tool_annotations
+from ._schema import (
+    JobKindOut,
+    JobStatusOut,
+    job_kind_out,
+    job_status_out,
+    read_only_tool_annotations,
+    remote_read_tags,
+)
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -172,7 +179,7 @@ async def get_job_out(job_id: str, bauplan_client: bauplan.Client) -> JobOut:
 
 
 def register_get_job_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_job", annotations=read_only_tool_annotations("Get job"))
+    @mcp.tool(name="get_job", annotations=read_only_tool_annotations("Get job"), tags=remote_read_tags())
     async def get_job(
         job_id: Annotated[
             str,

@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import read_only_tool_annotations
+from ._schema import read_only_tool_annotations, remote_read_tags
 from .create_client import get_bauplan_client
 
 
@@ -27,7 +27,11 @@ class UserInfo(BaseModel):
 
 
 def register_get_user_info_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_user_info", annotations=read_only_tool_annotations("Get user info"))
+    @mcp.tool(
+        name="get_user_info",
+        annotations=read_only_tool_annotations("Get user info"),
+        tags=remote_read_tags(),
+    )
     async def get_user_info(
         ctx: Context | None = None,
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),

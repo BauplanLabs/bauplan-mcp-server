@@ -7,7 +7,12 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import EXACT_OR_REGEX_FILTER_DESCRIPTION, field_to_dict, read_only_tool_annotations
+from ._schema import (
+    EXACT_OR_REGEX_FILTER_DESCRIPTION,
+    field_to_dict,
+    read_only_tool_annotations,
+    remote_read_tags,
+)
 from .create_client import get_bauplan_client
 
 
@@ -96,7 +101,11 @@ class TablesOut(BaseModel):
 
 
 def register_get_tables_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_tables", annotations=read_only_tool_annotations("Get tables"))
+    @mcp.tool(
+        name="get_tables",
+        annotations=read_only_tool_annotations("Get tables"),
+        tags=remote_read_tags(),
+    )
     async def get_tables(
         ref: Annotated[
             str,

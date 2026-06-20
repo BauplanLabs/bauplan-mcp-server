@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import read_only_tool_annotations
+from ._schema import read_only_tool_annotations, remote_read_tags
 from .create_client import get_bauplan_client
 
 
@@ -36,7 +36,9 @@ class BranchOut(BaseModel):
 
 
 def register_get_branch_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="get_branch", annotations=read_only_tool_annotations("Get branch"))
+    @mcp.tool(
+        name="get_branch", annotations=read_only_tool_annotations("Get branch"), tags=remote_read_tags()
+    )
     async def get_branch(
         branch: Annotated[
             str,

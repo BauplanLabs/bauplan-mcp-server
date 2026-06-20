@@ -13,7 +13,14 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import JobKindOut, JobStatusOut, job_kind_out, job_status_out, mutating_tool_annotations
+from ._schema import (
+    JobKindOut,
+    JobStatusOut,
+    job_kind_out,
+    job_status_out,
+    mutating_tool_annotations,
+    remote_write_tags,
+)
 from .create_client import get_bauplan_client
 
 logger = logging.getLogger(__name__)
@@ -71,7 +78,11 @@ class JobInfo(BaseModel):
 
 
 def register_cancel_job_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="cancel_job", annotations=mutating_tool_annotations("Cancel job", destructive=True))
+    @mcp.tool(
+        name="cancel_job",
+        annotations=mutating_tool_annotations("Cancel job", destructive=True),
+        tags=remote_write_tags(destructive=True),
+    )
     async def cancel_job(
         job_id: Annotated[
             str,

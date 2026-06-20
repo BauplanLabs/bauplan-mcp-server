@@ -13,7 +13,7 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ._guards import require_writable_branch
-from ._schema import mutating_tool_annotations
+from ._schema import mutating_tool_annotations, remote_write_tags
 from .create_client import get_bauplan_client
 from .get_branch import BranchInfo, BranchOut
 
@@ -21,7 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 def register_delete_table_tool(mcp: FastMCP) -> None:
-    @mcp.tool(name="delete_table", annotations=mutating_tool_annotations("Delete table", destructive=True))
+    @mcp.tool(
+        name="delete_table",
+        annotations=mutating_tool_annotations("Delete table", destructive=True),
+        tags=remote_write_tags(destructive=True),
+    )
     async def delete_table(
         table: Annotated[
             str,
