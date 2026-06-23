@@ -7,6 +7,9 @@ import secrets
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from functools import lru_cache
+from importlib.resources import files
+from string import Template
 from typing import Any, cast
 from urllib.parse import SplitResult, urlsplit
 
@@ -180,26 +183,14 @@ class APIKeyOAuthProvider(OAuthProvider):
                 "Continue only if you trust it.</p>\n"
             )
         escaped_txn_id = html.escape(txn_id)
-        page = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bauplan MCP Authorization</title>
-</head>
-<body>
-  <h1>Authorize Bauplan MCP</h1>
-  <p><strong>{client_name}</strong> wants to connect to your Bauplan account.</p>
-  <p>Callback destination: <strong>{redirect_host}</strong></p>
-{untrusted_note}\
-  <form method="post" action="{_KEY_ENTRY_PATH}">
-    <input type="hidden" name="txn_id" value="{escaped_txn_id}">
-    <label for="api_key">Bauplan API key</label>
-    <input id="api_key" name="api_key" type="password" autocomplete="off" required autofocus>
-    <button type="submit">Authorize</button>
-  </form>
-</body>
-</html>"""
+        page = _render_html_template(
+            "authorize_form.html",
+            client_name=client_name,
+            redirect_host=redirect_host,
+            untrusted_note=untrusted_note,
+            key_entry_path=_KEY_ENTRY_PATH,
+            escaped_txn_id=escaped_txn_id,
+        )
         return HTMLResponse(page, headers=_HTML_SECURITY_HEADERS)
 
     async def _handle_submit(self, request: Request) -> Response:
@@ -254,21 +245,14 @@ class APIKeyOAuthProvider(OAuthProvider):
             user_lines += f"  <p>Username: <strong>{escaped_username}</strong></p>\n"
         if escaped_full_name:
             user_lines += f"  <p>Name: <strong>{escaped_full_name}</strong></p>\n"
-        page = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bauplan MCP Authorization Complete</title>
-</head>
-<body>
-  <h1>Authorization complete</h1>
-  <p>Your Bauplan API key was validated.</p>
-{user_lines}  <p>Callback destination: <strong>{redirect_host}</strong></p>
-  <p>{continue_copy}</p>
-  <p><a href="{escaped_location}" role="button">{button_copy}</a></p>
-</body>
-</html>"""
+        page = _render_html_template(
+            "authorize_complete.html",
+            user_lines=user_lines,
+            redirect_host=redirect_host,
+            continue_copy=continue_copy,
+            escaped_location=escaped_location,
+            button_copy=button_copy,
+        )
         return HTMLResponse(page, headers=_HTML_SECURITY_HEADERS)
 
     async def _call_validate_api_key(self, api_key: str) -> BauplanUserInfo | None:
@@ -527,6 +511,15 @@ def create_api_key_oauth_provider(config: OAuthConfig) -> APIKeyOAuthProvider:
 
 def _html_response(content: str, status_code: int) -> HTMLResponse:
     return HTMLResponse(content, status_code, headers=_HTML_SECURITY_HEADERS)
+
+
+def _render_html_template(template_name: str, **context: str) -> str:
+    return Template(_load_html_template(template_name)).substitute(context)
+
+
+@lru_cache(maxsize=None)
+def _load_html_template(template_name: str) -> str:
+    return files("mcp_bauplan.auth").joinpath("templates", template_name).read_text(encoding="utf-8")
 
 
 def _client_to_claims(client_info: OAuthClientInformationFull, issued_at: int) -> dict[str, Any]:
