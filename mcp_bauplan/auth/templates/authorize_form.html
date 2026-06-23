@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bauplan MCP Authorization</title>
+</head>
+<body>
+  <h1>Authorize Bauplan MCP</h1>
+  <p><strong>$client_name</strong> wants to connect to your Bauplan account.</p>
+  <p>Callback destination: <strong>$redirect_host</strong></p>
+$untrusted_note  <form method="post" action="$key_entry_path">
+    <input type="hidden" name="txn_id" value="$escaped_txn_id">
+    <label for="api_key">Bauplan API key</label>
+    <input id="api_key" name="api_key" type="password" autocomplete="off" required autofocus>
+    <button type="submit">Authorize</button>
+  </form>
+</body>
+</html>
