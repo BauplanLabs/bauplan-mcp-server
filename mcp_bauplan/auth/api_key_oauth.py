@@ -57,7 +57,10 @@ _NO_STORE_HEADERS = {
 }
 _HTML_SECURITY_HEADERS = {
     **_NO_STORE_HEADERS,
-    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": (
+        "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    ),
 }
 
 
@@ -176,18 +179,21 @@ class APIKeyOAuthProvider(OAuthProvider):
         client_name = html.escape(str(txn.get("client_name") or "MCP client"))
         redirect_uri = str(txn.get("redirect_uri") or "")
         redirect_host = html.escape(_redirect_host(redirect_uri) or "unknown destination")
-        untrusted_note = ""
+        warning_section = ""
         if not txn.get("redirect_uri_trusted"):
-            untrusted_note = (
-                "  <p>This client destination is not verified by Bauplan. "
+            warning_section = (
+                '      <section class="warning" aria-label="Unverified callback destination">\n'
+                "        <h2>Unverified callback destination</h2>\n"
+                "        <p>This client destination is not verified by Bauplan. "
                 "Continue only if you trust it.</p>\n"
+                "      </section>\n"
             )
         escaped_txn_id = html.escape(txn_id)
         page = _render_html_template(
             "authorize_form.html",
             client_name=client_name,
             redirect_host=redirect_host,
-            untrusted_note=untrusted_note,
+            warning_section=warning_section,
             key_entry_path=_KEY_ENTRY_PATH,
             escaped_txn_id=escaped_txn_id,
         )
@@ -240,14 +246,24 @@ class APIKeyOAuthProvider(OAuthProvider):
             button_copy = f"Continue to {redirect_host}"
         escaped_username = html.escape(user_info.username) if user_info.username else None
         escaped_full_name = html.escape(user_info.full_name) if user_info.full_name else None
-        user_lines = ""
+        user_details = ""
         if escaped_username:
-            user_lines += f"  <p>Username: <strong>{escaped_username}</strong></p>\n"
+            user_details += (
+                '          <div class="meta-item">\n'
+                '            <p class="meta-label">Username</p>\n'
+                f'            <p class="meta-value">{escaped_username}</p>\n'
+                "          </div>\n"
+            )
         if escaped_full_name:
-            user_lines += f"  <p>Name: <strong>{escaped_full_name}</strong></p>\n"
+            user_details += (
+                '          <div class="meta-item">\n'
+                '            <p class="meta-label">Name</p>\n'
+                f'            <p class="meta-value">{escaped_full_name}</p>\n'
+                "          </div>\n"
+            )
         page = _render_html_template(
             "authorize_complete.html",
-            user_lines=user_lines,
+            user_details=user_details,
             redirect_host=redirect_host,
             continue_copy=continue_copy,
             escaped_location=escaped_location,
@@ -367,9 +383,17 @@ class APIKeyOAuthProvider(OAuthProvider):
     def get_routes(self, mcp_path: str | None = None) -> list[Route]:
         routes = super().get_routes(mcp_path)
         routes = [self._public_client_metadata_route(route) for route in routes]
+        routes.append(Route("/authorize/favicon.ico", self._favicon, methods=["GET"]))
         routes.append(Route(_KEY_ENTRY_PATH, self._render_form, methods=["GET"]))
         routes.append(Route(_KEY_ENTRY_PATH, self._handle_submit, methods=["POST"]))
         return routes
+
+    async def _favicon(self, _: Request) -> Response:
+        return Response(
+            _load_binary_asset("favicon.ico"),
+            media_type="image/x-icon",
+            headers=_NO_STORE_HEADERS,
+        )
 
     def _public_client_metadata_route(self, route: Route) -> Route:
         if route.path != "/.well-known/oauth-authorization-server":
@@ -514,12 +538,24 @@ def _html_response(content: str, status_code: int) -> HTMLResponse:
 
 
 def _render_html_template(template_name: str, **context: str) -> str:
-    return Template(_load_html_template(template_name)).substitute(context)
+    template = _load_html_template(template_name)
+    return Template(template).substitute(
+        {
+            **context,
+            "css_styles": _load_html_template("_styles.css"),
+            "bauplan_logo": _load_html_template("_bauplan_logo.svg"),
+        }
+    )
 
 
 @lru_cache(maxsize=None)
 def _load_html_template(template_name: str) -> str:
     return files("mcp_bauplan.auth").joinpath("templates", template_name).read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=None)
+def _load_binary_asset(asset_name: str) -> bytes:
+    return files("mcp_bauplan.auth").joinpath("templates", asset_name).read_bytes()
 
 
 def _client_to_claims(client_info: OAuthClientInformationFull, issued_at: int) -> dict[str, Any]:

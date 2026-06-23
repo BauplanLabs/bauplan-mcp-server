@@ -4,12 +4,68 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bauplan MCP Authorization Complete</title>
+  <link rel="icon" href="/authorize/favicon.ico" sizes="any">
+  <style>
+$css_styles
+    .action-copy {
+      margin: 24px 0 0;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .primary-link {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      border-radius: var(--radius-control);
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 52px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .primary-link:hover {
+      background: var(--primary-hover);
+    }
+  </style>
 </head>
 <body>
-  <h1>Authorization complete</h1>
-  <p>Your Bauplan API key was validated.</p>
-$user_lines  <p>Callback destination: <strong>$redirect_host</strong></p>
-  <p>$continue_copy</p>
-  <p><a href="$escaped_location" role="button">$button_copy</a></p>
+  <main class="page">
+    <section class="card" aria-labelledby="page-title">
+      <div class="hero-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          $bauplan_logo
+        </div>
+        <div class="hero-copy">
+          <h1 id="page-title">Bauplan account verified</h1>
+        </div>
+      </div>
+
+      <div class="hero">
+        <p>Your API key was validated and this authorization request is ready to return to the requesting client.</p>
+        <p class="sr-only">Your Bauplan API key was validated.</p>
+      </div>
+
+      <section class="panel" aria-label="Authorization details">
+        <div class="panel-header">
+          <p class="panel-title">Verified details</p>
+          <p class="panel-subtitle">Review the confirmed account information and destination before returning to the client.</p>
+        </div>
+        <div class="meta-grid">
+$user_details          <div class="meta-item">
+            <p class="meta-label">Callback destination</p>
+            <p class="meta-value">$redirect_host</p>
+          </div>
+        </div>
+      </section>
+
+      <p class="action-copy">$continue_copy</p>
+      <a class="primary-link" href="$escaped_location" role="button">$button_copy</a>
+    </section>
+  </main>
 </body>
 </html>

@@ -1,6 +1,8 @@
 import asyncio
 import base64
+import html
 import json
+import re
 from collections.abc import MutableMapping
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -28,6 +30,12 @@ def _decode_jwt_payload(token: str) -> dict:
     payload = token.split(".")[1]
     padded = payload + "=" * (-len(payload) % 4)
     return json.loads(base64.urlsafe_b64decode(padded))
+
+
+def _extract_primary_link_href(body: str) -> str:
+    match = re.search(r'<a class="primary-link" href="([^"]+)"', body)
+    assert match is not None
+    return html.unescape(match.group(1))
 
 
 def _url(value: str) -> AnyUrl:
@@ -413,8 +421,47 @@ def test_api_key_oauth_form_warns_for_unknown_redirect_before_key_entry():
         body = bytes(response.body).decode()
 
         assert response.status_code == 200
-        assert "Callback destination: <strong>hermes.example.com</strong>" in body
+        assert '<p class="meta-value">hermes.example.com</p>' in body
         assert "not verified by Bauplan" in body
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_form_inlines_shared_styles_and_hides_warning_for_trusted_redirect():
+    async def run():
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda _: _user_info(),
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Claude",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_trusted": True,
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        response = await provider._render_form(_get_request("/authorize/key", f"txn_id={txn_id}"))
+        body = bytes(response.body).decode()
+
+        assert response.status_code == 200
+        assert "color-scheme: light;" in body
+        assert 'class="warning"' not in body
+        assert response.headers["content-security-policy"] == (
+            "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; "
+            "form-action 'self'; frame-ancestors 'none'"
+        )
 
     asyncio.run(run())
 
@@ -451,10 +498,52 @@ def test_api_key_oauth_submit_warns_for_unknown_redirect():
 
         body = bytes(response.body).decode()
         assert response.status_code == 200
-        assert "Callback destination: <strong>hermes.example.com</strong>" in body
+        assert '<p class="meta-value">hermes.example.com</p>' in body
         assert "not verified by Bauplan" in body
         assert "Continue to hermes.example.com" in body
         assert "https://hermes.example.com/oauth/callback?code=" in body
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_submit_renders_verified_details_as_separate_meta_items():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda key: _user_info() if key == api_key else None,
+        )
+        txn_id = provider._issue_container_token(
+            container_use="auth-txn",
+            expires_in=300,
+            claims={
+                "client_id": "client-1",
+                "client_name": "Claude",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "redirect_uri_trusted": True,
+                "redirect_uri_provided_explicitly": True,
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "scopes": [],
+                "resource": "https://mcp.example.com/mcp",
+            },
+        )
+
+        body = f"txn_id={txn_id}&api_key={api_key}".encode()
+        request = _form_request(body)
+        response = await provider._handle_submit(request)
+
+        response_body = bytes(response.body).decode()
+        assert response.status_code == 200
+        assert '<p class="meta-label">Username</p>' in response_body
+        assert '<p class="meta-value">test-user</p>' in response_body
+        assert '<p class="meta-label">Name</p>' in response_body
+        assert '<p class="meta-value">Test User</p>' in response_body
+        assert '<p class="meta-label">Callback destination</p>' in response_body
+        assert '<p class="meta-value">claude.ai</p>' in response_body
 
     asyncio.run(run())
 
@@ -490,7 +579,7 @@ def test_api_key_oauth_submit_issues_code_with_human_click_ttl(monkeypatch):
         body = f"txn_id={txn_id}&api_key={api_key}".encode()
         request = _form_request(body)
         response = await provider._handle_submit(request)
-        callback_url = urlparse(bytes(response.body).decode().split('href="', 1)[1].split('"', 1)[0])
+        callback_url = urlparse(_extract_primary_link_href(bytes(response.body).decode()))
         code = parse_qs(callback_url.query)["code"][0]
         payload = _decode_jwt_payload(code)
 
