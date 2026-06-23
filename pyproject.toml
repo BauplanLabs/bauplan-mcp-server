@@ -46,7 +46,7 @@ dev = [
 include = ["mcp_bauplan*"]
 
 [tool.setuptools.package-data]
-"mcp_bauplan.auth" = ["templates/*.html"]
+"mcp_bauplan.auth" = ["templates/*.html", "templates/*.css", "templates/*.svg", "templates/*.ico"]
 "mcp_bauplan.tools" = ["instructions/*.md"]
 
 [tool.ruff]

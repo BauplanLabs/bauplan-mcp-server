@@ -4,16 +4,162 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bauplan MCP Authorization</title>
+  <link rel="icon" href="/authorize/favicon.ico" sizes="any">
+  <style>
+$css_styles
+    :root {
+      --bauplan-blue: 199 100% 50%;
+      --warning-bg: #fff7ed;
+      --warning-border: #fdba74;
+      --warning-text: #c2410c;
+    }
+
+    .hero-lockup {
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .warning,
+    .form-section {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: var(--radius-block);
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+    }
+
+    .warning {
+      background: var(--warning-bg);
+      border-color: var(--warning-border);
+    }
+
+    .warning h2 {
+      margin: 0 0 8px;
+      color: var(--warning-text);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .warning p {
+      margin: 0;
+      color: var(--warning-text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .field-header label {
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .field-input {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 0 16px;
+      height: 52px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .field-input::placeholder {
+      color: #98a2b3;
+    }
+
+    .field-input:focus {
+      outline: none;
+      border-color: hsl(var(--bauplan-blue));
+      box-shadow: 0 0 0 4px hsl(var(--bauplan-blue) / 0.18);
+    }
+
+    .primary-button {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: var(--primary);
+      color: #ffffff;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 52px;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .primary-button:hover {
+      background: var(--primary-hover);
+    }
+
+    .footnote {
+      margin-top: 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .footnote a {
+      color: inherit;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+    }
+  </style>
 </head>
 <body>
-  <h1>Authorize Bauplan MCP</h1>
-  <p><strong>$client_name</strong> wants to connect to your Bauplan account.</p>
-  <p>Callback destination: <strong>$redirect_host</strong></p>
-$untrusted_note  <form method="post" action="$key_entry_path">
-    <input type="hidden" name="txn_id" value="$escaped_txn_id">
-    <label for="api_key">Bauplan API key</label>
-    <input id="api_key" name="api_key" type="password" autocomplete="off" required autofocus>
-    <button type="submit">Authorize</button>
-  </form>
+  <main class="page">
+    <section class="card" aria-labelledby="page-title">
+      <div class="hero-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          $bauplan_logo
+        </div>
+        <div class="hero-copy">
+          <h1 id="page-title">Authorize Bauplan MCP</h1>
+        </div>
+      </div>
+
+      <div class="hero">
+        <p><strong>$client_name</strong> wants to connect to your Bauplan account. Confirm the destination below, then enter your API key to continue.</p>
+      </div>
+
+      <section class="panel" aria-label="Request details">
+        <div class="panel-header">
+          <p class="panel-title">Connection details</p>
+          <p class="panel-subtitle">Review the requesting client and callback destination before granting access.</p>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <p class="meta-label">Client</p>
+            <p class="meta-value">$client_name</p>
+          </div>
+          <div class="meta-item">
+            <p class="meta-label">Callback destination</p>
+            <p class="meta-value">$redirect_host</p>
+          </div>
+        </div>
+      </section>
+
+$warning_section
+
+      <form method="post" action="$key_entry_path" class="form-section">
+        <input type="hidden" name="txn_id" value="$escaped_txn_id">
+        <div class="field-header">
+          <label for="api_key">Bauplan API key</label>
+        </div>
+        <input id="api_key" class="field-input" name="api_key" type="password" autocomplete="off" placeholder="bp_..." required autofocus>
+        <button class="primary-button" type="submit">Authorize</button>
+      </form>
+
+      <p class="footnote">Only continue if you trust this client and recognize the destination shown above. You can create or manage API keys from the <a href="https://app.bauplanlabs.com/api-keys">Bauplan app</a>.</p>
+    </section>
+  </main>
 </body>
 </html>
