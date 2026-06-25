@@ -6,7 +6,7 @@ A Model Context Protocol (MCP) server that gives AI assistants (Claude Code, Cla
 > This project is released in Beta under MIT license. APIs and features may change without notice as we continue development.
 
 > [!IMPORTANT]
-> **Server-side deployment is now available** for existing Bauplan users. You no longer need to run the MCP server locally — contact your Bauplan account team for details.
+> **A hosted MCP server is now available** for existing Bauplan users at `https://mcp.use1.aprod.bauplanlabs.com/mcp` - you no longer need to run the server locally. Add it as a custom connector in Claude Desktop (or any MCP client) and authenticate with your Bauplan API key. See [Execution modes](#execution-modes) for all the ways to run the server.
 
 ## Overview
 
@@ -14,6 +14,14 @@ This repository contains the Bauplan MCP Server — a Model Context Protocol ser
 
 > [!TIP]
 > **Looking for the best local AI setup with Bauplan?** Check out **[BauplanLabs/bauplan-skills](https://github.com/BauplanLabs/bauplan-skills)** — it includes agent playbooks (`CLAUDE.md`), skills, and everything you need to get AI coding assistants working with Bauplan via CLI and SDK, without running an MCP server.
+
+## Execution modes
+
+The server supports three execution modes. They differ in who runs the server and in which tools are exposed: tool visibility is set by [FastMCP tags](#container-runtime) and can be tuned with `MCP_VISIBLE_TOOL_TAGS`. All three authenticate with your Bauplan API key.
+
+1. **Local** - run the server on your own machine and point your AI assistant at `http://localhost:8000/mcp`; exposes every tool by default. See [MCP Quick Start](#mcp-quick-start).
+2. **Self-hosted** - deploy the server on your own infrastructure and point your assistant at your endpoint, passing your Bauplan API key as a bearer token; control the exposed tools with `MCP_VISIBLE_TOOL_TAGS`. See [Bauplan Credentials](#bauplan-credentials) and [Container Runtime](#container-runtime).
+3. **Bauplan public endpoint** - skip running a server and connect directly to Bauplan's hosted endpoint at `https://mcp.use1.aprod.bauplanlabs.com/mcp`; exposes only the remote-safe tools.
 
 ## MCP Quick Start
 
