@@ -93,6 +93,9 @@ class _JobLookupClient:
             snapshot_dict={},
             ref=None,
             tx_ref=None,
+            sql_query=None,
+            dag_nodes=[],
+            dag_edges=[],
         )
 
 
@@ -1551,6 +1554,8 @@ def test_get_job_uses_snapshot_dict_and_preserves_project_file_paths():
                     ref="main",
                     tx_ref="alice.tx",
                     sql_query="select 1",
+                    dag_nodes=[],
+                    dag_edges=[],
                 )
 
         result = await tool.fn(job_id="job-1", bauplan_client=Client())
@@ -1595,6 +1600,9 @@ def test_get_job_supports_yaml_project_config():
                     },
                     ref="main",
                     tx_ref="alice.tx",
+                    sql_query=None,
+                    dag_nodes=[],
+                    dag_edges=[],
                 )
 
         result = await tool.fn(job_id="job-1", bauplan_client=Client())
@@ -1635,6 +1643,60 @@ def test_get_job_returns_metadata_when_context_is_unavailable():
         assert result.job.project_yml is None
         assert result.job.project_files is None
         assert result.job.sql_query is None
+        assert result.job.dag is None
+
+    asyncio.run(run())
+
+
+def test_get_job_maps_dag_nodes_and_edges():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_job_tool(mcp)
+        tool = await _get_tool(mcp, "get_job")
+
+        class Client(_JobLookupClient):
+            def get_job_context(self, job_id, *, include_snapshot, include_logs):
+                return SimpleNamespace(
+                    logs=[],
+                    snapshot_dict={},
+                    ref="main",
+                    tx_ref=None,
+                    sql_query=None,
+                    dag_nodes=[
+                        SimpleNamespace(id="model-1", name="passengers"),
+                        SimpleNamespace(id="model-2", name="survivors"),
+                    ],
+                    # source_model is None when the input is a table scan rather than another model
+                    dag_edges=[
+                        SimpleNamespace(source_model=None, destination_model="model-1"),
+                        SimpleNamespace(source_model="model-1", destination_model="model-2"),
+                    ],
+                )
+
+        result = await tool.fn(job_id="job-1", bauplan_client=Client())
+
+        assert result.job.dag is not None
+        assert [(node.id, node.name) for node in result.job.dag.nodes] == [
+            ("model-1", "passengers"),
+            ("model-2", "survivors"),
+        ]
+        assert [(edge.source_model, edge.destination_model) for edge in result.job.dag.edges] == [
+            (None, "model-1"),
+            ("model-1", "model-2"),
+        ]
+
+    asyncio.run(run())
+
+
+def test_get_job_omits_dag_when_nodes_are_empty():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_job_tool(mcp)
+        tool = await _get_tool(mcp, "get_job")
+
+        result = await tool.fn(job_id="job-1", bauplan_client=_JobLookupClient())
+
+        assert result.job.dag is None
 
     asyncio.run(run())
 
