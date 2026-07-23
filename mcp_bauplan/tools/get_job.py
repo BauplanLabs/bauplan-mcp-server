@@ -27,6 +27,21 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_FILES = ("bauplan_project.yml", "bauplan_project.yaml")
 
 
+class Node(BaseModel):
+    id: Annotated[str, Field(description="ID of the DAG node.")]
+    name: Annotated[str, Field(description="Human readable name of the DAG node.")]
+
+
+class Edge(BaseModel):
+    source_model: Annotated[str | None, Field(description="Starting node (model) of the edge.")]
+    destination_model: Annotated[str, Field(description="Ending node (model) of the edge.")]
+
+
+class DAG(BaseModel):
+    nodes: Annotated[list[Node], Field(description="List of nodes composing the execution DAG")]
+    edges: Annotated[list[Edge], Field(description="List of edges composing the execution DAG")]
+
+
 class JobInfo(BaseModel):
     id: Annotated[
         str,
@@ -112,6 +127,9 @@ class JobInfo(BaseModel):
             description="SQL query associated with the job, when available from job context.",
         ),
     ] = None
+    dag: Annotated[
+        DAG | None, Field(description="DAG associated with the job, when available from job context.")
+    ] = None
 
 
 class JobOut(BaseModel):
@@ -133,6 +151,7 @@ async def get_job_out(job_id: str, bauplan_client: bauplan.Client) -> JobOut:
     project_yml = None
     project_files = None
     sql_query = None
+    dag = None
     try:
         job_context = await asyncio.to_thread(
             lambda: bauplan_client.get_job_context(
@@ -157,7 +176,18 @@ async def get_job_out(job_id: str, bauplan_client: bauplan.Client) -> JobOut:
         }
         ref = str(job_context.ref) if job_context.ref else None
         transactional_branch = str(job_context.tx_ref) if job_context.tx_ref else None
-        sql_query = getattr(job_context, "sql_query", None) or None
+        sql_query = job_context.sql_query
+
+        dag_nodes = job_context.dag_nodes
+        dag_edges = job_context.dag_edges
+
+        # Edges can legitimately be empty (a model with no upstream deps), nodes cannot
+        if dag_nodes:
+            nodes = [Node(id=n.id, name=n.name) for n in dag_nodes]
+            edges = [
+                Edge(source_model=e.source_model, destination_model=e.destination_model) for e in dag_edges
+            ]
+            dag = DAG(nodes=nodes, edges=edges)
 
     job_info = JobInfo(
         id=job.id,
@@ -174,6 +204,7 @@ async def get_job_out(job_id: str, bauplan_client: bauplan.Client) -> JobOut:
         project_yml=project_yml,
         project_files=project_files,
         sql_query=sql_query,
+        dag=dag,
     )
     return JobOut(job=job_info)
 
