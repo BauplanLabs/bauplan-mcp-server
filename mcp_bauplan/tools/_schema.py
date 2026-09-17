@@ -1,6 +1,7 @@
-from typing import Any, Literal, cast
+from typing import Annotated, Literal, cast
 
 from mcp.types import ToolAnnotations
+from pydantic import BaseModel, Field
 
 EXACT_OR_REGEX_FILTER_DESCRIPTION = (
     "Use plain text for a normal name search, or a regex that starts with ^ and ends with $."
@@ -68,6 +69,7 @@ def mutating_tool_annotations(
 JobKindFilter = Literal[
     "run",
     "query",
+    "external-table-create",
     "import-plan-create",
     "import-plan-apply",
     "table-plan-create",
@@ -89,6 +91,7 @@ JobKindOut = Literal[
     "Unknown",
     "Run",
     "Query",
+    "ExternalTableCreate",
     "ImportPlanCreate",
     "ImportPlanApply",
     "TablePlanCreate",
@@ -117,13 +120,15 @@ _JOB_STATUS_OUT_BY_NORMALIZED_VALUE: dict[str, JobStatusOut] = {
 }
 
 
-def field_to_dict(field: Any) -> dict[str, Any]:
-    return {
-        "id": field.id,
-        "name": field.name,
-        "required": field.required,
-        "type": field.type,
-    }
+class TableFieldInfo(BaseModel):
+    id: Annotated[int, Field(description="Field ID.")]
+    name: Annotated[str, Field(description="Field name.")]
+    required: Annotated[bool, Field(description="Whether the field is required.")]
+    type: Annotated[str, Field(description="Field type.")]
+    doc: Annotated[
+        str | None,
+        Field(description="Field documentation."),
+    ] = None
 
 
 def job_kind_out(kind: object) -> JobKindOut:

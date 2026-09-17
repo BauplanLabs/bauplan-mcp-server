@@ -39,7 +39,7 @@ async def run_project(
             dry_run=dry_run,
             client_timeout=client_timeout,
             detach=detach,
-            strict="on" if strict else "off",
+            strict=strict,
         )
     )
 

@@ -166,7 +166,7 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 #### Data Operations
 
 * **`get_tables`**: List all tables in a branch/namespace
-* **`get_table`**: Get schema for a specific table (more efficient for single table)
+* **`get_table`**: Get metadata, documentation, and schema for a specific table (more efficient for single table)
 * **`run_query`**: Execute SELECT queries on tables
 * **`run_query_to_csv`**: Execute SELECT queries and save results directly to CSV file (local/non-OAuth servers only, scalar data types only)
 

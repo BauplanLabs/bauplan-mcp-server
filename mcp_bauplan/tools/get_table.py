@@ -7,7 +7,7 @@ from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field
 
-from ._schema import field_to_dict, read_only_tool_annotations, remote_read_tags
+from ._schema import TableFieldInfo, read_only_tool_annotations, remote_read_tags
 from .create_client import get_bauplan_client
 
 
@@ -93,6 +93,12 @@ class TableInfo(BaseModel):
             description="Table properties.",
         ),
     ]
+    comment: Annotated[
+        str | None,
+        Field(
+            description="Table documentation.",
+        ),
+    ] = None
     records: Annotated[
         int | None,
         Field(
@@ -112,9 +118,9 @@ class TableInfo(BaseModel):
         ),
     ] = None
     fields: Annotated[
-        list[dict[str, Any]],
+        list[TableFieldInfo],
         Field(
-            description="Schema fields for the table, each with id, name, required flag, and type.",
+            description="Schema fields for the table, each with id, name, required flag, type, and documentation.",
         ),
     ]
 
@@ -148,10 +154,20 @@ def table_to_out(table_info: Any) -> TableOut:
                 for partition in table_info.partitions
             ],
             properties=dict(table_info.properties),
+            comment=table_info.comment,
             records=table_info.records,
             size=table_info.size,
             snapshots=table_info.snapshots,
-            fields=[field_to_dict(field) for field in table_info.fields],
+            fields=[
+                TableFieldInfo(
+                    id=field.id,
+                    name=field.name,
+                    required=field.required,
+                    type=field.type,
+                    doc=field.doc,
+                )
+                for field in table_info.fields
+            ],
         )
     )
 
@@ -184,8 +200,8 @@ def register_get_table_tool(mcp: FastMCP) -> None:
         bauplan_client: bauplan.Client = Depends(get_bauplan_client),
     ) -> TableOut:
         """
-        Get metadata and schema fields for one table on a branch, tag, or commit ref.
-        Use this when the table name is known and the model needs table details, partitions, column names, types, required flags, and field IDs.
+        Get metadata, documentation, and schema fields for one table on a branch, tag, or commit ref.
+        Use this when the table name is known and the model needs table details, partitions, table or column documentation, column names, types, required flags, and field IDs.
         """
 
         try:
