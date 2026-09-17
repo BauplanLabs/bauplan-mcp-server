@@ -53,6 +53,7 @@ include = ["mcp_bauplan*"]
 fix = true
 line-length = 110
 exclude = [".venv"]
+extend-exclude = ["mcp_bauplan/tools/instructions/*.md"]
 
 [tool.ruff.lint]
 select = [

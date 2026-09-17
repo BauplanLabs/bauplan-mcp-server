@@ -70,7 +70,7 @@ class BauplanUserInfo:
     full_name: str | None
 
 
-ValidateApiKey = Callable[[str], BauplanUserInfo | None | Awaitable[BauplanUserInfo | None]]
+ValidateApiKey = Callable[[str], BauplanUserInfo | Awaitable[BauplanUserInfo | None] | None]
 
 
 class APIKeyOAuthProvider(OAuthProvider):
