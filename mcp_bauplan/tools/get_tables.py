@@ -1,5 +1,5 @@
 import asyncio
-from typing import Annotated, Any
+from typing import Annotated
 
 import bauplan
 from fastmcp import Context, FastMCP
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from ._schema import (
     EXACT_OR_REGEX_FILTER_DESCRIPTION,
-    field_to_dict,
+    TableFieldInfo,
     read_only_tool_annotations,
     remote_read_tags,
 )
@@ -81,9 +81,9 @@ class TableInfo(BaseModel):
         ),
     ] = None
     fields: Annotated[
-        list[dict[str, Any]] | None,
+        list[TableFieldInfo] | None,
         Field(
-            description="Schema fields when include_schema is true, otherwise null.",
+            description="Schema fields and their documentation when include_schema is true, otherwise null.",
         ),
     ] = None
 
@@ -175,7 +175,18 @@ def register_get_tables_tool(mcp: FastMCP) -> None:
                     ]
                     if include_schema
                     else None,
-                    fields=[field_to_dict(field) for field in table.fields] if include_schema else None,
+                    fields=[
+                        TableFieldInfo(
+                            id=field.id,
+                            name=field.name,
+                            required=field.required,
+                            type=field.type,
+                            doc=field.doc,
+                        )
+                        for field in table.fields
+                    ]
+                    if include_schema
+                    else None,
                 )
                 for table in ret
             ]

@@ -115,6 +115,12 @@ def register_get_jobs_tool(mcp: FastMCP) -> None:
                 description="Optional list of job users.",
             ),
         ] = None,
+        all_users: Annotated[
+            bool,
+            Field(
+                description="Return jobs from all users. Cannot be combined with user_names.",
+            ),
+        ] = False,
         start_time: Annotated[
             str | None,
             Field(
@@ -143,6 +149,9 @@ def register_get_jobs_tool(mcp: FastMCP) -> None:
         Use this to find recent executions or identify the job ID to inspect with get_job.
         """
 
+        if all_users and user_names:
+            raise ToolError("all_users and user_names cannot be used together")
+
         try:
             if ctx:
                 await ctx.info(
@@ -152,6 +161,7 @@ def register_get_jobs_tool(mcp: FastMCP) -> None:
             jobs_result = await asyncio.to_thread(
                 lambda: list(
                     bauplan_client.get_jobs(
+                        filter_by_current_user=not all_users and not user_names,
                         filter_by_ids=job_ids or None,
                         filter_by_users=user_names or None,
                         filter_by_kinds=[str(kind) for kind in job_kinds] if job_kinds else None,

@@ -52,6 +52,7 @@ def _sdk_table(**overrides):
         "metadata_location": "s3://bucket/table/metadata.json",
         "partitions": [SimpleNamespace(name="ds", transform="day")],
         "properties": {"owner": "analytics"},
+        "comment": "Passenger manifest.",
         "records": 123,
         "size": 456,
         "snapshots": 7,
@@ -61,6 +62,7 @@ def _sdk_table(**overrides):
                 name="passenger_id",
                 required=True,
                 type="int64",
+                doc="Stable passenger identifier.",
             )
         ],
     }
@@ -510,7 +512,7 @@ def test_create_table_returns_created_table_and_omits_blank_optional_values():
         }
         assert result.table.name == "titanic"
         assert result.table.namespace == "bauplan"
-        assert result.table.fields[0]["name"] == "passenger_id"
+        assert result.table.fields[0].name == "passenger_id"
 
     asyncio.run(run())
 
@@ -565,7 +567,7 @@ def test_plan_table_creation_requires_branch_in_schema():
     asyncio.run(run())
 
 
-def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
+def test_get_jobs_delegates_filters_to_sdk():
     async def run():
         mcp = FastMCP("test")
         register_get_jobs_tool(mcp)
@@ -599,6 +601,7 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
         )
 
         assert captured == {
+            "filter_by_current_user": False,
             "filter_by_ids": None,
             "filter_by_users": ["alice"],
             "filter_by_kinds": ["run"],
@@ -609,6 +612,63 @@ def test_get_jobs_uses_requested_bauplan_0_1_get_jobs_filters():
         }
         assert result.jobs[0].kind == "Run"
         assert result.jobs[0].error_message is None
+
+    asyncio.run(run())
+
+
+def test_get_jobs_defaults_to_current_user():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_jobs_tool(mcp)
+        tool = await _get_tool(mcp, "get_jobs")
+
+        captured = {}
+
+        class Client:
+            def get_jobs(self, **kwargs):
+                captured.update(kwargs)
+                return []
+
+        await tool.fn(bauplan_client=Client())
+
+        assert captured["filter_by_current_user"] is True
+
+    asyncio.run(run())
+
+
+def test_get_jobs_can_include_all_users():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_jobs_tool(mcp)
+        tool = await _get_tool(mcp, "get_jobs")
+
+        captured = {}
+
+        class Client:
+            def get_jobs(self, **kwargs):
+                captured.update(kwargs)
+                return []
+
+        await tool.fn(all_users=True, bauplan_client=Client())
+
+        assert captured["filter_by_current_user"] is False
+        assert captured["filter_by_users"] is None
+
+    asyncio.run(run())
+
+
+def test_get_jobs_rejects_all_users_with_named_users():
+    async def run():
+        mcp = FastMCP("test")
+        register_get_jobs_tool(mcp)
+        tool = await _get_tool(mcp, "get_jobs")
+
+        class Client:
+            def get_jobs(self, **kwargs):
+                raise AssertionError("get_jobs should not be called")
+
+        with pytest.raises(ToolError, match="all_users and user_names cannot be used together"):
+            await tool.fn(all_users=True, user_names=["alice"], bauplan_client=Client())
 
     asyncio.run(run())
 
@@ -650,10 +710,12 @@ def test_get_table_delegates_table_and_namespace_to_sdk():
         assert result.table.partitions[0].name == "ds"
         assert result.table.partitions[0].transform == "day"
         assert result.table.properties == {"owner": "analytics"}
+        assert result.table.comment == "Passenger manifest."
         assert result.table.records == 123
         assert result.table.size == 456
         assert result.table.snapshots == 7
-        assert result.table.fields[0]["name"] == "passenger_id"
+        assert result.table.fields[0].name == "passenger_id"
+        assert result.table.fields[0].doc == "Stable passenger identifier."
 
     asyncio.run(run())
 
@@ -892,6 +954,7 @@ def test_get_tables_can_include_schema():
                                 name="order_id",
                                 required=True,
                                 type="int64",
+                                doc="Stable order identifier.",
                             )
                         ],
                     )
@@ -915,7 +978,8 @@ def test_get_tables_can_include_schema():
         assert result.tables[0].partitions[0].name == "ds"
         assert result.tables[0].partitions[0].transform == "day"
         assert result.tables[0].fields is not None
-        assert result.tables[0].fields[0]["name"] == "order_id"
+        assert result.tables[0].fields[0].name == "order_id"
+        assert result.tables[0].fields[0].doc == "Stable order identifier."
 
     asyncio.run(run())
 
@@ -1197,7 +1261,7 @@ def test_project_run_delegates_omitted_run_defaults_to_sdk():
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
-        assert captured["strict"] == "on"
+        assert captured["strict"] is True
 
     asyncio.run(run())
 
@@ -1255,7 +1319,7 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
-        assert captured["strict"] == "on"
+        assert captured["strict"] is True
 
     asyncio.run(run())
 
@@ -1292,7 +1356,7 @@ def test_code_run_passes_strict_argument_to_sdk():
         assert captured["dry_run"] is True
         assert captured["client_timeout"] == 10
         assert captured["detach"] is False
-        assert captured["strict"] == "off"
+        assert captured["strict"] is False
 
     asyncio.run(run())
 
@@ -1516,7 +1580,7 @@ def test_code_run_passes_optional_run_arguments_to_sdk():
         assert captured["ref"] == "alice.dev"
         assert captured["namespace"] == "alice"
         assert captured["dry_run"] is True
-        assert captured["strict"] == "off"
+        assert captured["strict"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
         assert result.job.id == "job-1"
