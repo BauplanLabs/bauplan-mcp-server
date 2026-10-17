@@ -392,6 +392,46 @@ def test_api_key_oauth_submit_returns_completion_page():
     asyncio.run(run())
 
 
+def test_api_key_oauth_submit_omits_state_when_client_sent_none():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=OAuthConfig(
+                base_url="https://mcp.example.com",
+                secret="x" * 32,
+            ),
+            validate_api_key=lambda key: _user_info() if key == api_key else None,
+        )
+        client = OAuthClientInformationFull(
+            client_id="client-1",
+            client_name="MIA",
+            redirect_uris=[_url("https://client.example/landing?service=abc")],
+        )
+        await provider.register_client(client)
+        auth_url = await provider.authorize(
+            client,
+            AuthorizationParams(
+                state=None,
+                scopes=[],
+                code_challenge="challenge-1",
+                redirect_uri=_url("https://client.example/landing?service=abc"),
+                redirect_uri_provided_explicitly=True,
+            ),
+        )
+        txn_id = parse_qs(urlparse(auth_url).query)["txn_id"][0]
+
+        response = await provider._handle_submit(_form_request(f"txn_id={txn_id}&api_key={api_key}".encode()))
+        callback_url = urlparse(_extract_primary_link_href(bytes(response.body).decode()))
+        query = parse_qs(callback_url.query, keep_blank_values=True)
+
+        assert response.status_code == 200
+        assert query["service"] == ["abc"]
+        assert "code" in query
+        assert "state" not in query
+
+    asyncio.run(run())
+
+
 def test_api_key_oauth_form_warns_for_unknown_redirect_before_key_entry():
     async def run():
         provider = APIKeyOAuthProvider(
