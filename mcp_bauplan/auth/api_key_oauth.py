@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import html
 import logging
 import secrets
@@ -220,14 +222,7 @@ class APIKeyOAuthProvider(OAuthProvider):
             logger.info("Rejected Bauplan API key during OAuth authorization")
             return _html_response("The provided Bauplan API key could not be validated.", 401)
 
-        code = self._issue_container_token(
-            container_use="auth-code",
-            expires_in=_AUTH_CODE_TTL_SECONDS,
-            claims={
-                **txn,
-                "encrypted_api_key": self._encrypt_api_key(api_key),
-            },
-        )
+        code = self._issue_authorization_code(txn, encrypted_api_key=self._encrypt_api_key(api_key))
         location = construct_redirect_uri(str(txn["redirect_uri"]), code=code, state=txn.get("state") or None)
         escaped_location = html.escape(location, quote=True)
         redirect_uri = str(txn["redirect_uri"])
@@ -275,18 +270,33 @@ class APIKeyOAuthProvider(OAuthProvider):
             result = await result
         return cast(BauplanUserInfo | None, result)
 
+    def _issue_authorization_code(self, txn: dict[str, Any], *, encrypted_api_key: str) -> str:
+        return self._issue_container_token(
+            container_use="auth-code",
+            expires_in=_AUTH_CODE_TTL_SECONDS,
+            claims={
+                "client_id_hash": _client_id_hash(str(txn["client_id"])),
+                "redirect_uri": txn["redirect_uri"],
+                "redirect_uri_provided_explicitly": txn["redirect_uri_provided_explicitly"],
+                "code_challenge": txn["code_challenge"],
+                "scopes": txn["scopes"],
+                "resource": txn["resource"],
+                "encrypted_api_key": encrypted_api_key,
+            },
+        )
+
     async def load_authorization_code(
         self,
         client: OAuthClientInformationFull,
         authorization_code: str,
     ) -> AuthorizationCode | None:
         rec = self._load_container_token(authorization_code, expected_use="auth-code")
-        if rec is None or rec.get("client_id") != client.client_id:
+        if rec is None or rec.get("client_id_hash") != _client_id_hash(str(client.client_id)):
             return None
 
         return AuthorizationCode(
             code=authorization_code,
-            client_id=str(rec["client_id"]),
+            client_id=str(client.client_id),
             redirect_uri=rec["redirect_uri"],
             redirect_uri_provided_explicitly=bool(rec["redirect_uri_provided_explicitly"]),
             scopes=list(rec.get("scopes") or []),
@@ -301,7 +311,7 @@ class APIKeyOAuthProvider(OAuthProvider):
         authorization_code: AuthorizationCode,
     ) -> OAuthToken:
         rec = self._load_container_token(authorization_code.code, expected_use="auth-code")
-        if rec is None or rec.get("client_id") != client.client_id:
+        if rec is None or rec.get("client_id_hash") != _client_id_hash(str(client.client_id)):
             raise TokenError("invalid_grant", "Authorization code not found or used.")
 
         return await self._issue_tokens(
@@ -583,6 +593,11 @@ def _client_from_claims(client_id: str, claims: dict[str, Any]) -> OAuthClientIn
         )
     except (KeyError, TypeError, ValueError, ValidationError):
         return None
+
+
+def _client_id_hash(client_id: str) -> str:
+    digest = hashlib.sha256(client_id.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
 def _redirect_uris_valid(redirect_uris: list[AnyUrl]) -> bool:
