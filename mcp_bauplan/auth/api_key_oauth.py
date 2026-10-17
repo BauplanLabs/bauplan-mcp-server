@@ -228,9 +228,7 @@ class APIKeyOAuthProvider(OAuthProvider):
                 "encrypted_api_key": self._encrypt_api_key(api_key),
             },
         )
-        location = construct_redirect_uri(
-            str(txn["redirect_uri"]), code=code, state=str(txn.get("state") or "")
-        )
+        location = construct_redirect_uri(str(txn["redirect_uri"]), code=code, state=txn.get("state") or None)
         escaped_location = html.escape(location, quote=True)
         redirect_uri = str(txn["redirect_uri"])
         redirect_host = html.escape(_redirect_host(redirect_uri) or "unknown destination")
