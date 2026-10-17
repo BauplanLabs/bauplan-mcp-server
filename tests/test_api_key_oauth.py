@@ -123,11 +123,7 @@ def test_api_key_oauth_issues_stateless_encrypted_claim_tokens():
         assert txn is not None
         assert "api_key" not in txn
 
-        code = provider._issue_container_token(
-            container_use="auth-code",
-            expires_in=300,
-            claims={**txn, "encrypted_api_key": provider._encrypt_api_key(api_key)},
-        )
+        code = provider._issue_authorization_code(txn, encrypted_api_key=provider._encrypt_api_key(api_key))
         auth_code = await provider.load_authorization_code(client, code)
         assert auth_code is not None
 
@@ -428,6 +424,50 @@ def test_api_key_oauth_submit_omits_state_when_client_sent_none():
         assert query["service"] == ["abc"]
         assert "code" in query
         assert "state" not in query
+
+    asyncio.run(run())
+
+
+def test_api_key_oauth_code_binds_client_without_embedding_client_id():
+    async def run():
+        api_key = "bp_secret_test_key"
+        provider = APIKeyOAuthProvider(
+            config=_localhost_config(),
+            validate_api_key=lambda _: _user_info(),
+        )
+        client = OAuthClientInformationFull(
+            client_id="client-1",
+            redirect_uris=[_url("http://localhost/callback")],
+        )
+        other_client = OAuthClientInformationFull(
+            client_id="client-2",
+            redirect_uris=[_url("http://localhost/callback")],
+        )
+        await provider.register_client(client)
+        await provider.register_client(other_client)
+        auth_url = await provider.authorize(
+            client,
+            AuthorizationParams(
+                state="state-1",
+                scopes=[],
+                code_challenge="challenge-1",
+                redirect_uri=_url("http://localhost/callback"),
+                redirect_uri_provided_explicitly=True,
+            ),
+        )
+        txn = provider._load_container_token(
+            parse_qs(urlparse(auth_url).query)["txn_id"][0], expected_use="auth-txn"
+        )
+        assert txn is not None
+        code = provider._issue_authorization_code(txn, encrypted_api_key=provider._encrypt_api_key(api_key))
+
+        assert "client_id" not in _decode_jwt_payload(code)
+        auth_code = await provider.load_authorization_code(client, code)
+        assert auth_code is not None
+        assert auth_code.client_id == client.client_id
+        assert await provider.load_authorization_code(other_client, code) is None
+        with pytest.raises(TokenError):
+            await provider.exchange_authorization_code(other_client, auth_code)
 
     asyncio.run(run())
 
