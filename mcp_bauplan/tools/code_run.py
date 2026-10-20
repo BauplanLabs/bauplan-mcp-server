@@ -86,7 +86,8 @@ def register_code_run_tool(mcp: FastMCP) -> None:
         detach: Annotated[
             bool,
             Field(
-                description="Whether to return after job submission instead of waiting for completion. Use get_job to check status. Defaults to true.",
+                description="Deprecated and ignored. The run always returns after job submission. Use get_job to check status.",
+                deprecated=True,
             ),
         ] = True,
         strict: Annotated[
@@ -142,7 +143,6 @@ def register_code_run_tool(mcp: FastMCP) -> None:
                 parameters=parameters,
                 dry_run=dry_run,
                 client_timeout=client_timeout,
-                detach=detach,
                 strict=strict,
                 logger=logger,
                 bauplan_client=bauplan_client,

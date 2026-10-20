@@ -177,6 +177,7 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 * **`get_commits`**: Get commit history from branches
 * **`create_branch`**: Create new branches from references
 * **`merge_branch`**: Merge branches with custom commit messages
+* **`rename_branch`**: Rename a non-main branch
 * **`delete_branch`**: Delete branches (with safety checks)
 
 #### Namespace Management
@@ -191,15 +192,18 @@ Now, configure the inspector with the proper variables, e.g. for Streamable HTTP
 * **`get_tags`**: Get tags with optional filters
 * **`get_tag`**: Get a tag by name
 * **`create_tag`**: Create a new tag from a reference
+* **`rename_tag`**: Rename a tag
 * **`delete_tag`**: Delete a tag
 
 #### Table Management
 
 * **`create_table`**: Create a table from S3 location using schema detection (creates ICEBERG table structure but doesn't populate data)
+* **`create_external_table_from_parquet`**: Create an external table that reads Parquet files in place from S3/GCS (returns job_id for tracking)
+* **`create_external_table_from_metadata`**: Register an existing Iceberg table from its metadata.json as an external table
 * **`plan_table_creation`**: Create a table import plan from S3 location (generates YAML schema plan with job tracking)
 * **`apply_table_creation_plan`**: Apply a table creation plan to resolve schema conflicts (returns job_id for tracking)
 * **`delete_table`**: Delete a table from a specific branch
-* **`import_data`**: Import data into an existing table from S3 location (returns job_id for tracking)
+* **`import_data`**: Import data into an existing table from S3 location (returns job_id for tracking; skips files already imported unless asked otherwise)
 * **`revert_table`**: Revert a table from a source reference to a target branch with optional replacement
 
 #### Project Management

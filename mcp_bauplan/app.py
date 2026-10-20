@@ -16,6 +16,8 @@ from .tools.apply_table_creation_plan import register_apply_table_creation_plan_
 from .tools.cancel_job import register_cancel_job_tool
 from .tools.code_run import register_code_run_tool
 from .tools.create_branch import register_create_branch_tool
+from .tools.create_external_table_from_metadata import register_create_external_table_from_metadata_tool
+from .tools.create_external_table_from_parquet import register_create_external_table_from_parquet_tool
 from .tools.create_namespace import register_create_namespace_tool
 from .tools.create_table import register_create_table_tool
 from .tools.create_tag import register_create_tag_tool
@@ -40,6 +42,8 @@ from .tools.import_data import register_import_data_tool
 from .tools.merge_branch import register_merge_branch_tool
 from .tools.plan_table_creation import register_plan_table_creation_tool
 from .tools.project_run import register_project_run_tool
+from .tools.rename_branch import register_rename_branch_tool
+from .tools.rename_tag import register_rename_tag_tool
 from .tools.revert_table import register_revert_table_tool
 from .tools.run_query import register_run_query_tool
 from .tools.run_query_to_csv import register_run_query_to_csv_tool
@@ -161,6 +165,8 @@ def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_create_branch_tool(mcp)
     register_create_namespace_tool(mcp)
     register_create_table_tool(mcp)
+    register_create_external_table_from_parquet_tool(mcp)
+    register_create_external_table_from_metadata_tool(mcp)
     register_plan_table_creation_tool(mcp)
     register_apply_table_creation_plan_tool(mcp)
     register_delete_table_tool(mcp)
@@ -172,11 +178,13 @@ def _register_tools(mcp: FastMCP, auth_mode: str) -> None:
     register_get_job_tool(mcp)
     register_cancel_job_tool(mcp)
     register_merge_branch_tool(mcp)
+    register_rename_branch_tool(mcp)
     register_delete_branch_tool(mcp)
     register_delete_namespace_tool(mcp)
     register_get_tags_tool(mcp)
     register_get_tag_tool(mcp)
     register_create_tag_tool(mcp)
+    register_rename_tag_tool(mcp)
     register_delete_tag_tool(mcp)
     register_get_user_info_tool(mcp)
     register_get_instructions_tool(mcp)
