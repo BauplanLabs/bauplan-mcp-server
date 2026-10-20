@@ -84,29 +84,29 @@ def test_create_mcp_exposes_tool_annotations(monkeypatch: pytest.MonkeyPatch):
 
         get_table = annotations_for("get_table")
         assert get_table.title == "Get table"
-        assert get_table.readOnlyHint is True
-        assert get_table.destructiveHint is False
-        assert get_table.idempotentHint is True
-        assert get_table.openWorldHint is True
+        assert get_table.read_only_hint is True
+        assert get_table.destructive_hint is False
+        assert get_table.idempotent_hint is True
+        assert get_table.open_world_hint is True
         assert tools["get_table"].tags == {"remote", "read"}
 
         get_instructions = annotations_for("get_instructions")
-        assert get_instructions.readOnlyHint is True
-        assert get_instructions.openWorldHint is False
+        assert get_instructions.read_only_hint is True
+        assert get_instructions.open_world_hint is False
 
         create_branch = annotations_for("create_branch")
-        assert create_branch.readOnlyHint is False
-        assert create_branch.destructiveHint is False
+        assert create_branch.read_only_hint is False
+        assert create_branch.destructive_hint is False
         assert tools["create_branch"].tags == {"remote", "write"}
 
         delete_table = annotations_for("delete_table")
-        assert delete_table.readOnlyHint is False
-        assert delete_table.destructiveHint is True
+        assert delete_table.read_only_hint is False
+        assert delete_table.destructive_hint is True
         assert tools["delete_table"].tags == {"remote", "write", "destructive"}
 
         run_query_to_csv = annotations_for("run_query_to_csv")
-        assert run_query_to_csv.readOnlyHint is False
-        assert run_query_to_csv.destructiveHint is False
+        assert run_query_to_csv.read_only_hint is False
+        assert run_query_to_csv.destructive_hint is False
 
     asyncio.run(run())
 

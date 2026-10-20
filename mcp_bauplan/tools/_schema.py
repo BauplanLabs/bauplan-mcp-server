@@ -42,10 +42,10 @@ def local_write_tags(*, destructive: bool = False) -> set[str]:
 def read_only_tool_annotations(title: str, *, open_world: bool = True) -> ToolAnnotations:
     return ToolAnnotations(
         title=title,
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=open_world,
+        read_only_hint=True,
+        destructive_hint=False,
+        idempotent_hint=True,
+        open_world_hint=open_world,
     )
 
 
@@ -57,10 +57,10 @@ def mutating_tool_annotations(
 ) -> ToolAnnotations:
     return ToolAnnotations(
         title=title,
-        readOnlyHint=False,
-        destructiveHint=destructive,
-        idempotentHint=False,
-        openWorldHint=open_world,
+        read_only_hint=False,
+        destructive_hint=destructive,
+        idempotent_hint=False,
+        open_world_hint=open_world,
     )
 
 
