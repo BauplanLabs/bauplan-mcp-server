@@ -12,6 +12,7 @@ exec opentelemetry-instrument \
   --workers "${MCP_WORKERS:-4}" \
   --worker-class uvicorn.workers.UvicornWorker \
   --keep-alive "${MCP_KEEP_ALIVE:-65}" \
+  --no-control-socket \
   --bind "0.0.0.0:${PORT:-8000}" \
   --access-logfile "-" \
   --error-logfile "-"
