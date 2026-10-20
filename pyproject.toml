@@ -17,16 +17,16 @@ dependencies = [
 
 [project.optional-dependencies]
 otel = [
-  "opentelemetry-distro==0.63b1",
-  "opentelemetry-exporter-otlp==1.42.1",
-  "opentelemetry-instrumentation-fastapi==0.63b1",
-  "opentelemetry-instrumentation-starlette==0.63b1",
-  "opentelemetry-instrumentation-logging==0.63b1",
-  "opentelemetry-instrumentation-asyncio==0.63b1",
-  "opentelemetry-instrumentation-requests==0.63b1",
-  "opentelemetry-instrumentation-urllib3==0.63b1",
-  "opentelemetry-instrumentation-grpc==0.63b1",
-  "opentelemetry-instrumentation-mcp~=0.61.0",
+  "opentelemetry-distro==0.66b1",
+  "opentelemetry-exporter-otlp==1.45.1",
+  "opentelemetry-instrumentation-fastapi==0.66b1",
+  "opentelemetry-instrumentation-starlette==0.66b1",
+  "opentelemetry-instrumentation-logging==0.66b1",
+  "opentelemetry-instrumentation-asyncio==0.66b1",
+  "opentelemetry-instrumentation-requests==0.66b1",
+  "opentelemetry-instrumentation-urllib3==0.66b1",
+  "opentelemetry-instrumentation-grpc==0.66b1",
+  "opentelemetry-instrumentation-mcp~=0.62.4",
 ]
 
 [project.scripts]
