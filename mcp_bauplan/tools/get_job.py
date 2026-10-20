@@ -209,6 +209,17 @@ async def get_job_out(job_id: str, bauplan_client: bauplan.Client) -> JobOut:
     return JobOut(job=job_info)
 
 
+async def submitted_job_out(job_id: str | None, bauplan_client: bauplan.Client) -> JobOut:
+    if job_id is None:
+        raise ValueError("The job was submitted, but no job ID was returned.")
+    try:
+        return await get_job_out(job_id, bauplan_client)
+    except Exception as e:
+        raise RuntimeError(
+            f"Job '{job_id}' was submitted, but its details could not be retrieved: {e}"
+        ) from e
+
+
 def register_get_job_tool(mcp: FastMCP) -> None:
     @mcp.tool(name="get_job", annotations=read_only_tool_annotations("Get job"), tags=remote_read_tags())
     async def get_job(

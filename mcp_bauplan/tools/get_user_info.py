@@ -13,15 +13,15 @@ from .create_client import get_bauplan_client
 
 class UserInfo(BaseModel):
     username: Annotated[
-        str | None,
+        str,
         Field(
-            description="Authenticated Bauplan username, or null when unavailable.",
+            description="Authenticated Bauplan username.",
         ),
     ]
     full_name: Annotated[
-        str | None,
+        str,
         Field(
-            description="Authenticated user's full name, or null when unavailable.",
+            description="Authenticated user's full name.",
         ),
     ]
 
@@ -43,14 +43,9 @@ def register_get_user_info_tool(mcp: FastMCP) -> None:
 
         try:
             info = await asyncio.to_thread(lambda: bauplan_client.info())
-            user = info.user
-
-            if user is None:
-                raise ToolError("No user information available for the authenticated user.")
-
             return UserInfo(
-                username=user.username,
-                full_name=user.full_name,
+                username=info.user.username,
+                full_name=info.user.full_name,
             )
 
         except Exception as e:

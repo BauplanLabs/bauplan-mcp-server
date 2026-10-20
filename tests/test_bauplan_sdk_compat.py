@@ -13,6 +13,12 @@ from mcp_bauplan.tools._guards import require_writable_branch
 from mcp_bauplan.tools.apply_table_creation_plan import register_apply_table_creation_plan_tool
 from mcp_bauplan.tools.code_run import register_code_run_tool
 from mcp_bauplan.tools.create_branch import register_create_branch_tool
+from mcp_bauplan.tools.create_external_table_from_metadata import (
+    register_create_external_table_from_metadata_tool,
+)
+from mcp_bauplan.tools.create_external_table_from_parquet import (
+    register_create_external_table_from_parquet_tool,
+)
 from mcp_bauplan.tools.create_namespace import register_create_namespace_tool
 from mcp_bauplan.tools.create_table import register_create_table_tool
 from mcp_bauplan.tools.create_tag import register_create_tag_tool
@@ -34,6 +40,8 @@ from mcp_bauplan.tools.import_data import register_import_data_tool
 from mcp_bauplan.tools.merge_branch import register_merge_branch_tool
 from mcp_bauplan.tools.plan_table_creation import register_plan_table_creation_tool
 from mcp_bauplan.tools.project_run import register_project_run_tool
+from mcp_bauplan.tools.rename_branch import register_rename_branch_tool
+from mcp_bauplan.tools.rename_tag import register_rename_tag_tool
 from mcp_bauplan.tools.revert_table import register_revert_table_tool
 from mcp_bauplan.tools.run_query import register_run_query_tool
 from mcp_bauplan.tools.run_query_to_csv import register_run_query_to_csv_tool
@@ -1355,7 +1363,7 @@ def test_code_run_passes_strict_argument_to_sdk():
         assert captured["namespace"] == "alice"
         assert captured["dry_run"] is True
         assert captured["client_timeout"] == 10
-        assert captured["detach"] is False
+        assert captured["detach"] is True
         assert captured["strict"] is False
 
     asyncio.run(run())
@@ -1765,7 +1773,7 @@ def test_get_job_omits_dag_when_nodes_are_empty():
     asyncio.run(run())
 
 
-def test_import_data_reports_sdk_error_state():
+def test_import_data_rejects_missing_job_id():
     async def run():
         mcp = FastMCP("test")
         register_import_data_tool(mcp)
@@ -1773,18 +1781,15 @@ def test_import_data_reports_sdk_error_state():
 
         class Client:
             def import_data(self, **kwargs):
-                return SimpleNamespace(job_id="job-1", job_status="FAILED", error="bad import")
+                return SimpleNamespace(job_id=None, job_status=None, error=None)
 
-        result = await tool.fn(
-            table="table",
-            search_uri="s3://bucket/*.parquet",
-            branch="alice.dev",
-            bauplan_client=Client(),
-        )
-
-        assert result.success is False
-        assert result.job_status == "FAILED"
-        assert result.error == "bad import"
+        with pytest.raises(ToolError, match="no job ID was returned"):
+            await tool.fn(
+                table="table",
+                search_uri="s3://bucket/*.parquet",
+                branch="alice.dev",
+                bauplan_client=Client(),
+            )
 
     asyncio.run(run())
 
@@ -1819,5 +1824,163 @@ def test_plan_table_creation_exposes_conflict_plan():
         assert result.plan == "schema_info:\n  fields: []\n"
         assert result.can_auto_apply is False
         assert result.files_to_be_imported == ["s3://bucket/file.parquet"]
+
+    asyncio.run(run())
+
+
+def test_rename_branch_returns_renamed_branch():
+    async def run():
+        mcp = FastMCP("test")
+        register_rename_branch_tool(mcp)
+        tool = await _get_tool(mcp, "rename_branch")
+
+        captured = {}
+
+        class Client:
+            def rename_branch(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(name="alice.new", hash="abc123")
+
+        result = await tool.fn(branch="alice.old", new_branch="alice.new", bauplan_client=Client())
+
+        assert captured == {"branch": "alice.old", "new_branch": "alice.new"}
+        assert result.branch.name == "alice.new"
+        assert result.branch.hash == "abc123"
+
+    asyncio.run(run())
+
+
+def test_rename_branch_rejects_main_without_calling_sdk():
+    async def run():
+        mcp = FastMCP("test")
+        register_rename_branch_tool(mcp)
+        tool = await _get_tool(mcp, "rename_branch")
+
+        class Client:
+            def rename_branch(self, **kwargs):
+                raise AssertionError("rename_branch should not be called")
+
+        with pytest.raises(ToolError, match="cannot target the main branch"):
+            await tool.fn(branch="main", new_branch="alice.main", bauplan_client=Client())
+        with pytest.raises(ToolError, match="cannot target the main branch"):
+            await tool.fn(branch="alice.dev", new_branch="main", bauplan_client=Client())
+
+    asyncio.run(run())
+
+
+def test_rename_tag_returns_renamed_tag():
+    async def run():
+        mcp = FastMCP("test")
+        register_rename_tag_tool(mcp)
+        tool = await _get_tool(mcp, "rename_tag")
+
+        captured = {}
+
+        class Client:
+            def rename_tag(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(name="v2", hash="abc123")
+
+        result = await tool.fn(tag="v1", new_tag="v2", bauplan_client=Client())
+
+        assert captured == {"tag": "v1", "new_tag": "v2"}
+        assert result.tag.name == "v2"
+        assert result.tag.hash == "abc123"
+
+    asyncio.run(run())
+
+
+def test_create_external_table_from_parquet_submits_detached_job():
+    async def run():
+        mcp = FastMCP("test")
+        register_create_external_table_from_parquet_tool(mcp)
+        tool = await _get_tool(mcp, "create_external_table_from_parquet")
+
+        captured = {}
+
+        class Client(_JobLookupClient):
+            def create_external_table_from_parquet(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(job_id="job-1", job_status=None, error=None)
+
+        result = await tool.fn(
+            table="events",
+            search_patterns=["s3://bucket/events/*.parquet"],
+            branch="alice.dev",
+            namespace="",
+            bauplan_client=Client(),
+        )
+
+        assert captured == {
+            "table": "events",
+            "search_patterns": ["s3://bucket/events/*.parquet"],
+            "branch": "alice.dev",
+            "namespace": None,
+            "overwrite": False,
+            "client_timeout": 180,
+            "detach": True,
+        }
+        assert result.job.id == "job-1"
+
+    asyncio.run(run())
+
+
+def test_create_external_table_from_metadata_returns_registered_table():
+    async def run():
+        mcp = FastMCP("test")
+        register_create_external_table_from_metadata_tool(mcp)
+        tool = await _get_tool(mcp, "create_external_table_from_metadata")
+
+        captured = {}
+
+        class Client:
+            def create_external_table_from_metadata(self, **kwargs):
+                captured.update(kwargs)
+                return _sdk_table()
+
+        result = await tool.fn(
+            table="titanic",
+            metadata_json_uri="s3://bucket/titanic/metadata/v1.metadata.json",
+            namespace="bauplan",
+            branch="alice.dev",
+            bauplan_client=Client(),
+        )
+
+        assert captured == {
+            "table": "titanic",
+            "metadata_json_uri": "s3://bucket/titanic/metadata/v1.metadata.json",
+            "namespace": "bauplan",
+            "branch": "alice.dev",
+            "overwrite": False,
+        }
+        assert result.table.name == "titanic"
+
+    asyncio.run(run())
+
+
+def test_import_data_delegates_duplicate_files_to_sdk():
+    async def run():
+        mcp = FastMCP("test")
+        register_import_data_tool(mcp)
+        tool = await _get_tool(mcp, "import_data")
+
+        captured = {}
+
+        class Client(_JobLookupClient):
+            def import_data(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(job_id="job-1", job_status=None, error=None)
+
+        result = await tool.fn(
+            table="table",
+            search_uri="s3://bucket/*.parquet",
+            branch="alice.dev",
+            import_duplicate_files=True,
+            bauplan_client=Client(),
+        )
+
+        assert captured["import_duplicate_files"] is True
+        assert captured["detach"] is True
+        assert result.job.id == "job-1"
 
     asyncio.run(run())
