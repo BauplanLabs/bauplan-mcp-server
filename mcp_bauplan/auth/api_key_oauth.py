@@ -68,8 +68,8 @@ _HTML_SECURITY_HEADERS = {
 
 @dataclass(frozen=True)
 class BauplanUserInfo:
-    username: str | None
-    full_name: str | None
+    username: str
+    full_name: str
 
 
 ValidateApiKey = Callable[[str], BauplanUserInfo | Awaitable[BauplanUserInfo | None] | None]
@@ -237,23 +237,16 @@ class APIKeyOAuthProvider(OAuthProvider):
                 f"Only continue if you trust {redirect_host}."
             )
             button_copy = f"Continue to {redirect_host}"
-        escaped_username = html.escape(user_info.username) if user_info.username else None
-        escaped_full_name = html.escape(user_info.full_name) if user_info.full_name else None
-        user_details = ""
-        if escaped_username:
-            user_details += (
-                '          <div class="meta-item">\n'
-                '            <p class="meta-label">Username</p>\n'
-                f'            <p class="meta-value">{escaped_username}</p>\n'
-                "          </div>\n"
-            )
-        if escaped_full_name:
-            user_details += (
-                '          <div class="meta-item">\n'
-                '            <p class="meta-label">Name</p>\n'
-                f'            <p class="meta-value">{escaped_full_name}</p>\n'
-                "          </div>\n"
-            )
+        user_details = (
+            '          <div class="meta-item">\n'
+            '            <p class="meta-label">Username</p>\n'
+            f'            <p class="meta-value">{html.escape(user_info.username)}</p>\n'
+            "          </div>\n"
+            '          <div class="meta-item">\n'
+            '            <p class="meta-label">Name</p>\n'
+            f'            <p class="meta-value">{html.escape(user_info.full_name)}</p>\n'
+            "          </div>\n"
+        )
         page = _render_html_template(
             "authorize_complete.html",
             user_details=user_details,
@@ -531,10 +524,7 @@ async def validate_bauplan_api_key(api_key: str) -> BauplanUserInfo | None:
         user = info.user
     except Exception:
         return None
-    return BauplanUserInfo(
-        username=getattr(user, "username", None),
-        full_name=getattr(user, "full_name", None),
-    )
+    return BauplanUserInfo(username=user.username, full_name=user.full_name)
 
 
 def create_api_key_oauth_provider(config: OAuthConfig) -> APIKeyOAuthProvider:
