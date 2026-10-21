@@ -24,14 +24,14 @@ project:
 ## Pipeline as a DAG
 
 ```
-[lakehouse: raw_events] ──→ [staging.sql] ──→ [transform] ──→ [daily_summary]
+[lakehouse: raw_trips] ──→ [staging.sql] ──→ [trips_with_zones]
                                                   ↑
-[lakehouse: dim_zones] ────────────────────────────┘
+[lakehouse: zones] ───────────────────────────────┘
 ```
 
 - **Source tables**: Existing lakehouse tables (entry points)
 - **SQL models**: Output name = filename (`staging.sql` → `staging`)
-- **Python models**: Output name = function name (`def transform()` → `transform`)
+- **Python models**: Output name = function name (`def trips_with_zones()` → `trips_with_zones`)
 - Multiple inputs allowed, one output per model
 
 ## When to Use SQL vs Python
@@ -43,30 +43,68 @@ project:
 
 ## SQL Model (First Node)
 
+Every SQL model must declare its output schema with an `output_schema` directive that names a `TableSchema` class defined in the sibling `models.py`:
+
 ```sql
 -- staging.sql
-SELECT event_id, event_type, price, event_time
-FROM raw_ecommerce_events
-WHERE event_time IS NOT NULL AND price > 0
+-- bauplan: output_schema = StagingSchema
+SELECT trip_id, miles, zone_id
+FROM raw_trips
+WHERE miles > 0
+```
+
+```python
+# models.py
+import bauplan
+
+
+class StagingSchema(bauplan.TableSchema):
+    """Trips with positive mileage."""
+
+    trip_id: bauplan.Int64 | None
+    miles: bauplan.Float64 | None
+    zone_id: bauplan.Int64 | None
 ```
 
 ## Python Model (can accept multiple inputs)
 
 ```python
-import bauplan
+from typing import Annotated
 
-@bauplan.model(
-    columns=['trip_id', 'miles', 'borough', 'zone'],  # Output schema validation
-    materialization_strategy='REPLACE'                 # Persist to lakehouse
-)
-@bauplan.python('3.11', pip={'polars': '1.15.0'})
+import bauplan
+import pyarrow as pa
+
+
+class ZoneColumns(bauplan.TableSchema):
+    """Zone lookup key and labels."""
+
+    zone_id: bauplan.Int64 | None
+    borough: bauplan.String | None
+    zone: bauplan.String | None
+
+
+class TripsWithZonesSchema(bauplan.TableSchema):
+    """Trips with zone labels, without the join key."""
+
+    trip_id: bauplan.Int64 | None
+    miles: bauplan.Float64 | None
+    borough: bauplan.String | None
+    zone: bauplan.String | None
+
+
+@bauplan.model(materialization_strategy='REPLACE')  # Persist to lakehouse
+@bauplan.python('3.13', pip={'polars': '2.0.0'})
 def trips_with_zones(
-    # Multiple inputs with I/O pushdown (columns + filter)
-    trips=bauplan.Model(
-        'staging',  # Reference the output of previous model, staging.sql
-    ),
-    zones=bauplan.Model('zones', columns=['zone_id', 'borough', 'zone'])
-):
+    # Multiple inputs with I/O pushdown (projection_schema + filter)
+    trips: Annotated[
+        pa.Table,
+        bauplan.Model('staging', projection_schema=StagingSchema),  # Output of staging.sql
+    ],
+    zones: Annotated[
+        pa.Table,
+        bauplan.Model('zones', projection_schema=ZoneColumns),
+    ],
+) -> Annotated[pa.Table, TripsWithZonesSchema]:  # Output schema validation (mandatory)
     """
     Joins trips with zone information.
 
@@ -75,32 +113,44 @@ def trips_with_zones(
     | 1       | 5.2   | Manhattan | Midtown |
     """
     import polars as pl
-    return pl.from_arrow(trips).join(
-        pl.from_arrow(zones), on='zone_id'
-    ).drop('zone_id').to_arrow()
+
+    return (
+        pl.DataFrame(trips)
+        .join(pl.DataFrame(zones), on='zone_id')
+        .drop('zone_id')
+        .to_arrow()
+    )
 ```
 
 ## Key Decorators & Parameters
 
 | Decorator/Param | Description |
 |-----------------|-------------|
-| `@bauplan.model(columns=[...])` | Output schema validation (recommended) |
+| `-> Annotated[pa.Table, OutputSchema]` | Output schema validation (mandatory) |
+| `class OutputSchema(bauplan.TableSchema)` | Column names and types |
 | `@bauplan.model(materialization_strategy=)` | `'REPLACE'`, `'APPEND'`, or omit (in-memory) |
-| `@bauplan.python('3.11', pip={...})` | Python version and dependencies |
-| `bauplan.Model('table', columns=[...], filter="...")` | I/O pushdown at storage level |
+| `@bauplan.python('3.13', pip={...})` | Python version and dependencies |
+| `bauplan.Model('table', projection_schema=..., filter="...")` | I/O pushdown at storage level |
+| `Annotated[float, bauplan.Parameter('name')]` | Run parameter |
 
 ## Data Quality Expectations
 
 ```python
+from typing import Annotated
+
 import bauplan
-from bauplan.standard_expectations import expect_column_no_nulls
+import pyarrow as pa
+
 
 @bauplan.expectation()
-@bauplan.python('3.11')
-def test_no_null_ids(data=bauplan.Model('transform')):
-    result = expect_column_no_nulls(data, 'event_id')
-    assert result, 'event_id must not contain null values'
-    return result
+@bauplan.python('3.13')
+def test_no_null_ids(
+    data: Annotated[pa.Table, bauplan.Model('trips_with_zones')],
+) -> bool:
+    """trip_id must not be null."""
+    from bauplan.standard_expectations import expect_column_no_nulls
+
+    return expect_column_no_nulls(data, 'trip_id')
 ```
 
 ## Running Pipelines
@@ -115,14 +165,14 @@ bauplan info
 bauplan branch create <username>.<branch_name>
 bauplan branch checkout <username>.<branch_name>
 
-# Dry run (validate without executing)
-bauplan run --dry-run [--strict]
+# Dry run (validate without materializing)
+bauplan run --dry-run
 
 # Execute pipeline
-bauplan run [--strict]
+bauplan run
 ```
 
-Use `--strict` to fail immediately on column mismatches or expectation failures.
+Strict mode is on by default: a failing expectation fails the run. There is no `--strict` flag; `--no-strict` disables it for the whole run.
 
 ### SDK (Programmatic Mode)
 
@@ -148,7 +198,7 @@ The `client.run()` method executes the pipeline transactionally—if errors occu
 
 ## Best Practices
 
-1. **Whenever possible, specify `columns`** in `@bauplan.model()` for output validation, reasoning from the input schemas to the expected output
-2. **Use I/O pushdown** with `columns` and `filter` in `bauplan.Model()`
+1. **Always declare the output schema** with `-> Annotated[pa.Table, OutputSchema]`, reasoning from the input schemas to the expected output
+2. **Use I/O pushdown** with `projection_schema` and `filter` in `bauplan.Model()`. `filter` only works on lakehouse tables; when the input is another model, filter inside the function body
 3. **Add docstrings** with ASCII table showing expected output
 4. **Only materialize final outputs** (intermediate models need no `materialization_strategy`)

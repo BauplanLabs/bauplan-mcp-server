@@ -90,7 +90,7 @@ def register_get_commits_tool(mcp: FastMCP) -> None:
         ref: Annotated[
             str,
             Field(
-                description="Branch, tag, or commit ref to read commits from.",
+                description="Branch, tag, or commit ref (`<branch>@<commit_hash>`) to read commits from.",
             ),
         ],
         message_filter: Annotated[

@@ -23,7 +23,7 @@ def register_merge_branch_tool(mcp: FastMCP) -> None:
         source_ref: Annotated[
             str,
             Field(
-                description="Source branch, tag, or commit ref to merge.",
+                description="Source branch, tag, or commit ref (`<branch>@<commit_hash>`) to merge.",
             ),
         ],
         into_branch: Annotated[

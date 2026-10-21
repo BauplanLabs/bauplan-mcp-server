@@ -16,7 +16,7 @@ Expectations are defined as Python functions decorated with `@bauplan.expectatio
 
 Expectations are executed after the model is run, directly in memory, and should return a boolean indicating whether the expectation passed or failed.
 
-If an expectation fails, it can raise an `AssertionError` with a descriptive message to help diagnose the issue.
+Strict mode is on by default, so an expectation that returns `False` fails the run.
 
 ## Built-in Expectations
 
@@ -43,15 +43,20 @@ Put all your expectations in a separate file named `expectations.py`:
 ## Example: expectations.py
 
 ```python
+from typing import Annotated
+
 import bauplan
-from bauplan.standard_expectations import expect_column_no_nulls
+import pyarrow as pa
+
 
 @bauplan.expectation()
-@bauplan.python('3.11')
-def test_null_values_location_id(data=bauplan.Model('model_to_be_tested')):
-    _is_expectation_correct = expect_column_no_nulls(data, 'PULocationID')
-    # if the expectation is not met, raise an AssertionError with a descriptive message
-    assert _is_expectation_correct, f'expectation test failed: we expected PULocationID to have no null values'
+@bauplan.python('3.13')
+def test_null_values_location_id(
+    data: Annotated[pa.Table, bauplan.Model('model_to_be_tested')],
+) -> bool:
+    """PULocationID must not contain null values."""
+    from bauplan.standard_expectations import expect_column_no_nulls
+
     # return a boolean to indicate if the expectation passed or failed
-    return _is_expectation_correct
+    return expect_column_no_nulls(data, 'PULocationID')
 ```

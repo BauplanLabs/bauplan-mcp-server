@@ -6,7 +6,7 @@ When the user requests explanation on specific Bauplan SDK methods, or when you 
 
 The official Bauplan SDK reference is available at:
 
-**https://docs.bauplanlabs.com/reference/bauplan**
+**https://docs.bauplanlabs.com/reference/bauplan.md**
 
 ## Important: Ask Permission First
 

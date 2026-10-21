@@ -50,10 +50,12 @@ def wap_ingest(
                 namespace=namespace, branch=branch
             )
 
-        client.import_data(
+        import_state = client.import_data(
             table=table_name, search_uri=s3_path,
             namespace=namespace, branch=branch
         )
+        if import_state.error:
+            raise RuntimeError(f"import_data failed: {import_state.error}")
 
         # === AUDIT ===
         result = client.query(

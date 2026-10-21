@@ -36,7 +36,7 @@ def register_revert_table_tool(mcp: FastMCP) -> None:
         source_ref: Annotated[
             str,
             Field(
-                description="Source branch, tag, or commit ref to restore the table from.",
+                description="Source branch, tag, or commit ref (`<branch>@<commit_hash>`) to restore the table from.",
             ),
         ],
         into_branch: Annotated[

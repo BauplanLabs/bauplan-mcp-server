@@ -96,7 +96,7 @@ def register_run_query_tool(mcp: FastMCP) -> None:
         ref: Annotated[
             str | None,
             Field(
-                description="Branch, tag, or commit ref to query, or null for the default ref.",
+                description="Branch, tag, or commit ref (`<branch>@<commit_hash>`) to query, or null for the default ref.",
             ),
         ] = None,
         namespace: Annotated[
