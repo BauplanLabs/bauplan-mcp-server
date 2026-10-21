@@ -26,7 +26,7 @@ def register_create_tag_tool(mcp: FastMCP) -> None:
         from_ref: Annotated[
             str,
             Field(
-                description="Branch, tag, or commit ref the new tag will point to.",
+                description="Branch, tag, or commit ref (`<branch>@<commit_hash>`) the new tag will point to.",
             ),
         ],
         ctx: Context | None = None,

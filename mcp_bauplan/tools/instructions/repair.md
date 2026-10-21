@@ -12,7 +12,7 @@ By listing jobs by their status, you can identify and fix issues in a pipeline.
 
 If unsure about the cause, you can use a debug branch to perform your analysis:
 
-1. Make sure to open your debug branch from the same commit (`ref`) the original job was created
+1. Make sure to open your debug branch from the same commit (`ref`) the original job was created, passed as `<job_branch>@<commit_hash>`
 2. Use a proper naming convention for your branch, e.g., `<user_name>.debug_<job_id>`
 
 ## Fixing the Pipeline

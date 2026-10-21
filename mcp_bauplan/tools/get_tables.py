@@ -110,7 +110,7 @@ def register_get_tables_tool(mcp: FastMCP) -> None:
         ref: Annotated[
             str,
             Field(
-                description="Branch, tag, or commit ref to inspect.",
+                description="Branch, tag, or commit ref (`<branch>@<commit_hash>`) to inspect.",
             ),
         ],
         namespace: Annotated[

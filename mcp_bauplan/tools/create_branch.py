@@ -29,7 +29,7 @@ def register_create_branch_tool(mcp: FastMCP) -> None:
         from_ref: Annotated[
             str,
             Field(
-                description="Branch, tag, or commit ref to create the branch from.",
+                description="Branch, tag, or commit ref (`<branch>@<commit_hash>`) to create the branch from.",
             ),
         ],
         ctx: Context | None = None,

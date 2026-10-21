@@ -18,10 +18,10 @@ Data evolution follows Git-like abstractions:
 
 ## Versioning and Time Travel
 
-Every change to the lakehouse is versioned and identified by a commit on a branch. The hash of a commit can be used in all the methods supporting the `ref` parameter to time-travel to that specific commit.
+Every change to the lakehouse is versioned and identified by a commit on a branch. The commit ref (`<branch_name>@<commit_hash>`) can be used in all the methods supporting the `ref` parameter to time-travel to that specific commit.
 
 For example:
-- Use the commit hash in a query
+- Use the commit ref in a query
 - Query two versions of the same table across different branches using the branch name
 
 ## Available Metadata
@@ -57,8 +57,8 @@ If asked to reason about data lineage (e.g., which tables are materialized by a 
 
 ```python
 def clean_trips(
-    data=bauplan.Model('trips')
-):
+    data: Annotated[pa.Table, bauplan.Model('trips')],
+) -> Annotated[pa.Table, CleanTripsSchema]:
     ...
 ```
 
@@ -69,6 +69,7 @@ This has:
 **SQL model example (`trips.sql`):**
 
 ```sql
+-- bauplan: output_schema = TripsSchema
 SELECT
     pickup_datetime,
     PULocationID,
