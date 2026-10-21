@@ -1,5 +1,5 @@
 ARG CI_BUILD_VERSION="3.14"
-ARG UV_VERSION="0.11.21"
+ARG UV_VERSION="0.13.4"
 
 
 #
@@ -53,6 +53,9 @@ ENV PYTHONHASHSEED=random
 ENV PYTHONUNBUFFERED=1
 
 ENV TRACELOOP_TRACE_CONTENT=false
+
+# grpcio bundles its own roots, which still trust the compromised emSign ECC Root CA - G3
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app
 
