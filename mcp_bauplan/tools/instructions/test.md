@@ -16,7 +16,7 @@ Expectations are defined as Python functions decorated with `@bauplan.expectatio
 
 Expectations are executed after the model is run, directly in memory, and should return a boolean indicating whether the expectation passed or failed.
 
-Strict mode is on by default, so an expectation that returns `False` fails the run.
+An expectation that returns `False` fails the run.
 
 ## Built-in Expectations
 
