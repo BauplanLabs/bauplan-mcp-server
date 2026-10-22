@@ -1269,7 +1269,7 @@ def test_project_run_delegates_omitted_run_defaults_to_sdk():
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
-        assert captured["strict"] is True
+        assert "strict" not in captured
 
     asyncio.run(run())
 
@@ -1327,23 +1327,31 @@ def test_code_run_delegates_omitted_run_defaults_to_sdk():
         assert captured["dry_run"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
-        assert captured["strict"] is True
+        assert "strict" not in captured
 
     asyncio.run(run())
 
 
-def test_code_run_passes_strict_argument_to_sdk():
+def test_code_run_ignores_deprecated_strict_argument():
     async def run():
         mcp = FastMCP("test")
         register_code_run_tool(mcp)
         tool = await _get_tool(mcp, "code_run")
 
         captured = {}
+        warnings = []
 
         class Client(_JobLookupClient):
             def run(self, **kwargs):
                 captured.update(kwargs)
                 return SimpleNamespace(job_id="job-1", job_status="SUCCESS")
+
+        class Ctx:
+            async def info(self, message):
+                pass
+
+            async def warning(self, message):
+                warnings.append(message)
 
         result = await tool.fn(
             project_files={
@@ -1356,6 +1364,7 @@ def test_code_run_passes_strict_argument_to_sdk():
             client_timeout=10,
             detach=False,
             strict=False,
+            ctx=Ctx(),
             bauplan_client=Client(),
         )
 
@@ -1364,7 +1373,8 @@ def test_code_run_passes_strict_argument_to_sdk():
         assert captured["dry_run"] is True
         assert captured["client_timeout"] == 10
         assert captured["detach"] is True
-        assert captured["strict"] is False
+        assert "strict" not in captured
+        assert warnings == ["strict is deprecated and ignored. Runs are always strict."]
 
     asyncio.run(run())
 
@@ -1581,14 +1591,12 @@ def test_code_run_passes_optional_run_arguments_to_sdk():
             ref="alice.dev",
             namespace="alice",
             dry_run=True,
-            strict=False,
             bauplan_client=Client(),
         )
 
         assert captured["ref"] == "alice.dev"
         assert captured["namespace"] == "alice"
         assert captured["dry_run"] is True
-        assert captured["strict"] is False
         assert captured["client_timeout"] == 30
         assert captured["detach"] is True
         assert result.job.id == "job-1"

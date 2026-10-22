@@ -172,7 +172,7 @@ bauplan run --dry-run
 bauplan run
 ```
 
-Strict mode is on by default: a failing expectation fails the run. There is no `--strict` flag; `--no-strict` disables it for the whole run.
+A failing expectation fails the run. Do not pass `--no-strict`: it is deprecated and will be removed.
 
 ### SDK (Programmatic Mode)
 

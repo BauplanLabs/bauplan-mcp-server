@@ -74,7 +74,8 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         strict: Annotated[
             bool,
             Field(
-                description="Whether to enable strict mode for the run. Defaults to true.",
+                description="Deprecated and ignored. Runs are always strict: a failing expectation fails the run.",
+                deprecated=True,
             ),
         ] = True,
         ctx: Context | None = None,
@@ -88,6 +89,8 @@ def register_project_run_tool(mcp: FastMCP) -> None:
         try:
             if ctx:
                 await ctx.info(f"Running project from '{project_dir}' with ref '{ref}'")
+            if not strict and ctx:
+                await ctx.warning("strict is deprecated and ignored. Runs are always strict.")
 
             return await run_project(
                 project_dir=project_dir,
@@ -96,7 +99,6 @@ def register_project_run_tool(mcp: FastMCP) -> None:
                 parameters=parameters,
                 dry_run=dry_run,
                 client_timeout=client_timeout,
-                strict=strict,
                 logger=logger,
                 bauplan_client=bauplan_client,
             )

@@ -14,7 +14,6 @@ async def run_project(
     parameters: dict[str, str | int | float | bool | None] | None,
     dry_run: bool,
     client_timeout: int,
-    strict: bool,
     logger: logging.Logger,
     bauplan_client: bauplan.Client,
 ) -> JobOut:
@@ -38,7 +37,6 @@ async def run_project(
             dry_run=dry_run,
             client_timeout=client_timeout,
             detach=True,
-            strict=strict,
         )
     )
 
