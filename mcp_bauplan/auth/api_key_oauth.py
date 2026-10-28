@@ -43,6 +43,7 @@ _KEY_ENTRY_PATH = "/authorize/key"
 _ENCRYPTED_API_KEY_CLAIM = "bauplan_api_key_enc"
 _TOKEN_USE_CLAIM = "token_use"
 _CLIENT_REGISTRATION_USE = "client-registration"
+_API_KEY_BEARER_CLIENT_ID = "bauplan-api-key"
 
 _SIGNING_SALT = "bauplan-mcp-oauth-signing"
 _STORAGE_SALT = "bauplan-mcp-api-key-storage"
@@ -81,6 +82,10 @@ class APIKeyOAuthProvider(OAuthProvider):
     OAuth clients, authorization codes, and tokens are stateless signed
     containers. The Bauplan API key is encrypted into opaque JWT claims and is
     validated only when the user authorizes or refreshes the MCP token.
+
+    With `allow_api_key_bearer`, a bearer that is not a JWT is taken as a
+    Bauplan API key and validated on every request, for clients that only send
+    static headers.
     """
 
     def __init__(
@@ -102,6 +107,7 @@ class APIKeyOAuthProvider(OAuthProvider):
         self._refresh_token_ttl_seconds = config.refresh_token_ttl_seconds
         self._client_registration_ttl_seconds = config.client_registration_ttl_seconds
         self._trusted_redirects = config.trusted_redirects
+        self._allow_api_key_bearer = config.allow_api_key_bearer
         self._base_url = config.base_url
         self._audience = f"{config.base_url.rstrip('/')}/mcp"
         self._signing_key = derive_jwt_key(
@@ -359,6 +365,16 @@ class APIKeyOAuthProvider(OAuthProvider):
         )
 
     async def load_access_token(self, token: str) -> AccessToken | None:
+        if self._allow_api_key_bearer and not _looks_like_jwt(token):
+            if not await self._call_validate_api_key(token):
+                return None
+            return AccessToken(
+                token=token,
+                client_id=_API_KEY_BEARER_CLIENT_ID,
+                scopes=[],
+                claims={BAUPLAN_API_KEY_CLAIM: token},
+            )
+
         try:
             payload = self._verify_token(token)
         except JoseError:
@@ -583,6 +599,11 @@ def _client_from_claims(client_id: str, claims: dict[str, Any]) -> OAuthClientIn
         )
     except (KeyError, TypeError, ValueError, ValidationError):
         return None
+
+
+def _looks_like_jwt(token: str) -> bool:
+    parts = token.split(".")
+    return len(parts) == 3 and all(parts)
 
 
 def _client_id_hash(client_id: str) -> str:

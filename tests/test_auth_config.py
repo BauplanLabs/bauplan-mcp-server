@@ -60,3 +60,15 @@ def test_oauth_config_removes_default_https_port(monkeypatch):
     config = load_oauth_config()
 
     assert config.base_url == "https://mcp.example.com"
+
+
+def test_oauth_config_allows_api_key_bearer_only_on_opt_in(monkeypatch):
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com")
+    monkeypatch.setenv("MCP_OAUTH_SECRET", "x" * 32)
+    monkeypatch.delenv("MCP_OAUTH_ALLOW_API_KEY_BEARER", raising=False)
+
+    assert not load_oauth_config().allow_api_key_bearer
+
+    monkeypatch.setenv("MCP_OAUTH_ALLOW_API_KEY_BEARER", "true")
+
+    assert load_oauth_config().allow_api_key_bearer

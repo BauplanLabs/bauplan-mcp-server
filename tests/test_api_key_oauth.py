@@ -872,6 +872,38 @@ def test_api_key_oauth_rejects_expired_token():
     asyncio.run(run())
 
 
+def test_api_key_oauth_takes_valid_non_jwt_bearer_as_api_key_only_on_opt_in():
+    async def run():
+        def provider(allow_api_key_bearer: bool) -> APIKeyOAuthProvider:
+            return APIKeyOAuthProvider(
+                config=OAuthConfig(
+                    base_url="https://mcp.example.com",
+                    secret="x" * 32,
+                    allow_api_key_bearer=allow_api_key_bearer,
+                ),
+                validate_api_key=lambda api_key: _user_info() if api_key == "bpln-good" else None,
+            )
+
+        assert await provider(False).load_access_token("bpln-good") is None
+
+        enabled = provider(True)
+        access_token = await enabled.load_access_token("bpln-good")
+        assert access_token is not None
+        assert access_token.claims[BAUPLAN_API_KEY_CLAIM] == "bpln-good"
+        assert await enabled.load_access_token("bpln-bad") is None
+
+        expired = enabled._issue_token(
+            client_id="client-1",
+            scopes=[],
+            encrypted_api_key=enabled._encrypt_api_key("bpln-good"),
+            token_use="access",
+            expires_in=-1,
+        )
+        assert await enabled.load_access_token(expired) is None
+
+    asyncio.run(run())
+
+
 def test_api_key_oauth_rejects_wrong_issuer_or_audience():
     async def run():
         provider = APIKeyOAuthProvider(
