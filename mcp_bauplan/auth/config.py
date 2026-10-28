@@ -25,6 +25,7 @@ class OAuthConfig:
     refresh_token_ttl_seconds: int = 60 * 60 * 24 * 7
     client_registration_ttl_seconds: int = 60 * 60 * 24 * 30
     trusted_redirects: tuple[str, ...] = DEFAULT_TRUSTED_REDIRECTS
+    allow_api_key_bearer: bool = False
 
 
 def get_auth_mode() -> AuthMode:
@@ -57,6 +58,7 @@ def load_oauth_config() -> OAuthConfig:
             60 * 60 * 24 * 30,
         ),
         trusted_redirects=_csv_env("MCP_OAUTH_TRUSTED_REDIRECTS", DEFAULT_TRUSTED_REDIRECTS),
+        allow_api_key_bearer=_bool_env("MCP_OAUTH_ALLOW_API_KEY_BEARER"),
     )
 
 
@@ -93,3 +95,12 @@ def _csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     if value is None or not value.strip():
         return default
     return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _bool_env(name: str) -> bool:
+    value = os.getenv(name, "").strip().lower()
+    if value in ("", "0", "false", "no", "off"):
+        return False
+    if value in ("1", "true", "yes", "on"):
+        return True
+    raise ValueError(f"{name} must be true or false")

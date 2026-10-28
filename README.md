@@ -103,6 +103,7 @@ Useful environment variables:
 | `MCP_VISIBLE_TOOL_TAGS` | unset locally, `remote` in OAuth mode | Comma-separated allowlist of FastMCP tool tags to expose |
 | `MCP_OAUTH_SECRET` | required for OAuth | Stable secret used to sign tokens and encrypt API keys |
 | `MCP_OAUTH_TRUSTED_REDIRECTS` | Claude and ChatGPT callbacks | Comma-separated trusted redirect list. Supports a trailing `*` for trusted path prefixes |
+| `MCP_OAUTH_ALLOW_API_KEY_BEARER` | `false` | Also accept a Bauplan API key as bearer token, for clients that only send static headers |
 
 Tool visibility is controlled with FastMCP tags. Local runs expose every tool by default. Remote OAuth runs expose only tools tagged `remote` unless `MCP_VISIBLE_TOOL_TAGS` is set explicitly. This keeps local-only tools such as `project_run` and `run_query_to_csv` out of shared server deployments.
 When multiple tags are configured, a tool is visible if it has at least one matching tag.

@@ -2,8 +2,10 @@ import asyncio
 
 import pytest
 from mcp.types import ToolAnnotations
+from starlette.testclient import TestClient
 
 from mcp_bauplan.app import _log_tool_args_enabled, create_http_app, create_mcp
+from mcp_bauplan.auth import api_key_oauth
 from mcp_bauplan.auth.config import API_KEY_OAUTH_MODE
 
 
@@ -109,6 +111,42 @@ def test_create_mcp_exposes_tool_annotations(monkeypatch: pytest.MonkeyPatch):
         assert run_query_to_csv.destructive_hint is False
 
     asyncio.run(run())
+
+
+def test_http_app_validates_bearer_api_key_on_every_request(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("MCP_AUTH_MODE", API_KEY_OAUTH_MODE)
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com")
+    monkeypatch.setenv("MCP_OAUTH_SECRET", "x" * 32)
+    monkeypatch.setenv("MCP_OAUTH_ALLOW_API_KEY_BEARER", "true")
+    monkeypatch.delenv("MCP_VISIBLE_TOOL_TAGS", raising=False)
+    validated_keys = []
+
+    def validate(api_key: str) -> api_key_oauth.BauplanUserInfo | None:
+        validated_keys.append(api_key)
+        if api_key != "bpln-good":
+            return None
+        return api_key_oauth.BauplanUserInfo(username="test-user", full_name="Test User")
+
+    monkeypatch.setattr(api_key_oauth, "validate_bauplan_api_key", validate)
+
+    with TestClient(create_http_app(), base_url="https://mcp.example.com") as client:
+
+        def rpc(api_key: str, method: str, params: dict) -> int:
+            response = client.post(
+                "/mcp",
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
+            )
+            return response.status_code
+
+        assert rpc("bpln-good", "tools/list", {}) == 200
+        assert rpc("bpln-bad", "tools/list", {}) == 401
+        assert rpc("bpln-bad", "tools/call", {"name": "get_instructions", "arguments": {}}) == 401
+
+    assert validated_keys == ["bpln-good", "bpln-bad", "bpln-bad"]
 
 
 def test_create_http_app_rejects_stdio_transport(monkeypatch: pytest.MonkeyPatch):
